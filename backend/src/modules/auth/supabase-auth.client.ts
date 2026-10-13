@@ -42,6 +42,19 @@ export class SupabaseAuthClient {
     return this.leerSesion(res, 'La sesión expiró, inicia sesión de nuevo');
   }
 
+  /**
+   * Cierra SOLO la sesión de este dispositivo (scope=local): el refresh token
+   * deja de servir y el token de acceso se invalida.
+   */
+  async cerrarSesion(accessToken: string): Promise<void> {
+    const res = await this.llamar('/auth/v1/logout?scope=local', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.status >= 500) throw this.servicioCaido();
+    // 401/403: la sesión ya estaba cerrada o vencida; el resultado es el mismo.
+  }
+
   /** Devuelve el usuario dueño del token, o null si el token no sirve. */
   async obtenerUsuario(accessToken: string): Promise<{ id: string } | null> {
     const res = await this.llamar('/auth/v1/user', {

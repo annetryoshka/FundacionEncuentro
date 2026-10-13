@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { Public } from '../../common/decorators/public.decorator.js';
+import { TokenActual } from '../../common/decorators/token-actual.decorator.js';
 import { UsuarioActual } from '../../common/decorators/usuario-actual.decorator.js';
 import type { Usuario } from '../../common/types/usuario.js';
 import { AuthService } from './auth.service.js';
@@ -24,6 +25,13 @@ export class AuthController {
   @HttpCode(200)
   refrescar(@Body() dto: RefreshDto) {
     return this.auth.refrescar(dto.refreshToken);
+  }
+
+  /** Cierra la sesión actual. Responde 204 (sin contenido). */
+  @Post('logout')
+  @HttpCode(204)
+  async logout(@UsuarioActual() usuario: Usuario, @TokenActual() token: string) {
+    await this.auth.logout(usuario.id, token);
   }
 
   /** Datos del usuario con sesión iniciada (sirve para recuperar la sesión). */

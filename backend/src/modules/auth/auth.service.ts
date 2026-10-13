@@ -30,6 +30,15 @@ export class AuthService {
     return this.armarRespuesta(sesion, usuario);
   }
 
+  async logout(usuarioId: string, accessToken: string): Promise<void> {
+    await this.supabase.cerrarSesion(accessToken);
+
+    await this.db.query(
+      `insert into auditoria (usuario_id, accion, tabla) values ($1, 'LOGOUT', 'auth')`,
+      [usuarioId],
+    );
+  }
+
   async refrescar(refreshToken: string): Promise<RespuestaSesion> {
     const sesion = await this.supabase.refrescar(refreshToken);
     const usuario = await this.cargarPerfil(sesion.user.id);
