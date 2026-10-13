@@ -34,6 +34,7 @@ export class AuthGuard implements CanActivate {
     if (!usuarioSupabase) throw new UnauthorizedException('Sesión inválida o expirada');
 
     request.usuario = await this.auth.cargarPerfil(usuarioSupabase.id);
+    request.token = token;
     return true;
   }
 

@@ -11,4 +11,5 @@ export interface Usuario {
 export interface RequestConUsuario {
   headers: Record<string, string | string[] | undefined>;
   usuario?: Usuario;
+  token?: string;
 }
