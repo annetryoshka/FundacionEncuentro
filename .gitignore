@@ -1,0 +1,14 @@
+# Secretos
+.env
+.env.*
+!.env.example
+
+# Dependencias y build
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Editor y sistema
+.vscode/
+.DS_Store
+*.log
