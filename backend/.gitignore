@@ -1,0 +1,13 @@
+# Secretos: NUNCA subir a Git
+.env
+.env.*
+!.env.example
+
+# Dependencias y build
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Otros
+.DS_Store
+*.log
