@@ -19,8 +19,8 @@ export function PaginaInicio() {
       ruta: '/carpetas',
       titulo: tieneRol('administrador') ? 'Buscar carpetas' : 'Mis carpetas',
       texto: tieneRol('administrador')
-        ? 'Busca a un paciente por nombre o número de carpeta.'
-        : 'Las carpetas que la dirección te asignó.',
+        ? 'Busca a un paciente por nombre, tipo o estado.'
+        : 'Las carpetas que la dirección te asigne.',
     })
   }
   if (tieneRol('administrador')) {
@@ -28,7 +28,7 @@ export function PaginaInicio() {
       {
         ruta: '/carpetas/nueva',
         titulo: 'Registrar paciente',
-        texto: 'Abre una carpeta digital con número correlativo.',
+        texto: 'Abre su carpeta digital con número correlativo.',
       },
       { ruta: '/usuarios', titulo: 'Cuentas del personal', texto: 'Crea cuentas para terapeutas y personal de apoyo.' },
     )

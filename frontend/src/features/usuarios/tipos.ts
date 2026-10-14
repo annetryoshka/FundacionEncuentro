@@ -10,13 +10,16 @@ export interface Usuario {
   creadoEn: string
 }
 
-/** Cuerpo de POST /api/usuarios (mismos nombres que el login del backend: email, password). */
+/** Cuerpo de POST /api/usuarios (CrearUsuarioDto: email, password de 10 a 72 caracteres, nombreCompleto, rol). */
 export interface NuevoUsuario {
   nombreCompleto: string
   email: string
   rol: Rol
   password: string
 }
+
+/** Cuerpo de PATCH /api/usuarios/:id (ActualizarUsuarioDto). */
+export type ActualizacionUsuario = Partial<Pick<Usuario, 'nombreCompleto' | 'rol' | 'activo'>>
 
 export const ROLES: { valor: Rol; nombre: string; descripcion: string }[] = [
   { valor: 'administrador', nombre: 'Dirección', descripcion: 'Ve todas las carpetas y gestiona cuentas.' },

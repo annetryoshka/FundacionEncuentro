@@ -1,7 +1,7 @@
 import { ErrorDeCarga } from '../../componentes/ErrorDeCarga'
 import { useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { ErrorApi, mensajeErrorGeneral } from '../../api/cliente'
+import { ErrorApi, esEndpointPendiente, mensajeErrorGeneral } from '../../api/cliente'
 import { useCarga } from '../../api/useCarga'
 import { claseCampo } from '../../componentes/estilos'
 import { Aviso, Boton, Cargando, Tarjeta } from '../../componentes/ui'
@@ -54,7 +54,7 @@ function FormularioAsignacion({ carpeta, alActualizar }: Omit<Props, 'puedeAsign
   const actualId = carpeta.terapeuta?.id ?? ''
   const [elegida, setElegida] = useState(actualId)
   const [guardando, setGuardando] = useState(false)
-  const [resultado, setResultado] = useState<{ tipo: 'exito' | 'error'; texto: string } | null>(null)
+  const [resultado, setResultado] = useState<{ tipo: 'exito' | 'error' | 'info'; texto: string } | null>(null)
   const refAviso = useRef<HTMLDivElement>(null)
   const id = useId()
 
@@ -105,6 +105,9 @@ function FormularioAsignacion({ carpeta, alActualizar }: Omit<Props, 'puedeAsign
           texto: 'Esa persona ya no es una terapeuta activa. Actualizamos la lista: elige otra.',
         })
         terapeutas.recargar()
+      } else if (esEndpointPendiente(error)) {
+        // PUT /api/casos/:id/terapeuta llega con FE-37.
+        setResultado({ tipo: 'info', texto: mensajeErrorGeneral(error) })
       } else {
         setResultado({ tipo: 'error', texto: mensajeErrorGeneral(error) })
       }

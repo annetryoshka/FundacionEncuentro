@@ -17,34 +17,35 @@ Abre http://localhost:5173. En desarrollo, Vite reenvía `/api` a `http://localh
 
 ## Con el backend real (`npm run dev`)
 
-Funciona hoy con lo que ya tiene `backend/src/modules/auth`:
-
-| Función | Endpoint | Estado |
+| Pantalla | Endpoint | Estado |
 | --- | --- | --- |
-| Iniciar sesión | `POST /api/auth/login` | ✅ |
-| Mantener la sesión al recargar y renovar el token | `POST /api/auth/refresh` | ✅ |
-| Cerrar sesión | `POST /api/auth/logout` | ✅ |
-| Cuentas del personal | `GET` y `POST /api/usuarios` | ⏳ falta en el backend |
-| Carpetas: listado, registro, resumen y asignación | `/api/carpetas…` | ⏳ falta en el backend |
+| Iniciar sesión, mantener la sesión al recargar, cerrar sesión | `/api/auth/login`, `/refresh`, `/logout` | ✅ |
+| Cuentas del personal: listar, crear, activar / desactivar | `GET`, `POST /api/usuarios`, `PATCH /api/usuarios/:id` | ✅ |
+| Registrar paciente y abrir su carpeta (con contexto judicial si es derivado) | `POST /api/casos` | ✅ |
+| Buscar carpetas por nombre, tipo y estado, de 10 en 10 | `GET /api/casos` | ✅ |
+| Resumen de la carpeta | `GET /api/casos/:id` | ✅ |
+| Asignar terapeuta | `PUT /api/casos/:id/terapeuta` | ⏳ falta en el backend (FE-37) |
+| Una terapeuta ve sus carpetas | `GET /api/casos` con rol terapeuta | ⏳ hoy responde 403 (FE-37) |
 
-Mientras falte un endpoint, la pantalla lo dice ("todavía no está disponible en el servidor") en vez de romperse.
-Lo que el frontend espera de cada endpoint pendiente está en `../docs/api/contrato-frontend-backend.md`.
+Mientras falte algo, la pantalla lo dice ("todavía no está disponible en el servidor" o "Pronto verás aquí…")
+en vez de romperse. El detalle de cada endpoint está en `../docs/api/contrato-frontend-backend.md`.
 
 Para entrar hace falta una cuenta en Supabase Auth **con su fila en `perfiles` y `activo = true`**.
+La primera cuenta de administración se crea a mano (ver `../README.md`); las demás, desde "Cuentas del personal".
 
 ## Modo simulado (`npm run dev:simulado`)
 
-Una API falsa en el navegador: el login responde **igual que el backend real** (mismos campos y errores) y el
-resto sigue el contrato, con permisos por rol y por caso y 14 carpetas ficticias. Sirve para mostrar y probar
-pantallas cuyo endpoint aún no existe. Nunca entra al build de producción.
+Una API falsa en el navegador que responde **igual que el backend real** (mismos campos, permisos y errores) con
+14 carpetas ficticias. Lo único que agrega es la asignación de terapeuta, que el backend todavía no tiene.
+Sirve para mostrar pantallas sin backend. Nunca entra al build de producción.
 
 Contraseña de todas las cuentas: `Encuentro2026`
 
 | Correo | Rol | Para probar |
 | --- | --- | --- |
-| `direccion@fundacion.test` | Dirección | Todo: cuentas, registrar, asignar, buscar |
-| `terapeuta1@fundacion.test` | Terapeuta (Sofía) | Solo ve sus carpetas asignadas |
-| `terapeuta2@fundacion.test` | Terapeuta (Carla) | Solo ve sus carpetas asignadas |
+| `direccion@fundacion.test` | Dirección | Todo: cuentas, registrar, buscar, asignar |
+| `terapeuta1@fundacion.test` | Terapeuta (Sofía) | Aviso "Pronto verás aquí tus carpetas" (igual que el backend hoy) |
+| `terapeuta2@fundacion.test` | Terapeuta (Carla) | Ídem |
 | `apoyo@fundacion.test` | Apoyo / marketing | Sin acceso a información clínica |
 | `inactiva@fundacion.test` | Terapeuta inactiva | El login la rechaza con mensaje genérico |
 | `caido@fundacion.test` | — | Simula que no hay conexión con el servidor |
@@ -84,7 +85,7 @@ src/
   features/
     auth/                 login (FE-21), sesión, rutas protegidas
     usuarios/             cuentas del personal (FE-28)
-    carpetas/             búsqueda (FE-39), registro (FE-31), resumen y asignación (FE-36)
+    carpetas/             búsqueda (FE-39), registro (FE-31), resumen y asignación (FE-36) con /api/casos
   paginas/                inicio, sin permiso, no encontrada
   test/montarApp.tsx      monta la app completa contra la API simulada
 ```

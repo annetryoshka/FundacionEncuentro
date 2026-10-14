@@ -1,13 +1,17 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ErrorApi, mensajeErrorGeneral } from '../../api/cliente'
-import { Aviso, Boton, CampoTexto, EncabezadoPagina, GrupoOpciones, Tarjeta } from '../../componentes/ui'
+import { AreaTexto, Aviso, Boton, CampoTexto, EncabezadoPagina, GrupoOpciones, Tarjeta } from '../../componentes/ui'
 import { hoyIso } from '../../utilidades/fechas'
 import { registrarCarpeta } from './carpetasApi'
-import { NOMBRE_TIPO, numeroCarpeta, type NuevaCarpeta, type PosibleDuplicado, type TipoCaso } from './tipos'
-import { validarNuevaCarpeta, type ErroresCarpeta } from './validacion'
-
-type Formulario = { [K in keyof NuevaCarpeta]: string }
+import type { TipoCaso } from './tipos'
+import {
+  aNuevaCarpeta,
+  FORMULARIO_VACIO,
+  validarNuevaCarpeta,
+  type ErroresCarpeta,
+  type FormularioCarpeta,
+} from './validacion'
 
 const TIPOS: { valor: TipoCaso; nombre: string; descripcion: string }[] = [
   {
@@ -22,63 +26,69 @@ const TIPOS: { valor: TipoCaso; nombre: string; descripcion: string }[] = [
   },
 ]
 
-/** FE-31 · Formulario de registro de paciente y apertura de carpeta (historia FE-11). */
+/** Orden en que se enfoca el primer campo con error. */
+const ORDEN_CAMPOS: (keyof FormularioCarpeta)[] = [
+  'nombreCompleto',
+  'fechaNacimiento',
+  'telefono',
+  'fechaIngreso',
+  'tipo',
+  'fechaDerivacion',
+]
+
+/**
+ * FE-31 · Registro integral de paciente y apertura de carpeta (historia FE-11).
+ * Usa POST /api/casos (FE-32): paciente + caso (+ contexto judicial si es derivado) en una transacción.
+ */
 export function PaginaNuevaCarpeta() {
   const navegar = useNavigate()
-  const [form, setForm] = useState<Formulario>({ nombreCompleto: '', fechaIngreso: hoyIso(), tipo: '' })
+  const [form, setForm] = useState<FormularioCarpeta>({ ...FORMULARIO_VACIO, fechaIngreso: hoyIso() })
   const [errores, setErrores] = useState<ErroresCarpeta>({})
   const [intento, setIntento] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
-  const [duplicados, setDuplicados] = useState<PosibleDuplicado[]>([])
 
-  const refNombre = useRef<HTMLInputElement>(null)
-  const refFecha = useRef<HTMLInputElement>(null)
+  const refFormulario = useRef<HTMLFormElement>(null)
   const refAviso = useRef<HTMLDivElement>(null)
 
-  const cambiar = (campo: keyof Formulario, valor: string) => {
+  const cambiar = (campo: keyof FormularioCarpeta, valor: string) => {
     const siguiente = { ...form, [campo]: valor }
     setForm(siguiente)
-    if (campo === 'nombreCompleto') setDuplicados([])
     if (intento) setErrores(validarNuevaCarpeta(siguiente))
   }
+
+  const enfocar = (campo: keyof FormularioCarpeta) =>
+    refFormulario.current?.querySelector<HTMLElement>(`[name="${campo}"]`)?.focus()
 
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
     if (guardando) return
     setIntento(true)
     setErrorGeneral(null)
-    setDuplicados([])
 
     const encontrados = validarNuevaCarpeta(form)
     setErrores(encontrados)
-    if (encontrados.nombreCompleto) return refNombre.current?.focus()
-    if (encontrados.fechaIngreso) return refFecha.current?.focus()
-    if (encontrados.tipo) return
+    const primero = ORDEN_CAMPOS.find((c) => encontrados[c])
+    if (primero) return enfocar(primero)
 
     setGuardando(true)
     try {
-      const carpeta = await registrarCarpeta({
-        nombreCompleto: form.nombreCompleto.trim().replace(/\s+/g, ' '),
-        fechaIngreso: form.fechaIngreso,
-        tipo: form.tipo as TipoCaso,
+      const carpeta = await registrarCarpeta(aNuevaCarpeta(form))
+      navegar(`/carpetas/${carpeta.id}`, {
+        state: { recienCreada: true, posiblesDuplicados: carpeta.posiblesDuplicados ?? [] },
       })
-      navegar(`/carpetas/${carpeta.id}`, { state: { recienCreada: true } })
     } catch (error) {
       setGuardando(false)
-      if (error instanceof ErrorApi && error.estado === 409) {
-        setDuplicados((error.datos.posiblesDuplicados as PosibleDuplicado[] | undefined) ?? [])
-        setErrorGeneral('Ya existe una carpeta con un nombre igual. No se registró una nueva para evitar duplicados.')
-      } else {
-        setErrorGeneral(
-          error instanceof ErrorApi && error.estado === 400
-            ? 'El servidor rechazó los datos. Revisa el nombre y la fecha de ingreso.'
-            : mensajeErrorGeneral(error),
-        )
-      }
+      setErrorGeneral(
+        error instanceof ErrorApi && error.estado === 400
+          ? `El servidor rechazó los datos: ${error.message}`
+          : mensajeErrorGeneral(error),
+      )
       requestAnimationFrame(() => refAviso.current?.focus())
     }
   }
+
+  const derivado = form.tipo === 'derivado'
 
   return (
     <div className="space-y-6">
@@ -91,12 +101,11 @@ export function PaginaNuevaCarpeta() {
       />
 
       <Tarjeta className="max-w-2xl">
-        <form noValidate onSubmit={guardar}>
+        <form ref={refFormulario} noValidate onSubmit={guardar}>
           <fieldset disabled={guardando} className="space-y-5">
-            <legend className="sr-only">Datos del paciente</legend>
+            <legend className="text-lg font-semibold text-verde-oscuro">Paciente</legend>
 
             <CampoTexto
-              ref={refNombre}
               etiqueta="Nombre completo del paciente"
               name="nombreCompleto"
               autoComplete="off"
@@ -106,8 +115,32 @@ export function PaginaNuevaCarpeta() {
               ayuda="Para una familia puedes escribir, por ejemplo, «Familia Quispe Mamani»."
             />
 
+            <div className="grid gap-5 sm:grid-cols-2">
+              <CampoTexto
+                etiqueta="Fecha de nacimiento (opcional)"
+                name="fechaNacimiento"
+                type="date"
+                max={form.fechaIngreso || hoyIso()}
+                value={form.fechaNacimiento}
+                onChange={(e) => cambiar('fechaNacimiento', e.target.value)}
+                error={errores.fechaNacimiento}
+                ayuda="Con ella se calcula la edad al ingreso."
+              />
+              <CampoTexto
+                etiqueta="Teléfono (opcional)"
+                name="telefono"
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                value={form.telefono}
+                onChange={(e) => cambiar('telefono', e.target.value)}
+                error={errores.telefono}
+              />
+            </div>
+
+            <h2 className="border-t border-linea pt-5 text-lg font-semibold text-verde-oscuro">Carpeta</h2>
+
             <CampoTexto
-              ref={refFecha}
               etiqueta="Fecha de ingreso"
               name="fechaIngreso"
               type="date"
@@ -127,30 +160,64 @@ export function PaginaNuevaCarpeta() {
               error={errores.tipo}
             />
 
+            {derivado && (
+              <fieldset className="space-y-5 rounded-2xl bg-crema p-4 sm:p-5">
+                <legend className="sr-only">Contexto judicial</legend>
+                <p className="font-semibold text-verde-oscuro">Contexto de la derivación (opcional)</p>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <CampoTexto
+                    etiqueta="Juzgado o institución"
+                    name="juzgado"
+                    autoComplete="off"
+                    maxLength={200}
+                    value={form.juzgado}
+                    onChange={(e) => cambiar('juzgado', e.target.value)}
+                  />
+                  <CampoTexto
+                    etiqueta="Nº de expediente"
+                    name="nroExpediente"
+                    autoComplete="off"
+                    maxLength={100}
+                    value={form.nroExpediente}
+                    onChange={(e) => cambiar('nroExpediente', e.target.value)}
+                  />
+                </div>
+                <CampoTexto
+                  etiqueta="Fecha de derivación"
+                  name="fechaDerivacion"
+                  type="date"
+                  max={hoyIso()}
+                  value={form.fechaDerivacion}
+                  onChange={(e) => cambiar('fechaDerivacion', e.target.value)}
+                  error={errores.fechaDerivacion}
+                  className="sm:max-w-xs"
+                />
+                <AreaTexto
+                  etiqueta="Observaciones"
+                  name="observaciones"
+                  maxLength={5000}
+                  value={form.observaciones}
+                  onChange={(e) => cambiar('observaciones', e.target.value)}
+                />
+              </fieldset>
+            )}
+
+            <AreaTexto
+              etiqueta="Motivo de consulta o diagnóstico de ingreso (opcional)"
+              name="diagnosticoIngreso"
+              maxLength={5000}
+              value={form.diagnosticoIngreso}
+              onChange={(e) => cambiar('diagnosticoIngreso', e.target.value)}
+            />
+
             <p className="rounded-xl bg-crema px-4 py-3 text-sm text-suave">
-              El número de carpeta se asigna automáticamente al guardar y no se puede cambiar.
+              El número de carpeta se asigna automáticamente al guardar (una numeración para voluntarios y otra para
+              derivados) y no se puede cambiar.
             </p>
 
             {errorGeneral && (
               <Aviso ref={refAviso} tipo="error">
-                <p>{errorGeneral}</p>
-                {duplicados.length > 0 && (
-                  <>
-                    <p className="mt-2 text-texto">Revisa si es la misma persona:</p>
-                    <ul className="mt-1 space-y-1">
-                      {duplicados.map((d) => (
-                        <li key={d.id}>
-                          <Link
-                            to={`/carpetas/${d.id}`}
-                            className="font-semibold text-texto underline underline-offset-2"
-                          >
-                            Carpeta {numeroCarpeta(d.numero)} ({NOMBRE_TIPO[d.tipo]}): {d.nombreCompleto}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
+                {errorGeneral}
               </Aviso>
             )}
 

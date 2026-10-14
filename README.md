@@ -33,3 +33,12 @@ pagos e informes de la Fundación Encuentro.
 5. Abrir http://localhost:5173
 
 Sin backend: `npm run dev:simulado` (API simulada en el navegador). Detalles en `frontend/README.md`.
+
+## Primera cuenta de administración
+Las cuentas se crean desde la pantalla "Cuentas del personal", pero la primera se crea a mano en Supabase:
+1. Authentication → Users → Add user → correo y contraseña, con "Auto Confirm User"
+2. SQL Editor:
+   ```sql
+   insert into perfiles (id, nombre_completo, rol)
+   select id, 'Nombre Apellido', 'administrador' from auth.users where email = 'correo@ejemplo.com';
+   ```

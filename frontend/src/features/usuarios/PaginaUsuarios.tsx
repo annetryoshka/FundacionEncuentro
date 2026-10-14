@@ -13,9 +13,10 @@ import {
   Tarjeta,
 } from '../../componentes/ui'
 import { fechaCorta } from '../../utilidades/fechas'
+import { useSesion } from '../auth/sesion'
 import type { Rol } from '../auth/tipos'
 import { ROLES, nombreRol, type Usuario } from './tipos'
-import { crearUsuario, listarUsuarios } from './usuariosApi'
+import { actualizarUsuario, crearUsuario, listarUsuarios } from './usuariosApi'
 import { generarContrasena, validarNuevoUsuario, type ErroresUsuario, type FormularioUsuario } from './validacion'
 
 type Formulario = FormularioUsuario
@@ -42,6 +43,45 @@ export function PaginaUsuarios() {
 
 function ListadoUsuarios({ estado }: { estado: ReturnType<typeof useCarga<Usuario[]>> }) {
   const { datos: usuarios, error, cargando, recargar } = estado
+  const { usuario: yo } = useSesion()
+  const [cambiando, setCambiando] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<{ tipo: 'exito' | 'error'; texto: string } | null>(null)
+
+  /** PATCH /api/usuarios/:id { activo }: una cuenta inactiva ya no puede iniciar sesión. */
+  const alternarActivo = async (u: Usuario) => {
+    setCambiando(u.id)
+    setAviso(null)
+    try {
+      const actualizado = await actualizarUsuario(u.id, { activo: !u.activo })
+      setAviso({
+        tipo: 'exito',
+        texto: actualizado.activo
+          ? `${actualizado.nombreCompleto} puede volver a iniciar sesión.`
+          : `${actualizado.nombreCompleto} ya no puede iniciar sesión.`,
+      })
+      recargar()
+    } catch (e) {
+      setAviso({ tipo: 'error', texto: mensajeErrorGeneral(e) })
+    } finally {
+      setCambiando(null)
+    }
+  }
+
+  const accion = (u: Usuario) =>
+    u.id === yo?.id ? (
+      <span className="text-xs text-suave">Tu cuenta</span>
+    ) : (
+      <Boton
+        variante="texto"
+        className="-mx-2 text-sm"
+        cargando={cambiando === u.id}
+        disabled={cambiando !== null}
+        onClick={() => alternarActivo(u)}
+        aria-label={`${u.activo ? 'Desactivar' : 'Activar'} la cuenta de ${u.nombreCompleto}`}
+      >
+        {u.activo ? 'Desactivar' : 'Activar'}
+      </Boton>
+    )
 
   return (
     <Tarjeta className="lg:order-1">
@@ -55,6 +95,12 @@ function ListadoUsuarios({ estado }: { estado: ReturnType<typeof useCarga<Usuari
 
       {usuarios && usuarios.length === 0 && <p className="mt-4 text-suave">Todavía no hay cuentas registradas.</p>}
 
+      {aviso && (
+        <Aviso tipo={aviso.tipo} className="mt-4">
+          {aviso.texto}
+        </Aviso>
+      )}
+
       {usuarios && usuarios.length > 0 && (
         <>
           {/* Celular: tarjetas apiladas. Desde md: tabla. */}
@@ -66,7 +112,10 @@ function ListadoUsuarios({ estado }: { estado: ReturnType<typeof useCarga<Usuari
                   <EstadoCuenta activo={u.activo} />
                 </div>
                 <p className="text-sm break-all text-suave">{u.email}</p>
-                <p className="text-sm text-texto">{nombreRol(u.rol)}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-texto">{nombreRol(u.rol)}</p>
+                  {accion(u)}
+                </div>
               </li>
             ))}
           </ul>
@@ -84,8 +133,11 @@ function ListadoUsuarios({ estado }: { estado: ReturnType<typeof useCarga<Usuari
                 <th scope="col" className="px-3 py-2.5 font-medium">
                   Rol
                 </th>
-                <th scope="col" className="py-2.5 pl-3 font-medium">
+                <th scope="col" className="px-3 py-2.5 font-medium">
                   Estado
+                </th>
+                <th scope="col" className="py-2.5 pl-3 font-medium">
+                  <span className="sr-only">Acciones</span>
                 </th>
               </tr>
             </thead>
@@ -98,9 +150,10 @@ function ListadoUsuarios({ estado }: { estado: ReturnType<typeof useCarga<Usuari
                   </td>
                   <td className="px-3 py-3 break-all text-texto">{u.email}</td>
                   <td className="px-3 py-3 whitespace-nowrap text-texto">{nombreRol(u.rol)}</td>
-                  <td className="py-3 pl-3">
+                  <td className="px-3 py-3">
                     <EstadoCuenta activo={u.activo} />
                   </td>
+                  <td className="py-3 pl-3 text-right whitespace-nowrap">{accion(u)}</td>
                 </tr>
               ))}
             </tbody>
@@ -176,7 +229,7 @@ function FormularioUsuario({ alCrear }: { alCrear: () => void }) {
       } else {
         setErrorGeneral(
           error instanceof ErrorApi && error.estado === 400
-            ? 'El servidor rechazó los datos. Revisa los campos e inténtalo de nuevo.'
+            ? `El servidor rechazó los datos: ${error.message}`
             : mensajeErrorGeneral(error),
         )
         requestAnimationFrame(() => refAviso.current?.focus())
@@ -241,7 +294,7 @@ function FormularioUsuario({ alCrear }: { alCrear: () => void }) {
               value={form.contrasenaInicial}
               onChange={(e) => cambiar('contrasenaInicial', e.target.value)}
               error={errores.contrasenaInicial}
-              ayuda="Al menos 8 caracteres, con letras y números. Entrégala en persona."
+              ayuda="Al menos 10 caracteres, con letras y números. Entrégala en persona."
               accesorio={
                 <button
                   type="button"

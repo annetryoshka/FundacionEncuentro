@@ -37,7 +37,7 @@ describe('PaginaUsuarios', () => {
     await usuario.type(campo('Nombre completo'), 'Otra Persona')
     await usuario.type(campo('Correo electrónico'), 'TERAPEUTA1@fundacion.test')
     await usuario.click(screen.getByRole('radio', { name: /Terapeuta/ }))
-    await usuario.type(campo('Contraseña inicial'), 'Segura123')
+    await usuario.type(campo('Contraseña inicial'), 'Segura1234')
     await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
     expect(await screen.findByText('Ya existe una cuenta con este correo.')).toBeInTheDocument()
@@ -50,7 +50,7 @@ describe('PaginaUsuarios', () => {
     await usuario.type(campo('Nombre completo'), 'Ana Prueba')
     await usuario.type(campo('Correo electrónico'), 'ana@fundacion.test')
     await usuario.click(screen.getByRole('radio', { name: /Terapeuta/ }))
-    await usuario.type(campo('Contraseña inicial'), 'Segura123')
+    await usuario.type(campo('Contraseña inicial'), 'Segura1234')
     await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
     expect(await screen.findByText(/Cuenta creada para/)).toBeInTheDocument()
@@ -62,22 +62,46 @@ describe('PaginaUsuarios', () => {
       nombreCompleto: 'Ana Prueba',
       email: 'ana@fundacion.test',
       rol: 'terapeuta',
-      password: 'Segura123',
+      password: 'Segura1234',
     })
 
     const login = await atenderSimulado('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email: 'ana@fundacion.test', password: 'Segura123' }),
+      body: JSON.stringify({ email: 'ana@fundacion.test', password: 'Segura1234' }),
     })
     expect(login.status).toBe(200)
     expect((await login.json()).usuario.rol).toBe('terapeuta')
   })
 
+  it('desactiva una cuenta con PATCH y esa persona ya no puede entrar', async () => {
+    const { usuario, fetchEspia } = await montarApp('/usuarios')
+    await usuario.click(within(await tabla()).getByRole('button', { name: 'Desactivar la cuenta de Carla Rojas' }))
+
+    expect(await screen.findByText('Carla Rojas ya no puede iniciar sesión.')).toBeInTheDocument()
+    const [, init] = llamadas(fetchEspia, 'PATCH', '/api/usuarios/00000000-0000-4000-8000-000000000003')[0]
+    expect(JSON.parse(String(init?.body))).toEqual({ activo: false })
+
+    const login = await atenderSimulado('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'terapeuta2@fundacion.test', password: CONTRASENA_DEMO }),
+    })
+    expect(login.status).toBe(403)
+  })
+
+  it('no ofrece desactivar la propia cuenta', async () => {
+    await montarApp('/usuarios')
+    const fila = within(await tabla())
+      .getByText('Laura Quiroga')
+      .closest('tr')!
+    expect(within(fila).getByText('Tu cuenta')).toBeInTheDocument()
+    expect(within(fila).queryByRole('button')).not.toBeInTheDocument()
+  })
+
   it('pide una contraseña inicial segura', () => {
     const base = { nombreCompleto: 'Ana', correo: 'a@b.co', rol: 'terapeuta' }
-    expect(validarNuevoUsuario({ ...base, contrasenaInicial: 'corta1' }).contrasenaInicial).toMatch(/8 caracteres/)
+    expect(validarNuevoUsuario({ ...base, contrasenaInicial: 'Corta1234' }).contrasenaInicial).toMatch(/10 caracteres/)
     expect(validarNuevoUsuario({ ...base, contrasenaInicial: 'sololetras' }).contrasenaInicial).toBeDefined()
-    expect(validarNuevoUsuario({ ...base, contrasenaInicial: 'Segura123' }).contrasenaInicial).toBeUndefined()
+    expect(validarNuevoUsuario({ ...base, contrasenaInicial: 'Segura1234' }).contrasenaInicial).toBeUndefined()
   })
 
   it('genera contraseñas que cumplen la política', () => {

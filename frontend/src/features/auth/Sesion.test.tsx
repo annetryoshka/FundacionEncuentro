@@ -61,9 +61,9 @@ describe('Sesión', () => {
     const { usuario, fetchEspia } = await montarApp('/inicio', 'direccion')
     const simulado = fetchEspia.getMockImplementation()!
     fetchEspia.mockImplementation((entrada, init) =>
-      String(entrada).startsWith('/api/carpetas')
+      String(entrada).startsWith('/api/casos')
         ? Promise.resolve(
-            new Response(JSON.stringify({ statusCode: 404, message: 'Cannot GET /api/carpetas', error: 'Not Found' }), {
+            new Response(JSON.stringify({ statusCode: 404, message: 'Cannot GET /api/casos', error: 'Not Found' }), {
               status: 404,
             }),
           )

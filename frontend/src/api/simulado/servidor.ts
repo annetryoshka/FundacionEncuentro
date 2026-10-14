@@ -1,9 +1,11 @@
 /**
  * API SIMULADA para desarrollo y demostración (npm run dev:simulado) y para las pruebas.
- * - /auth/* imita EXACTAMENTE el backend real (backend/src/modules/auth): mismos campos,
- *   mismos códigos y mensajes de error.
- * - /usuarios y /carpetas imitan docs/api/contrato-frontend-backend.md (endpoints que el
- *   backend todavía no tiene), con las reglas de permisos por rol y por caso.
+ * Imita EXACTAMENTE el backend real (mismos campos, permisos, códigos y mensajes):
+ * - /auth/*      backend/src/modules/auth      (FE-22, FE-26)
+ * - /usuarios    backend/src/modules/usuarios  (FE-29)
+ * - /casos       backend/src/modules/casos     (FE-32)
+ * Lo único que el backend todavía no tiene es PUT /casos/:id/terapeuta (FE-37): aquí se simula
+ * según docs/api/contrato-frontend-backend.md.
  * Nunca entra al build de producción.
  */
 import type { Rol } from '../../features/auth/tipos'
@@ -23,13 +25,25 @@ interface PerfilSim {
 
 interface CasoSim {
   id: string
-  numero: number
+  numeroCorrelativo: number
   tipo: TipoCaso
   estado: EstadoCaso
   fechaIngreso: string
-  paciente: { id: string; nombreCompleto: string }
-  creadoPor: string | null
+  diagnosticoIngreso: string | null
   creadoEn: string
+  paciente: {
+    id: string
+    nombreCompleto: string
+    fechaNacimiento: string | null
+    edadAlIngreso: number | null
+    telefono: string | null
+  }
+  contextoJudicial: {
+    juzgado: string | null
+    nroExpediente: string | null
+    fechaDerivacion: string | null
+    observaciones: string | null
+  } | null
   asignacion: { perfilId: string; asignadoPor: string; asignadoEn: string } | null
 }
 
@@ -43,8 +57,10 @@ interface DatosSim {
   refrescos: Record<string, string>
 }
 
-const CLAVE_ALMACEN = 'fundacion-encuentro:api-simulada:v2'
+const CLAVE_ALMACEN = 'fundacion-encuentro:api-simulada:v3'
 const DURACION_TOKEN_S = 3600 // lo mismo que Supabase por defecto
+const SIN_PERMISO = 'No tienes permiso para realizar esta acción'
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 let retardoMs = 350
 // Se inicializa al final del módulo, cuando ya existen los datos ficticios.
 let datos: DatosSim
@@ -85,13 +101,14 @@ export async function atenderSimulado(url: string, init: RequestInit = {}): Prom
     if (metodo === 'POST' && ruta === '/auth/login') return login(cuerpo)
     if (metodo === 'POST' && ruta === '/auth/refresh') return refrescar(cuerpo)
 
-    // Guard global: todo lo demás exige sesión
+    // AuthGuard global: todo lo demás exige sesión
     const token = cabeceras.get('Authorization')?.match(/^Bearer (.+)$/i)?.[1]
     if (!token) return error(401, 'Falta iniciar sesión')
     const perfil = datos.perfiles.find((p) => p.id === datos.accesos[token])
     if (!perfil) return error(401, 'Sesión inválida o expirada')
     if (!perfil.activo) return error(403, 'Tu usuario no tiene acceso al sistema')
     const yo = perfil
+    const esAdmin = yo.rol === 'administrador'
 
     if (metodo === 'POST' && ruta === '/auth/logout') {
       delete datos.accesos[token]
@@ -100,24 +117,34 @@ export async function atenderSimulado(url: string, init: RequestInit = {}): Prom
     }
     if (metodo === 'GET' && ruta === '/auth/me') return json(200, usuarioSesion(yo))
 
+    // @Roles('administrador') en UsuariosController
     if (ruta === '/usuarios') {
-      if (yo.rol !== 'administrador') return error(403, 'Solo administración')
-      if (metodo === 'GET') return listarUsuarios(searchParams)
-      if (metodo === 'POST') return crearUsuario(cuerpo)
+      if (metodo === 'GET') return esAdmin ? json(200, listaUsuarios()) : error(403, SIN_PERMISO)
+      if (metodo === 'POST') return esAdmin ? crearUsuario(cuerpo) : error(403, SIN_PERMISO)
+    }
+    const usuario = ruta.match(/^\/usuarios\/([^/]+)$/)
+    if (usuario && (metodo === 'GET' || metodo === 'PATCH')) {
+      if (!esAdmin) return error(403, SIN_PERMISO)
+      if (!UUID.test(usuario[1])) return error(400, 'Validation failed (uuid is expected)')
+      return metodo === 'GET' ? verUsuario(usuario[1]) : actualizarUsuario(yo, usuario[1], cuerpo)
     }
 
-    if (ruta === '/carpetas') {
-      if (metodo === 'GET') return listarCarpetas(yo, searchParams)
-      if (metodo === 'POST')
-        return yo.rol === 'administrador' ? crearCarpeta(yo, cuerpo) : error(403, 'Solo administración')
+    // @Roles('administrador') en CasosController (el acceso de terapeutas llega con FE-37)
+    if (ruta === '/casos') {
+      if (metodo === 'GET') return esAdmin ? listarCasos(searchParams) : error(403, SIN_PERMISO)
+      if (metodo === 'POST') return esAdmin ? registrarCaso(cuerpo) : error(403, SIN_PERMISO)
+    }
+    const caso = ruta.match(/^\/casos\/([^/]+)$/)
+    if (caso && metodo === 'GET') {
+      if (!esAdmin) return error(403, SIN_PERMISO)
+      if (!UUID.test(caso[1])) return error(400, 'Validation failed (uuid is expected)')
+      return verCaso(caso[1])
     }
 
-    const detalle = ruta.match(/^\/carpetas\/([^/]+)$/)
-    if (detalle && metodo === 'GET') return verCarpeta(yo, detalle[1])
-
-    const asignar = ruta.match(/^\/carpetas\/([^/]+)\/terapeuta$/)
+    // PENDIENTE en el backend (FE-37): simulado según el contrato propuesto.
+    const asignar = ruta.match(/^\/casos\/([^/]+)\/terapeuta$/)
     if (asignar && metodo === 'PUT') {
-      return yo.rol === 'administrador' ? asignarTerapeuta(yo, asignar[1], cuerpo) : error(403, 'Solo administración')
+      return esAdmin ? asignarTerapeuta(yo, asignar[1], cuerpo) : error(403, SIN_PERMISO)
     }
 
     // Igual que NestJS cuando la ruta no existe
@@ -141,9 +168,7 @@ function abrirSesion(perfil: PerfilSim) {
 
 function login({ email, password }: Record<string, unknown>) {
   if (email === 'caido@fundacion.test') throw new TypeError('Failed to fetch')
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email ?? ''))) {
-    return error(400, ['El correo no tiene un formato válido'])
-  }
+  if (!esCorreo(String(email ?? ''))) return error(400, ['El correo no tiene un formato válido'])
   const perfil = datos.perfiles.find((p) => p.email === String(email).toLowerCase())
   if (!perfil || perfil.password !== password) return error(401, 'Correo o contraseña incorrectos')
   if (!perfil.activo) return error(403, 'Tu usuario no tiene acceso al sistema')
@@ -159,170 +184,276 @@ function refrescar({ refreshToken }: Record<string, unknown>) {
   return abrirSesion(perfil)
 }
 
-// ---- Usuarios -------------------------------------------------------------
+// ---- Usuarios (igual que backend/src/modules/usuarios) ------------------------
 
+const ROLES_VALIDOS: Rol[] = ['administrador', 'terapeuta', 'marketing']
+const MSG_ROL = 'El rol debe ser administrador, terapeuta o marketing'
 const publico = ({ password: _omitida, ...resto }: PerfilSim) => resto
 
-function listarUsuarios(params: URLSearchParams) {
-  let lista = [...datos.perfiles]
-  const rol = params.get('rol')
-  if (rol) lista = lista.filter((p) => p.rol === rol)
-  if (params.get('activo') === 'true') lista = lista.filter((p) => p.activo)
-  lista.sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es'))
-  return json(200, { usuarios: lista.map(publico) })
+/** Mismo orden que el backend: por fecha de creación. */
+const listaUsuarios = () => [...datos.perfiles].sort((a, b) => a.creadoEn.localeCompare(b.creadoEn)).map(publico)
+
+function verUsuario(id: string) {
+  const perfil = datos.perfiles.find((p) => p.id === id)
+  return perfil ? json(200, publico(perfil)) : error(404, 'Usuario no encontrado')
 }
 
 function crearUsuario(cuerpo: Record<string, unknown>) {
-  const nombreCompleto = String(cuerpo.nombreCompleto ?? '').trim()
+  const sobrantes = sobrantesDe(cuerpo, ['email', 'password', 'nombreCompleto', 'rol'])
   const email = String(cuerpo.email ?? '')
-    .trim()
-    .toLowerCase()
+  const password = cuerpo.password
+  const nombreCompleto = cuerpo.nombreCompleto
   const rol = cuerpo.rol as Rol
-  const password = String(cuerpo.password ?? '')
 
-  const errores: string[] = []
-  if (!nombreCompleto) errores.push('nombreCompleto es obligatorio')
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errores.push('El correo no tiene un formato válido')
-  if (!['administrador', 'terapeuta', 'marketing'].includes(rol)) errores.push('rol no es válido')
-  if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-    errores.push('password no cumple la política')
-  }
+  const errores = [...sobrantes]
+  if (!esCorreo(email)) errores.push('El correo no tiene un formato válido')
+  if (typeof password !== 'string' || password.length < 10)
+    errores.push('La contraseña debe tener al menos 10 caracteres')
+  else if (password.length > 72) errores.push('La contraseña no puede pasar de 72 caracteres')
+  if (typeof nombreCompleto !== 'string' || !nombreCompleto) errores.push('El nombre es obligatorio')
+  if (!ROLES_VALIDOS.includes(rol)) errores.push(MSG_ROL)
   if (errores.length) return error(400, errores)
-  if (datos.perfiles.some((p) => p.email === email)) return error(409, 'Ya existe una cuenta con ese correo')
+
+  // Supabase Auth guarda el correo en minúsculas y responde email_exists → 409.
+  if (datos.perfiles.some((p) => p.email === email.toLowerCase()))
+    return error(409, 'Ya existe un usuario con ese correo')
 
   const perfil: PerfilSim = {
     id: crypto.randomUUID(),
-    nombreCompleto,
-    email,
+    nombreCompleto: String(nombreCompleto).trim(),
+    email: email.toLowerCase(),
     rol,
     activo: true,
-    password,
+    password: String(password),
     creadoEn: new Date().toISOString(),
   }
   datos.perfiles.push(perfil)
   return json(201, publico(perfil))
 }
 
-// ---- Carpetas -------------------------------------------------------------
+function actualizarUsuario(yo: PerfilSim, id: string, cuerpo: Record<string, unknown>) {
+  const errores = sobrantesDe(cuerpo, ['nombreCompleto', 'rol', 'activo'])
+  if ('nombreCompleto' in cuerpo && (typeof cuerpo.nombreCompleto !== 'string' || !cuerpo.nombreCompleto))
+    errores.push('El nombre no puede quedar vacío')
+  if ('rol' in cuerpo && !ROLES_VALIDOS.includes(cuerpo.rol as Rol)) errores.push(MSG_ROL)
+  if ('activo' in cuerpo && typeof cuerpo.activo !== 'boolean') errores.push('activo debe ser true o false')
+  if (errores.length) return error(400, errores)
+  if (!Object.keys(cuerpo).length) return error(400, 'No hay nada que actualizar')
+  if (id === yo.id && (cuerpo.activo === false || (cuerpo.rol && cuerpo.rol !== 'administrador')))
+    return error(400, 'No puedes desactivarte ni quitarte tu propio rol de administrador')
 
-const normalizar = (texto: string) =>
-  texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
-
-function puedeVer(yo: PerfilSim, caso: CasoSim) {
-  if (yo.rol === 'administrador') return true
-  if (yo.rol === 'terapeuta') return caso.asignacion?.perfilId === yo.id
-  return false
+  const perfil = datos.perfiles.find((p) => p.id === id)
+  if (!perfil) return error(404, 'Usuario no encontrado')
+  if (typeof cuerpo.nombreCompleto === 'string') perfil.nombreCompleto = cuerpo.nombreCompleto.trim()
+  if (cuerpo.rol) perfil.rol = cuerpo.rol as Rol
+  if (typeof cuerpo.activo === 'boolean') perfil.activo = cuerpo.activo
+  return json(200, publico(perfil))
 }
+
+// ---- Casos (igual que backend/src/modules/casos) ------------------------------
+
+const TIPOS: TipoCaso[] = ['derivado', 'voluntario']
+const ESTADOS: EstadoCaso[] = ['iniciado', 'en_proceso', 'concluido']
+const FECHA = /^\d{4}-\d{2}-\d{2}$/
+const MSG_FECHA = 'La fecha debe tener formato AAAA-MM-DD y ser una fecha real'
 
 function persona(id: string | null | undefined) {
   const p = datos.perfiles.find((x) => x.id === id)
   return p ? { id: p.id, nombreCompleto: p.nombreCompleto } : null
 }
 
-function resumen(caso: CasoSim) {
-  return {
-    id: caso.id,
-    numero: caso.numero,
-    tipo: caso.tipo,
-    estado: caso.estado,
-    fechaIngreso: caso.fechaIngreso,
-    paciente: caso.paciente,
-    terapeuta: persona(caso.asignacion?.perfilId),
-  }
-}
-
+/** Lo que devuelve GET /casos/:id. terapeuta/asignadoPor/asignadoEn son la propuesta de FE-37. */
 function detalle(caso: CasoSim) {
+  const { asignacion, ...resto } = caso
   return {
-    ...resumen(caso),
-    creadoPor: persona(caso.creadoPor),
-    creadoEn: caso.creadoEn,
-    asignadoPor: persona(caso.asignacion?.asignadoPor),
-    asignadoEn: caso.asignacion?.asignadoEn ?? null,
+    ...resto,
+    hipotesisRelacional: null,
+    comentariosClinicos: null,
+    terapeuta: persona(asignacion?.perfilId),
+    asignadoPor: persona(asignacion?.asignadoPor),
+    asignadoEn: asignacion?.asignadoEn ?? null,
   }
 }
 
-function listarCarpetas(yo: PerfilSim, params: URLSearchParams) {
-  if (yo.rol === 'marketing') return error(403, 'Sin acceso a información clínica')
+function listarCasos(params: URLSearchParams) {
+  const tipo = params.get('tipo')
+  const estado = params.get('estado')
+  const q = params.get('q')?.trim() ?? ''
+  const limite = params.has('limite') ? Number(params.get('limite')) : 20
+  const desplazamiento = params.has('desplazamiento') ? Number(params.get('desplazamiento')) : 0
 
-  const busqueda = normalizar(params.get('busqueda') ?? '')
-  const pagina = Math.max(1, Number(params.get('pagina')) || 1)
-  const tamano = Math.min(50, Math.max(1, Number(params.get('tamano')) || 10))
+  const errores: string[] = []
+  if (tipo && !TIPOS.includes(tipo as TipoCaso))
+    errores.push(`tipo must be one of the following values: ${TIPOS.join(', ')}`)
+  if (estado && !ESTADOS.includes(estado as EstadoCaso))
+    errores.push(`estado must be one of the following values: ${ESTADOS.join(', ')}`)
+  if (q.length > 100) errores.push('q must be shorter than or equal to 100 characters')
+  if (!Number.isInteger(limite) || limite < 1 || limite > 100) errores.push('limite must not be greater than 100')
+  if (!Number.isInteger(desplazamiento) || desplazamiento < 0) errores.push('desplazamiento must not be less than 0')
+  if (errores.length) return error(400, errores)
 
-  let lista = datos.casos.filter((c) => puedeVer(yo, c))
-  if (/^\d+$/.test(busqueda)) {
-    lista = lista.filter((c) => c.numero === Number(busqueda))
-  } else if (busqueda) {
-    const palabras = busqueda.split(' ')
-    lista = lista.filter((c) => palabras.every((p) => normalizar(c.paciente.nombreCompleto).includes(p)))
-  }
-  lista.sort((a, b) => b.fechaIngreso.localeCompare(a.fechaIngreso) || b.numero - a.numero)
+  // Igual que el backend: position(lower(q) in lower(nombre)) — distingue tildes.
+  const lista = datos.casos
+    .filter((c) => (!tipo || c.tipo === tipo) && (!estado || c.estado === estado))
+    .filter((c) => !q || c.paciente.nombreCompleto.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => b.fechaIngreso.localeCompare(a.fechaIngreso) || b.numeroCorrelativo - a.numeroCorrelativo)
 
   return json(200, {
-    carpetas: lista.slice((pagina - 1) * tamano, pagina * tamano).map(resumen),
+    datos: lista.slice(desplazamiento, desplazamiento + limite).map((c) => ({
+      id: c.id,
+      tipo: c.tipo,
+      numeroCorrelativo: c.numeroCorrelativo,
+      estado: c.estado,
+      fechaIngreso: c.fechaIngreso,
+      paciente: { id: c.paciente.id, nombreCompleto: c.paciente.nombreCompleto },
+    })),
     total: lista.length,
-    pagina,
-    tamano,
+    limite,
+    desplazamiento,
   })
 }
 
-function verCarpeta(yo: PerfilSim, id: string) {
-  if (yo.rol === 'marketing') return error(403, 'Sin acceso a información clínica')
+function verCaso(id: string) {
   const caso = datos.casos.find((c) => c.id === id)
-  // Un caso ajeno responde igual que uno inexistente: no se revela que existe.
-  if (!caso || !puedeVer(yo, caso)) return error(404, 'Carpeta no encontrada')
-  return json(200, detalle(caso))
+  return caso ? json(200, detalle(caso)) : error(404, 'Caso no encontrado')
 }
 
-function crearCarpeta(yo: PerfilSim, cuerpo: Record<string, unknown>) {
-  const nombreCompleto = String(cuerpo.nombreCompleto ?? '')
-    .trim()
-    .replace(/\s+/g, ' ')
-  const fechaIngreso = String(cuerpo.fechaIngreso ?? '')
-  const tipo = cuerpo.tipo as TipoCaso
+const limpiar = (valor: unknown) => (typeof valor === 'string' && valor.trim() ? valor.trim() : null)
 
-  const errores: string[] = []
-  if (nombreCompleto.length < 3) errores.push('nombreCompleto es obligatorio')
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaIngreso) || fechaIngreso > hoyIso()) errores.push('fechaIngreso no es válida')
-  if (!['voluntario', 'derivado'].includes(tipo)) errores.push('tipo no es válido')
-  if (errores.length) return error(400, errores)
+function registrarCaso(cuerpo: Record<string, unknown>) {
+  const paciente = (cuerpo.paciente ?? undefined) as Record<string, unknown> | undefined
+  const caso = (cuerpo.caso ?? undefined) as Record<string, unknown> | undefined
+  const judicial = (cuerpo.contextoJudicial ?? undefined) as Record<string, unknown> | undefined
 
-  const duplicados = datos.casos.filter((c) => normalizar(c.paciente.nombreCompleto) === normalizar(nombreCompleto))
-  if (duplicados.length) {
-    return error(409, 'Posible paciente duplicado', {
-      posiblesDuplicados: duplicados.map((c) => ({
-        id: c.id,
-        numero: c.numero,
-        tipo: c.tipo,
-        nombreCompleto: c.paciente.nombreCompleto,
-      })),
-    })
+  const errores = sobrantesDe(cuerpo, ['paciente', 'caso', 'contextoJudicial'])
+  if (!paciente) errores.push('Faltan los datos del paciente')
+  if (!caso) errores.push('Faltan los datos del caso')
+  if (paciente) {
+    errores.push(
+      ...sobrantesDe(paciente, ['nombreCompleto', 'fechaNacimiento', 'edadAlIngreso', 'telefono'], 'paciente.'),
+    )
+    if (typeof paciente.nombreCompleto !== 'string' || !paciente.nombreCompleto)
+      errores.push('paciente.El nombre del paciente es obligatorio')
+    if (paciente.fechaNacimiento !== undefined && !esFecha(paciente.fechaNacimiento))
+      errores.push(`paciente.${MSG_FECHA}`)
   }
+  if (caso) {
+    errores.push(
+      ...sobrantesDe(
+        caso,
+        ['tipo', 'estado', 'fechaIngreso', 'diagnosticoIngreso', 'hipotesisRelacional', 'comentariosClinicos'],
+        'caso.',
+      ),
+    )
+    if (!TIPOS.includes(caso.tipo as TipoCaso)) errores.push('caso.El tipo de caso debe ser derivado o voluntario')
+    if (caso.estado !== undefined && !ESTADOS.includes(caso.estado as EstadoCaso))
+      errores.push('caso.El estado debe ser iniciado, en_proceso o concluido')
+    if (caso.fechaIngreso !== undefined && !esFecha(caso.fechaIngreso)) errores.push(`caso.${MSG_FECHA}`)
+  }
+  if (judicial) {
+    errores.push(
+      ...sobrantesDe(judicial, ['juzgado', 'nroExpediente', 'fechaDerivacion', 'observaciones'], 'contextoJudicial.'),
+    )
+    if (judicial.fechaDerivacion !== undefined && !esFecha(judicial.fechaDerivacion))
+      errores.push(`contextoJudicial.${MSG_FECHA}`)
+  }
+  if (errores.length || !paciente || !caso) return error(400, errores)
+
+  const tipo = caso.tipo as TipoCaso
+  if (tipo === 'voluntario' && judicial) return error(400, 'Un caso voluntario no lleva contexto judicial')
+  const nombre = String(paciente.nombreCompleto).trim()
+  if (!nombre) return error(400, 'El nombre del paciente es obligatorio')
+
+  const hoy = hoyIso()
+  const fechaIngreso = (caso.fechaIngreso as string | undefined) ?? hoy
+  if (fechaIngreso > hoy) return error(400, 'La fecha de ingreso no puede ser futura')
+  const fechaNacimiento = (paciente.fechaNacimiento as string | undefined) ?? null
+  if (fechaNacimiento && fechaNacimiento > fechaIngreso)
+    return error(400, 'La fecha de nacimiento no puede ser posterior al ingreso')
+
+  const similares = datos.casos
+    .map((c) => c.paciente)
+    .filter((p, i, todos) => todos.findIndex((x) => x.id === p.id) === i)
+    .map((p) => ({
+      pacienteId: p.id,
+      nombreCompleto: p.nombreCompleto,
+      similitud: similitud(p.nombreCompleto, nombre),
+    }))
+    .filter((p) => p.similitud > 0.6)
+    .sort((a, b) => b.similitud - a.similitud)
+    .slice(0, 5)
+    .map((p) => ({ ...p, similitud: Number(p.similitud.toFixed(2)) }))
 
   datos.contadores[tipo] += 1
-  const caso: CasoSim = {
+  const nuevo: CasoSim = {
     id: crypto.randomUUID(),
-    numero: datos.contadores[tipo],
+    numeroCorrelativo: datos.contadores[tipo],
     tipo,
-    estado: 'iniciado',
+    estado: (caso.estado as EstadoCaso | undefined) ?? 'iniciado',
     fechaIngreso,
-    paciente: { id: crypto.randomUUID(), nombreCompleto },
-    creadoPor: yo.id,
+    diagnosticoIngreso: limpiar(caso.diagnosticoIngreso),
     creadoEn: new Date().toISOString(),
+    paciente: {
+      id: crypto.randomUUID(),
+      nombreCompleto: nombre,
+      fechaNacimiento,
+      edadAlIngreso:
+        typeof paciente.edadAlIngreso === 'number'
+          ? paciente.edadAlIngreso
+          : fechaNacimiento
+            ? edad(fechaNacimiento, fechaIngreso)
+            : null,
+      telefono: limpiar(paciente.telefono),
+    },
+    contextoJudicial: judicial
+      ? {
+          juzgado: limpiar(judicial.juzgado),
+          nroExpediente: limpiar(judicial.nroExpediente),
+          fechaDerivacion: (judicial.fechaDerivacion as string | undefined) ?? null,
+          observaciones: limpiar(judicial.observaciones),
+        }
+      : null,
     asignacion: null,
   }
-  datos.casos.push(caso)
-  return json(201, detalle(caso))
+  datos.casos.push(nuevo)
+  return json(201, { ...detalle(nuevo), posiblesDuplicados: similares })
 }
 
 function asignarTerapeuta(yo: PerfilSim, id: string, cuerpo: Record<string, unknown>) {
   const caso = datos.casos.find((c) => c.id === id)
-  if (!caso) return error(404, 'Carpeta no encontrada')
+  if (!caso) return error(404, 'Caso no encontrado')
   const terapeuta = datos.perfiles.find((p) => p.id === cuerpo.perfilId)
   if (!terapeuta || terapeuta.rol !== 'terapeuta' || !terapeuta.activo) {
     return error(400, 'La persona elegida no es una terapeuta activa')
   }
   caso.asignacion = { perfilId: terapeuta.id, asignadoPor: yo.id, asignadoEn: new Date().toISOString() }
   return json(200, detalle(caso))
+}
+
+/** Similitud de trigramas, como extensions.similarity() de pg_trgm. */
+function similitud(a: string, b: string) {
+  const trigramas = (texto: string) => {
+    const conjunto = new Set<string>()
+    for (const palabra of texto
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter(Boolean)) {
+      const p = `  ${palabra} `
+      for (let i = 0; i < p.length - 2; i++) conjunto.add(p.slice(i, i + 3))
+    }
+    return conjunto
+  }
+  const ta = trigramas(a)
+  const tb = trigramas(b)
+  const comunes = [...ta].filter((t) => tb.has(t)).length
+  const union = ta.size + tb.size - comunes
+  return union ? comunes / union : 0
+}
+
+function edad(nacimiento: string, referencia: string) {
+  const [an, mn, dn] = nacimiento.split('-').map(Number)
+  const [ar, mr, dr] = referencia.split('-').map(Number)
+  return ar - an - (mr < mn || (mr === mn && dr < dn) ? 1 : 0)
 }
 
 // ---- Utilidades ------------------------------------------------------------
@@ -333,6 +464,23 @@ function json(estado: number, cuerpo: unknown) {
 
 function error(estado: number, mensaje: string | string[], extra: Record<string, unknown> = {}) {
   return json(estado, { statusCode: estado, message: mensaje, ...extra })
+}
+
+const esCorreo = (texto: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto)
+
+/** AAAA-MM-DD y fecha real (como @Matches + @IsISO8601({ strict: true })). */
+function esFecha(valor: unknown) {
+  if (typeof valor !== 'string' || !FECHA.test(valor)) return false
+  const [a, m, d] = valor.split('-').map(Number)
+  const f = new Date(Date.UTC(a, m - 1, d))
+  return f.getUTCFullYear() === a && f.getUTCMonth() === m - 1 && f.getUTCDate() === d
+}
+
+/** ValidationPipe con forbidNonWhitelisted: rechaza propiedades que el DTO no declara. */
+function sobrantesDe(objeto: Record<string, unknown>, permitidas: string[], prefijo = '') {
+  return Object.keys(objeto)
+    .filter((k) => !permitidas.includes(k))
+    .map((k) => `${prefijo}property ${k} should not exist`)
 }
 
 function hoyIso() {
@@ -400,13 +548,28 @@ function datosIniciales(): DatosSim {
   const contadores: Record<TipoCaso, number> = { voluntario: 0, derivado: 0 }
   const casos: CasoSim[] = pacientes.map(([nombre, tipo, estado, fechaIngreso, terapeuta], i) => ({
     id: `10000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`,
-    numero: (contadores[tipo] += 1),
+    numeroCorrelativo: (contadores[tipo] += 1),
     tipo,
     estado,
     fechaIngreso,
-    paciente: { id: `20000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`, nombreCompleto: nombre },
-    creadoPor: ID.direccion,
+    diagnosticoIngreso: null,
     creadoEn: `${fechaIngreso}T14:00:00.000Z`,
+    paciente: {
+      id: `20000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`,
+      nombreCompleto: nombre,
+      fechaNacimiento: null,
+      edadAlIngreso: null,
+      telefono: null,
+    },
+    contextoJudicial:
+      tipo === 'derivado'
+        ? {
+            juzgado: 'Juzgado Público de Familia 3.º',
+            nroExpediente: null,
+            fechaDerivacion: fechaIngreso,
+            observaciones: null,
+          }
+        : null,
     asignacion: terapeuta
       ? { perfilId: terapeuta, asignadoPor: ID.direccion, asignadoEn: `${fechaIngreso}T15:00:00.000Z` }
       : null,

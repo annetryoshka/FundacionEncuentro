@@ -1,19 +1,19 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { montarApp } from '../../test/montarApp'
+import { llamadas, montarApp } from '../../test/montarApp'
 
-/** FE-39 · Listado y búsqueda de carpetas (criterios de FE-16 que tocan la interfaz). */
+/** FE-39 · Listado y búsqueda con GET /api/casos (criterios de FE-16 que tocan la interfaz). */
 describe('PaginaCarpetas', () => {
   const resultados = async () => within((await screen.findAllByRole('list')).at(-1)!)
   const buscar = async (usuario: Awaited<ReturnType<typeof montarApp>>['usuario'], texto: string) => {
-    const campo = screen.getByLabelText('Buscar por nombre o número de carpeta')
+    const campo = screen.getByLabelText('Buscar por nombre del paciente')
     await usuario.clear(campo)
     if (texto) await usuario.type(campo, texto)
     await usuario.click(screen.getByRole('button', { name: 'Buscar' }))
   }
 
-  it('lista las carpetas paginadas de 10 en 10', async () => {
-    const { usuario } = await montarApp('/carpetas')
+  it('lista las carpetas paginadas de 10 en 10 con limite/desplazamiento', async () => {
+    const { usuario, fetchEspia } = await montarApp('/carpetas')
     expect(await screen.findByText('14 carpetas')).toBeInTheDocument()
     expect((await resultados()).getAllByRole('link')).toHaveLength(10)
     expect(screen.getByText('Página 1 de 2')).toBeInTheDocument()
@@ -22,21 +22,27 @@ describe('PaginaCarpetas', () => {
     expect(await screen.findByText('Página 2 de 2')).toBeInTheDocument()
     expect((await resultados()).getAllByRole('link')).toHaveLength(4)
     expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled()
+
+    const urls = llamadas(fetchEspia, 'GET', '/api/casos').map(([url]) => String(url))
+    expect(urls.at(-1)).toContain('limite=10&desplazamiento=10')
   })
 
-  it('busca por nombre, sin importar tildes ni mayúsculas', async () => {
+  it('busca por parte del nombre, sin importar mayúsculas', async () => {
     const { usuario } = await montarApp('/carpetas')
     await screen.findByText('14 carpetas')
-    await buscar(usuario, 'gutierrez')
-    expect(await screen.findByText('2 resultados para «gutierrez»')).toBeInTheDocument()
+    await buscar(usuario, 'GUTIÉRREZ')
+    expect(await screen.findByText('2 resultados para «GUTIÉRREZ»')).toBeInTheDocument()
   })
 
-  it('buscar un número exacto localiza su carpeta', async () => {
+  it('filtra por tipo y estado', async () => {
     const { usuario } = await montarApp('/carpetas')
     await screen.findByText('14 carpetas')
-    await buscar(usuario, '9')
-    expect(await screen.findByText('1 resultado para «9»')).toBeInTheDocument()
-    expect((await resultados()).getByText('Paola Gutiérrez Mendoza')).toBeInTheDocument()
+    await usuario.selectOptions(screen.getByLabelText('Tipo'), 'derivado')
+    expect(await screen.findByText('5 carpetas')).toBeInTheDocument()
+    await usuario.selectOptions(screen.getByLabelText('Estado'), 'iniciado')
+    expect(await screen.findByText('3 carpetas')).toBeInTheDocument()
+    await usuario.click(screen.getByRole('button', { name: 'Limpiar' }))
+    expect(await screen.findByText('14 carpetas')).toBeInTheDocument()
   })
 
   it('una búsqueda sin coincidencias muestra un mensaje claro', async () => {
@@ -46,19 +52,11 @@ describe('PaginaCarpetas', () => {
     expect(await screen.findByText('No encontramos carpetas para «Nadie Existe»')).toBeInTheDocument()
   })
 
-  it('una terapeuta solo ve sus carpetas asignadas', async () => {
+  it('una terapeuta ve un aviso mientras el backend no le da acceso (FE-37)', async () => {
     await montarApp('/carpetas', 'carla')
     expect(await screen.findByRole('heading', { name: 'Mis carpetas' })).toBeInTheDocument()
-    expect(await screen.findByText('5 carpetas')).toBeInTheDocument()
-    expect(screen.queryByText('Mariana Gutiérrez Paz')).not.toBeInTheDocument() // es de Sofía
+    expect(await screen.findByText(/Pronto verás aquí las carpetas/)).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Registrar paciente' })).not.toBeInTheDocument()
-  })
-
-  it('una terapeuta no encuentra por número una carpeta ajena', async () => {
-    const { usuario } = await montarApp('/carpetas', 'carla')
-    await screen.findByText('5 carpetas')
-    await buscar(usuario, 'Mariana')
-    expect(await screen.findByText('No encontramos carpetas para «Mariana»')).toBeInTheDocument()
   })
 
   it('abrir un resultado muestra el resumen de esa carpeta', async () => {

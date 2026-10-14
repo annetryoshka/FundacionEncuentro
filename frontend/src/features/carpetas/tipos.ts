@@ -1,4 +1,4 @@
-/** Valores de casos.tipo y casos.estado en db/migrations/001_esquema_base.sql. */
+/** Valores de casos.tipo y casos.estado (db/migrations/001 y backend/src/modules/casos). */
 export type TipoCaso = 'voluntario' | 'derivado'
 export type EstadoCaso = 'iniciado' | 'en_proceso' | 'concluido'
 
@@ -7,48 +7,90 @@ export interface PersonaBreve {
   nombreCompleto: string
 }
 
-/** Fila del listado de GET /api/carpetas. */
+/** Fila de GET /api/casos (campo `datos`). */
 export interface CarpetaResumen {
   id: string
-  numero: number
   tipo: TipoCaso
+  numeroCorrelativo: number
   estado: EstadoCaso
-  /** Fecha sin hora, formato AAAA-MM-DD. */
+  /** Fecha sin hora, AAAA-MM-DD. */
   fechaIngreso: string
   paciente: PersonaBreve
-  terapeuta: PersonaBreve | null
 }
 
-/** GET /api/carpetas/:id */
-export interface CarpetaDetalle extends CarpetaResumen {
-  creadoPor: PersonaBreve | null
+export interface ContextoJudicial {
+  juzgado: string | null
+  nroExpediente: string | null
+  fechaDerivacion: string | null
+  observaciones: string | null
+}
+
+/** GET /api/casos/:id */
+export interface CarpetaDetalle extends Omit<CarpetaResumen, 'paciente'> {
+  diagnosticoIngreso: string | null
+  hipotesisRelacional: string | null
+  comentariosClinicos: string | null
   creadoEn: string
-  asignadoPor: PersonaBreve | null
-  asignadoEn: string | null
+  paciente: PersonaBreve & {
+    fechaNacimiento: string | null
+    edadAlIngreso: number | null
+    telefono: string | null
+  }
+  contextoJudicial: ContextoJudicial | null
+  /**
+   * Asignación de terapeuta: el backend todavía no la devuelve (llega con FE-37).
+   * Mientras no exista, el frontend muestra "Sin terapeuta asignada".
+   */
+  terapeuta?: PersonaBreve | null
+  asignadoPor?: PersonaBreve | null
+  asignadoEn?: string | null
 }
 
-/** Respuesta paginada de GET /api/carpetas. */
-export interface PaginaCarpetas {
-  carpetas: CarpetaResumen[]
+/** Respuesta de GET /api/casos?q=&tipo=&estado=&limite=&desplazamiento= */
+export interface ListadoCarpetas {
+  datos: CarpetaResumen[]
   total: number
+  limite: number
+  desplazamiento: number
+}
+
+export interface FiltrosCarpetas {
+  q?: string
+  tipo?: TipoCaso | ''
+  estado?: EstadoCaso | ''
   pagina: number
-  tamano: number
 }
 
-/** Cuerpo de POST /api/carpetas. */
+/** Cuerpo de POST /api/casos (RegistrarCasoDto). Los campos vacíos no se envían. */
 export interface NuevaCarpeta {
-  nombreCompleto: string
-  fechaIngreso: string
-  tipo: TipoCaso
+  paciente: {
+    nombreCompleto: string
+    fechaNacimiento?: string
+    telefono?: string
+  }
+  caso: {
+    tipo: TipoCaso
+    fechaIngreso?: string
+    diagnosticoIngreso?: string
+  }
+  /** Solo para casos derivados. */
+  contextoJudicial?: {
+    juzgado?: string
+    nroExpediente?: string
+    fechaDerivacion?: string
+    observaciones?: string
+  }
 }
 
-/** Lo que trae un 409 de POST /api/carpetas en `posiblesDuplicados`. */
+/** Aviso que acompaña al 201 de POST /api/casos: no bloquea el registro. */
 export interface PosibleDuplicado {
-  id: string
-  numero: number
-  tipo: TipoCaso
+  pacienteId: string
   nombreCompleto: string
+  /** 0 a 1 (similitud de pg_trgm). */
+  similitud: number
 }
+
+export type CarpetaRegistrada = CarpetaDetalle & { posiblesDuplicados: PosibleDuplicado[] }
 
 export const NOMBRE_TIPO: Record<TipoCaso, string> = {
   voluntario: 'Voluntario',

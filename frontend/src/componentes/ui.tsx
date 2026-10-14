@@ -3,7 +3,14 @@
  * Mantienen igual la accesibilidad en todas las pantallas: etiqueta, error asociado, foco visible.
  */
 import { claseCampo } from './estilos'
-import { forwardRef, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
+import {
+  forwardRef,
+  useId,
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type TextareaHTMLAttributes,
+} from 'react'
 
 // ---- Botones ---------------------------------------------------------------
 
@@ -107,6 +114,44 @@ export const CampoTexto = forwardRef<HTMLInputElement, PropsCampo>(function Camp
     </div>
   )
 })
+
+interface PropsArea extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  etiqueta: string
+  error?: string
+  ayuda?: ReactNode
+}
+
+/** Texto largo (observaciones, motivo de consulta) con la misma accesibilidad que CampoTexto. */
+export function AreaTexto({ etiqueta, error, ayuda, id, className = '', rows = 3, ...resto }: PropsArea) {
+  const idGenerado = useId()
+  const idCampo = id ?? idGenerado
+  const describe = [ayuda && `${idCampo}-ayuda`, error && `${idCampo}-error`].filter(Boolean).join(' ') || undefined
+  return (
+    <div className={className}>
+      <label htmlFor={idCampo} className="block text-sm font-semibold text-texto">
+        {etiqueta}
+      </label>
+      <textarea
+        id={idCampo}
+        rows={rows}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describe}
+        className={`${claseCampo(Boolean(error))} resize-y`}
+        {...resto}
+      />
+      {ayuda && !error && (
+        <p id={`${idCampo}-ayuda`} className="mt-1.5 text-sm text-suave">
+          {ayuda}
+        </p>
+      )}
+      {error && (
+        <p id={`${idCampo}-error`} className="mt-1.5 text-sm text-error">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
 
 interface Opcion<T extends string> {
   valor: T
