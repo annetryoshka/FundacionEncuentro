@@ -11,7 +11,6 @@ import { RefreshDto } from './dto/refresh.dto.js';
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  /** Inicia sesión con correo y contraseña. */
   @Public()
   @Post('login')
   @HttpCode(200)
@@ -27,14 +26,12 @@ export class AuthController {
     return this.auth.refrescar(dto.refreshToken);
   }
 
-  /** Cierra la sesión actual. Responde 204 (sin contenido). */
   @Post('logout')
   @HttpCode(204)
   async logout(@UsuarioActual() usuario: Usuario, @TokenActual() token: string) {
     await this.auth.logout(usuario.id, token);
   }
 
-  /** Datos del usuario con sesión iniciada (sirve para recuperar la sesión). */
   @Get('me')
   me(@UsuarioActual() usuario: Usuario) {
     return usuario;

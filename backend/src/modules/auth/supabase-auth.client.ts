@@ -15,7 +15,7 @@ export interface SesionSupabase {
   user: { id: string; email?: string };
 }
 
-/** Habla con la API de Supabase Auth (login, refresh, validar token). */
+/*upabase Auth (login, refresh, validar token). */
 @Injectable()
 export class SupabaseAuthClient {
   private readonly url: string;
@@ -55,7 +55,6 @@ export class SupabaseAuthClient {
     // 401/403: la sesión ya estaba cerrada o vencida; el resultado es el mismo.
   }
 
-  /** Devuelve el usuario dueño del token, o null si el token no sirve. */
   async obtenerUsuario(accessToken: string): Promise<{ id: string } | null> {
     const res = await this.llamar('/auth/v1/user', {
       method: 'GET',
