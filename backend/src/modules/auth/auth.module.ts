@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthController } from './auth.controller.js';
 import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
+import { RolesGuard } from './roles.guard.js';
 import { SupabaseAuthClient } from './supabase-auth.client.js';
 
 @Module({
@@ -10,8 +11,10 @@ import { SupabaseAuthClient } from './supabase-auth.client.js';
   providers: [
     AuthService,
     SupabaseAuthClient,
-    // Protege TODA la API por defecto.
+    // Los guards globales corren en este orden:
+    // 1) AuthGuard: ¿hay sesión válida?   2) RolesGuard: ¿su rol puede entrar?
     { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
   exports: [AuthService, SupabaseAuthClient],
 })
