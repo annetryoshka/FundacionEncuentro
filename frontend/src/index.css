@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+
+/*
+ * Identidad visual de Fundación Encuentro (logo y afiche "Encuentro con tu Bienestar").
+ * Naranja y verde del logo; script para frases de marca, Poppins para la interfaz.
+ */
+@theme {
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-script: 'Kaushan Script', 'Brush Script MT', cursive;
+
+  --color-naranja: #e85a1e; /* naranja del logo (decoración, títulos grandes) */
+  --color-naranja-texto: #b8430f; /* naranja para texto pequeño (contraste AA) */
+  --color-naranja-pie: #c2410c; /* franja inferior con texto blanco */
+  --color-verde: #0e7836; /* verde del logo: botones */
+  --color-verde-oscuro: #00561c; /* títulos, hover */
+  --color-verde-claro: #3ca830; /* césped del logo, detalles */
+  --color-crema: #fdf6f2; /* fondo cálido del afiche */
+  --color-texto: #2b2b2b;
+  --color-suave: #5c5c5c;
+  --color-linea: #e3d9d3;
+  --color-error: #b42318;
+  --color-error-fondo: #fef0ee;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-crema font-sans text-texto antialiased;
+  }
+}
