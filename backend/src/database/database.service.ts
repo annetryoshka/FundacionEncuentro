@@ -16,7 +16,6 @@ export class DatabaseService implements OnModuleDestroy {
 
     this.pool = new Pool({
       connectionString: url,
-      // Supabase exige SSL; solo se desactiva si la base es local.
       ssl: esLocal ? false : { rejectUnauthorized: false },
       max: 10,
     });
@@ -26,7 +25,7 @@ export class DatabaseService implements OnModuleDestroy {
     });
   }
 
-  /** Consulta simple (lecturas). Siempre usar parámetros $1, $2... nunca concatenar texto. */
+  /** Consulta simple */
   query<T extends QueryResultRow = any>(
     texto: string,
     params?: unknown[],
@@ -34,11 +33,6 @@ export class DatabaseService implements OnModuleDestroy {
     return this.pool.query<T>(texto, params);
   }
 
-  /**
-   * Ejecuta escrituras dentro de una transacción y registra QUIÉN las hizo.
-   * El usuarioId llega a los triggers de auditoría (tabla "auditoria").
-   * Usar en toda operación que cree, modifique o borre datos.
-   */
   async transaction<T>(
     usuarioId: string | null,
     fn: (client: PoolClient) => Promise<T>,

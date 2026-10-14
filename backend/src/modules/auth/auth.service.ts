@@ -45,10 +45,6 @@ export class AuthService {
     return this.armarRespuesta(sesion, usuario);
   }
 
-  /**
-   * Busca el perfil del sistema. Tener cuenta en Supabase no basta:
-   * hay que tener un perfil activo (con rol) para entrar.
-   */
   async cargarPerfil(usuarioId: string): Promise<Usuario> {
     const { rows } = await this.db.query<{
       id: string;

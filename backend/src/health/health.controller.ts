@@ -13,7 +13,6 @@ export class HealthController {
 
   constructor(private readonly db: DatabaseService) {}
 
-  /** Sirve para comprobar que la API arrancó y que llega a la base de datos. */
   @Public()
   @Get()
   async comprobar() {

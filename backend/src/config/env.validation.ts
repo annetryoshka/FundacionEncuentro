@@ -5,7 +5,7 @@ const REQUERIDAS = [
   'SUPABASE_SERVICE_ROLE_KEY',
 ];
 
-/** Valida el .env al arrancar: si falta algo, el servidor no inicia y dice qué falta. */
+/** Valida el .env al arrancar*/
 export function validarEnv(config: Record<string, unknown>) {
   const faltan = REQUERIDAS.filter((k) => !String(config[k] ?? '').trim());
   if (faltan.length > 0) {
