@@ -34,6 +34,12 @@ interface ManejoSesion {
 }
 
 let sesion: ManejoSesion | null = null
+let generacion = 0
+
+/** Descarta las respuestas privadas pertenecientes a la sesión anterior. */
+export function descartarPeticionesPrivadas() {
+  generacion++
+}
 
 /** Lo llama ProveedorSesion al montar. */
 export function configurarSesionApi(manejo: ManejoSesion | null) {
@@ -53,15 +59,33 @@ interface OpcionesPeticion {
 }
 
 export async function peticion<T>(ruta: string, opciones: OpcionesPeticion = {}): Promise<T> {
+  const actual = generacion
+  const manejo = sesion
+  const comprobar = () => {
+    if (!opciones.publica && (actual !== generacion || !manejo?.token())) {
+      throw new ErrorApi(401, 'Tu sesión terminó. Vuelve a iniciar sesión.')
+    }
+  }
+  comprobar()
   let respuesta = await enviar(ruta, opciones, opciones.publica ? null : (sesion?.token() ?? null))
+  comprobar()
 
   // Token vencido: se renueva una sola vez y se repite la petición.
   if (respuesta.status === 401 && !opciones.publica && sesion) {
-    const nuevo = await sesion.renovar()
+    const nuevo = await manejo!.renovar()
+    comprobar()
     if (nuevo) respuesta = await enviar(ruta, opciones, nuevo)
-    if (respuesta.status === 401) sesion.invalidar()
+    comprobar()
+    if (respuesta.status === 401) manejo!.invalidar()
   }
-  return procesar<T>(respuesta)
+  const datos = await procesar<T>(respuesta)
+  comprobar()
+  return datos
+}
+
+/** Única petición que conserva el token capturado al iniciar la salida; no renueva. */
+export async function revocarSesion(token: string): Promise<void> {
+  await procesar<void>(await enviar('/auth/logout', { metodo: 'POST' }, token))
 }
 
 async function enviar(ruta: string, opciones: OpcionesPeticion, token: string | null): Promise<Response> {
@@ -71,6 +95,7 @@ async function enviar(ruta: string, opciones: OpcionesPeticion, token: string | 
   if (cuerpo !== undefined) cabeceras['Content-Type'] = 'application/json'
   if (token) cabeceras.Authorization = `Bearer ${token}`
   const init: RequestInit = {
+    cache: 'no-store',
     method: metodo,
     headers: cabeceras,
     body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),

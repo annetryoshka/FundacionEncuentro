@@ -8,7 +8,7 @@ export interface EstadoSesion {
   /** Motivo por el que se cerró la sesión sin que la persona lo pidiera (se muestra en el login). */
   avisoSalida: string | null
   guardarSesion: (respuesta: RespuestaSesion) => void
-  /** Cierra la sesión en el backend (POST /auth/logout) y limpia todo en el navegador. */
+  /** Limpia inmediatamente el estado local y después intenta revocar en el backend. */
   cerrarSesion: () => Promise<void>
   tieneRol: (...roles: Rol[]) => boolean
 }

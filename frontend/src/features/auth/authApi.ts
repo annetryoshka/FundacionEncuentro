@@ -1,4 +1,4 @@
-import { ErrorApi, peticion } from '../../api/cliente'
+import { ErrorApi, peticion, revocarSesion } from '../../api/cliente'
 import type { CredencialesLogin, RespuestaSesion, UsuarioSesion } from './tipos'
 
 /** POST /api/auth/login (FE-22). */
@@ -12,8 +12,8 @@ export function renovarSesion(refreshToken: string): Promise<RespuestaSesion> {
 }
 
 /** POST /api/auth/logout (FE-26): el backend invalida el token en Supabase. Responde 204. */
-export function cerrarSesionEnServidor(): Promise<void> {
-  return peticion<void>('/auth/logout', { metodo: 'POST' })
+export function cerrarSesionEnServidor(token: string): Promise<void> {
+  return revocarSesion(token)
 }
 
 /** GET /api/auth/me: datos del usuario con sesión iniciada. */

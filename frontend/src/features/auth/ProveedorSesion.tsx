@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { configurarSesionApi } from '../../api/cliente'
+import { configurarSesionApi, descartarPeticionesPrivadas } from '../../api/cliente'
 import { cerrarSesionEnServidor, renovarSesion } from './authApi'
 import { ContextoSesion, type EstadoSesion } from './sesion'
 import type { RespuestaSesion, Rol, UsuarioSesion } from './tipos'
@@ -45,8 +45,13 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
 
   const accessToken = useRef<string | null>(null)
   const renovacionEnCurso = useRef<Promise<string | null> | null>(null)
+  const generacion = useRef(0)
 
   const limpiar = useCallback((aviso: string | null) => {
+    generacion.current++
+    renovacionEnCurso.current = null
+    descartarPeticionesPrivadas()
+    setRecuperando(false)
     accessToken.current = null
     guardarRefresh(null)
     setUsuario(null)
@@ -67,25 +72,36 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     if (renovacionEnCurso.current) return renovacionEnCurso.current
     const refresh = leerRefresh()
     if (!refresh) return Promise.resolve(null)
-    renovacionEnCurso.current = renovarSesion(refresh)
+    const actual = generacion.current
+    const pendiente = renovarSesion(refresh)
       .then((respuesta) => {
+        if (actual !== generacion.current) return null
         guardarSesion(respuesta)
         return respuesta.accessToken
       })
       .catch(() => null)
       .finally(() => {
-        renovacionEnCurso.current = null
+        if (renovacionEnCurso.current === pendiente) renovacionEnCurso.current = null
       })
-    return renovacionEnCurso.current
+    renovacionEnCurso.current = pendiente
+    return pendiente
   }, [guardarSesion])
 
-  const cerrarSesion = useCallback(async () => {
-    if (accessToken.current) {
-      // Si falla (sin red, token ya vencido) igual se limpia todo en el navegador.
-      await cerrarSesionEnServidor().catch(() => undefined)
+  const salir = useCallback(async (aviso: string | null) => {
+    const token = accessToken.current
+    limpiar(aviso ?? 'Sesión cerrada en este dispositivo. Revocación en el servidor pendiente de confirmar.')
+    const actual = generacion.current
+    try {
+      if (!token) throw new Error('Sin token para confirmar la revocación')
+      await cerrarSesionEnServidor(token)
+      if (actual === generacion.current && !accessToken.current) setAvisoSalida(aviso)
+    } catch {
+      if (actual === generacion.current && !accessToken.current) {
+        setAvisoSalida(`${aviso ? aviso + ' ' : ''}Sesión cerrada en este dispositivo. No se pudo confirmar la revocación en el servidor.`)
+      }
     }
-    limpiar(null)
   }, [limpiar])
+  const cerrarSesion = useCallback(() => salir(null), [salir])
 
   // El cliente HTTP usa este token, lo renueva ante un 401 y nos avisa si ya no sirve.
   useEffect(() => {
@@ -100,8 +116,10 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   // Al abrir o recargar: recuperar la sesión de esta pestaña, si la hay.
   useEffect(() => {
     if (!recuperando) return
+    const actual = generacion.current
     renovar().then((token) => {
-      if (!token) limpiar(null)
+      if (actual !== generacion.current) return
+      if (!token && leerRefresh()) limpiar(null)
       setRecuperando(false)
     })
     // Solo al montar.
@@ -113,8 +131,10 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     if (!venceEn) return
     const espera = Math.max(0, venceEn - Date.now() - MARGEN_RENOVACION_MS)
     const temporizador = setTimeout(() => {
+      const actual = generacion.current
       renovar().then((token) => {
-        if (!token) limpiar(AVISO_VENCIDA)
+        if (actual !== generacion.current) return
+        if (!token && leerRefresh()) limpiar(AVISO_VENCIDA)
       })
     }, espera)
     return () => clearTimeout(temporizador)
@@ -132,16 +152,14 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     const revisar = setInterval(() => {
       if (Date.now() - ultimaActividad >= MINUTOS_INACTIVIDAD * 60_000) {
         clearInterval(revisar) // un solo cierre, aunque el logout tarde en responder
-        cerrarSesionEnServidor()
-          .catch(() => undefined)
-          .finally(() => limpiar(AVISO_INACTIVIDAD))
+        void salir(AVISO_INACTIVIDAD)
       }
     }, 30_000)
     return () => {
       eventos.forEach((e) => window.removeEventListener(e, registrar))
       clearInterval(revisar)
     }
-  }, [usuario, limpiar])
+  }, [usuario, salir])
 
   const tieneRol = useCallback((...roles: Rol[]) => !!usuario && roles.includes(usuario.rol), [usuario])
 
