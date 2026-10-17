@@ -27,10 +27,10 @@ export function Plantilla() {
 
   const secciones = SECCIONES.filter((s) => s.roles.includes(usuario.rol))
 
-  // FE-24: cierra la sesión en el backend (FE-26) y borra el estado privado; replace evita volver con Atrás.
-  const salir = async () => {
+  // FE-25: limpia localmente al salir. Las rutas protegidas también bloquean el historial previo.
+  const salir = () => {
     setSaliendo(true)
-    await cerrarSesion()
+    void cerrarSesion()
     navegar('/login', { replace: true })
   }
 
