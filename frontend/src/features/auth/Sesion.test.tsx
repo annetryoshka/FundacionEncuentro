@@ -12,6 +12,24 @@ import { ProveedorSesion } from './ProveedorSesion'
 
 /** Sesión contra el contrato real de backend/src/modules/auth (FE-20, FE-22, FE-24, FE-26). */
 describe('Sesión', () => {
+  it.each([400, 401, 403, 500, 503])('logout HTTP %s no restaura la sesión local ni afirma revocación', async (estado) => {
+    const { usuario, fetchEspia } = await montarApp('/carpetas', 'direccion')
+    await screen.findByText('14 carpetas')
+    const simulado = fetchEspia.getMockImplementation()!
+    fetchEspia.mockImplementation((entrada, init) => String(entrada).endsWith('/auth/logout')
+      ? Promise.resolve(Response.json({ message: 'Error remoto simulado' }, { status: estado }))
+      : simulado(entrada, init))
+
+    await usuario.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
+
+    expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
+    expect(await screen.findByText(/No se pudo confirmar la revocación/)).toBeInTheDocument()
+    expect(sessionStorage.getItem('fundacion-encuentro:refresh')).toBeNull()
+    expect(screen.queryByText('14 carpetas')).not.toBeInTheDocument()
+    expect(llamadas(fetchEspia, 'POST', '/api/auth/logout')).toHaveLength(1)
+    expect(llamadas(fetchEspia, 'POST', '/api/auth/refresh')).toHaveLength(0)
+    await expect(peticion('/carpetas')).rejects.toMatchObject({ estado: 401 })
+  })
   it('descarta una renovación pendiente y bloquea nuevas consultas al cerrar', async () => {
     const { usuario, fetchEspia } = await montarApp('/carpetas', 'direccion')
     await screen.findByText('14 carpetas')
