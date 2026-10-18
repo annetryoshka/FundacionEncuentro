@@ -24,3 +24,22 @@ export function asignarTerapeuta(carpetaId: string, perfilId: string): Promise<C
     cuerpo: { perfilId },
   })
 }
+
+/**
+ * FE-52: Actualizar los datos básicos del paciente.
+ */
+export function actualizarDatosPaciente(
+  carpetaId: string,
+  datos: {
+    nombreCompleto: string
+    fechaIngreso: string
+  },
+): Promise<CarpetaDetalle> {
+  return peticion<CarpetaDetalle>(
+    `/carpetas/${encodeURIComponent(carpetaId)}`,
+    {
+      metodo: 'PATCH',
+      cuerpo: datos,
+    },
+  )
+}
