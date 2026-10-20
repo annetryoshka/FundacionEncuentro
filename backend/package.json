@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "npm run build && node --test test/*.test.mjs",
     "build": "nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
