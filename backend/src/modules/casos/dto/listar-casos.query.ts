@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 import { ESTADOS_CASO, TIPOS_CASO } from './registrar-caso.dto.js';
 
 export class ListarCasosQuery {
@@ -10,6 +10,11 @@ export class ListarCasosQuery {
   @IsOptional()
   @IsIn(ESTADOS_CASO)
   estado?: (typeof ESTADOS_CASO)[number];
+
+  /** Todas las carpetas de un paciente. */
+  @IsOptional()
+  @IsUUID()
+  pacienteId?: string;
 
   /** Busca por nombre del paciente. */
   @IsOptional()

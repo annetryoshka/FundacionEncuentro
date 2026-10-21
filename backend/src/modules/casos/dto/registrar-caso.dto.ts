@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   Max,
   MaxLength,
@@ -47,6 +48,16 @@ export class PacienteDto {
 export class CasoDto {
   @IsIn(TIPOS_CASO, { message: 'El tipo de caso debe ser derivado o voluntario' })
   tipo: (typeof TIPOS_CASO)[number];
+
+  /**
+   * Número de carpeta manual (para registrar carpetas antiguas con su número original).
+   * Si no se envía, se asigna el siguiente correlativo del tipo.
+   */
+  @IsOptional()
+  @IsInt({ message: 'El número de carpeta debe ser un entero' })
+  @Min(1, { message: 'El número de carpeta debe ser mayor a 0' })
+  @Max(999999)
+  numeroCorrelativo?: number;
 
   @IsOptional()
   @IsIn(ESTADOS_CASO, { message: 'El estado debe ser iniciado, en_proceso o concluido' })
@@ -96,10 +107,16 @@ export class ContextoJudicialDto {
 }
 
 export class RegistrarCasoDto {
-  @IsDefined({ message: 'Faltan los datos del paciente' })
+  /** Paciente nuevo. Se envía este o pacienteId, no ambos. */
+  @IsOptional()
   @ValidateNested()
   @Type(() => PacienteDto)
-  paciente: PacienteDto;
+  paciente?: PacienteDto;
+
+  /** Paciente que ya existe: abre una carpeta nueva para él. */
+  @IsOptional()
+  @IsUUID(undefined, { message: 'pacienteId no es un id válido' })
+  pacienteId?: string;
 
   @IsDefined({ message: 'Faltan los datos del caso' })
   @ValidateNested()

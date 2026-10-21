@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service.js';
 import type { ListarCasosQuery } from './dto/listar-casos.query.js';
 import type { RegistrarCasoDto } from './dto/registrar-caso.dto.js';
@@ -17,6 +22,11 @@ const SELECT_CARPETA = `
     left join contexto_judicial j on j.caso_id = c.id`;
 /** Texto vacío o solo espacios se guarda como null. */
 const limpiar = (valor?: string | null) => valor?.trim() || null;
+
+const esNumeroDuplicado = (error: unknown) => {
+  const e = error as { code?: string; constraint?: string };
+  return e.code === '23505' && e.constraint === 'uq_caso_numero';
+};
 @Injectable()
 export class CasosService {
   constructor(private readonly db: DatabaseService) {}
@@ -101,12 +111,18 @@ export class CasosService {
    * Todo ocurre en una sola transacción: o se guarda completo o no se guarda nada.
    */
   async registrar(dto: RegistrarCasoDto, adminId: string) {
-    const { paciente, caso, contextoJudicial } = dto;
+    const { paciente, pacienteId, caso, contextoJudicial } = dto;
+    if (paciente && pacienteId) {
+      throw new BadRequestException('Envía los datos de un paciente nuevo o el id de uno existente, no ambos');
+    }
+    if (!paciente && !pacienteId) {
+      throw new BadRequestException('Falta el paciente: envía "paciente" (nuevo) o "pacienteId" (existente)');
+    }
     if (caso.tipo === 'voluntario' && contextoJudicial) {
       throw new BadRequestException('Un caso voluntario no lleva contexto judicial');
     }
-    const nombre = paciente.nombreCompleto.trim();
-    if (!nombre) throw new BadRequestException('El nombre del paciente es obligatorio');
+    const nombre = paciente?.nombreCompleto.trim();
+    if (paciente && !nombre) throw new BadRequestException('El nombre del paciente es obligatorio');
     const casoId = await this.db.transaction(adminId, async (client) => {
       const { rows: hoyRows } = await client.query<{ hoy: string }>(
         `select to_char(current_date, 'YYYY-MM-DD') as hoy`,
@@ -116,10 +132,19 @@ export class CasosService {
       if (fechaIngreso > hoy) {
         throw new BadRequestException('La fecha de ingreso no puede ser futura');
       }
-      if (paciente.fechaNacimiento && paciente.fechaNacimiento > fechaIngreso) {
+      if (paciente?.fechaNacimiento && paciente.fechaNacimiento > fechaIngreso) {
         throw new BadRequestException('La fecha de nacimiento no puede ser posterior al ingreso');
       }
-      const pac = await client.query<{ id: string }>(
+      let idPaciente: string;
+      if (pacienteId) {
+        const existe = await client.query(
+          'select 1 from pacientes where id = $1 and deleted_at is null',
+          [pacienteId],
+        );
+        if (existe.rowCount === 0) throw new NotFoundException('Paciente no encontrado');
+        idPaciente = pacienteId;
+      } else {
+        const pac = await client.query<{ id: string }>(
         `insert into pacientes (nombre_completo, fecha_nacimiento, edad_al_ingreso, telefono, creado_por)
          values ($1, $2::date,
                  coalesce($3::int, case when $2::date is null then null
@@ -128,30 +153,44 @@ export class CasosService {
          returning id`,
         [
           nombre,
-          paciente.fechaNacimiento ?? null,
-          paciente.edadAlIngreso ?? null,
+          paciente!.fechaNacimiento ?? null,
+          paciente!.edadAlIngreso ?? null,
           fechaIngreso,
-          limpiar(paciente.telefono),
+          limpiar(paciente!.telefono),
           adminId,
         ],
-      );
-      // numero_correlativo lo asigna solo un trigger de la base, separado por tipo.
-      const nuevoCaso = await client.query<{ id: string }>(
-        `insert into casos (paciente_id, tipo, estado, fecha_ingreso,
-                            diagnostico_ingreso, hipotesis_relacional, comentarios_clinicos, creado_por)
-         values ($1, $2, coalesce($3, 'iniciado'), $4::date, $5, $6, $7, $8)
-         returning id`,
-        [
-          pac.rows[0].id,
-          caso.tipo,
-          caso.estado ?? null,
-          fechaIngreso,
-          limpiar(caso.diagnosticoIngreso),
-          limpiar(caso.hipotesisRelacional),
-          limpiar(caso.comentariosClinicos),
-          adminId,
-        ],
-      );
+        );
+        idPaciente = pac.rows[0].id;
+      }
+      // Si no se envía número, un trigger de la base asigna el siguiente, separado por tipo.
+      let nuevoCaso;
+      try {
+        nuevoCaso = await client.query<{ id: string }>(
+          `insert into casos (paciente_id, tipo, estado, fecha_ingreso,
+                              diagnostico_ingreso, hipotesis_relacional, comentarios_clinicos,
+                              creado_por, numero_correlativo)
+           values ($1, $2, coalesce($3, 'iniciado'), $4::date, $5, $6, $7, $8, $9::int)
+           returning id`,
+          [
+            idPaciente,
+            caso.tipo,
+            caso.estado ?? null,
+            fechaIngreso,
+            limpiar(caso.diagnosticoIngreso),
+            limpiar(caso.hipotesisRelacional),
+            limpiar(caso.comentariosClinicos),
+            adminId,
+            caso.numeroCorrelativo ?? null,
+          ],
+        );
+      } catch (error) {
+        if (esNumeroDuplicado(error)) {
+          throw new ConflictException(
+            `Ya existe un caso ${caso.tipo} con el número de carpeta ${caso.numeroCorrelativo}`,
+          );
+        }
+        throw error;
+      }
       if (contextoJudicial) {
         await client.query(
           `insert into contexto_judicial (caso_id, juzgado, nro_expediente, fecha_derivacion, observaciones)
@@ -168,7 +207,9 @@ export class CasosService {
       return nuevoCaso.rows[0].id;
     });
     const carpeta = await this.obtener(casoId);
-    const posiblesDuplicados = await this.buscarPosiblesDuplicados(nombre, carpeta.paciente.id);
+    const posiblesDuplicados = nombre
+      ? await this.buscarPosiblesDuplicados(nombre, carpeta.paciente.id)
+      : [];
     return { ...carpeta, posiblesDuplicados };
   }
   async obtener(id: string) {
@@ -188,6 +229,7 @@ export class CasosService {
     };
     if (filtros.tipo) agregar('c.tipo = ?', filtros.tipo);
     if (filtros.estado) agregar('c.estado = ?', filtros.estado);
+    if (filtros.pacienteId) agregar('c.paciente_id = ?', filtros.pacienteId);
     const busqueda = filtros.q?.trim();
     if (busqueda) agregar('position(lower(?) in lower(p.nombre_completo)) > 0', busqueda);
     const donde = condiciones.join(' and ');
