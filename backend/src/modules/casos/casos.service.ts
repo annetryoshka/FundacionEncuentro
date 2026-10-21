@@ -20,7 +20,7 @@ const SELECT_CARPETA = `
     from casos c
     join pacientes p on p.id = c.paciente_id
     left join contexto_judicial j on j.caso_id = c.id`;
-/** Texto vacío o solo espacios se guarda como null. */
+
 const limpiar = (valor?: string | null) => valor?.trim() || null;
 
 const esNumeroDuplicado = (error: unknown) => {
@@ -30,10 +30,7 @@ const esNumeroDuplicado = (error: unknown) => {
 @Injectable()
 export class CasosService {
   constructor(private readonly db: DatabaseService) {}
-  /**
-   * FE-52: Actualizar nombre del paciente y fecha de ingreso.
-   * Conserva identificadores, tipo y número correlativo.
-   */
+  /*Actualizar nombre del paciente y fecha de ingreso*/
   async actualizarDatosPaciente(
     id: string,
     dto: ActualizarCasoDto,
@@ -105,11 +102,7 @@ export class CasosService {
     });
     return this.obtener(id);
   }
-  /**
-   * Registro integral: crea al paciente, abre su carpeta (caso con número
-   * correlativo automático) y, si es derivado, guarda el contexto judicial.
-   * Todo ocurre en una sola transacción: o se guarda completo o no se guarda nada.
-   */
+  /*Registro, crea al paciente, si es derivado, guarda el contexto judicial.*/
   async registrar(dto: RegistrarCasoDto, adminId: string) {
     const { paciente, pacienteId, caso, contextoJudicial } = dto;
     if (paciente && pacienteId) {
@@ -162,7 +155,7 @@ export class CasosService {
         );
         idPaciente = pac.rows[0].id;
       }
-      // Si no se envía número, un trigger de la base asigna el siguiente, separado por tipo.
+
       let nuevoCaso;
       try {
         nuevoCaso = await client.query<{ id: string }>(
@@ -263,7 +256,7 @@ export class CasosService {
       desplazamiento,
     };
   }
-  /** Pacientes con nombre muy parecido: es un aviso, no bloquea el registro. */
+
   private async buscarPosiblesDuplicados(nombre: string, pacienteId: string) {
     const { rows } = await this.db.query(
       `select id, nombre_completo, extensions.similarity(nombre_completo, $1) as similitud
