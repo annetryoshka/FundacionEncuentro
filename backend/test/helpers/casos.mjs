@@ -40,6 +40,10 @@ export async function servidor(db, usuariosPorToken = { fixture: actor }) {
     await app.listen(0, '127.0.0.1');
     const base = await app.getUrl();
     return {
+      solicitar: (ruta, { token = 'fixture', metodo = 'GET', cuerpo } = {}) => fetch(`${base}/api${ruta}`, {
+        method: metodo,
+        headers: { ...(token === null ? {} : { Authorization: `Bearer ${token}` }), ...(cuerpo === undefined ? {} : { 'Content-Type': 'application/json' }) },
+        ...(cuerpo === undefined ? {} : { body: JSON.stringify(cuerpo) }), signal: AbortSignal.timeout(15_000) }),
       listar: (consulta = {}, { token = 'fixture' } = {}) => fetch(`${base}/api/carpetas?${new URLSearchParams(consulta)}`, {
         headers: token === null ? {} : { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15_000) }),
       post: (body, { token = 'fixture' } = {}) => fetch(`${base}/api/casos`, { method: 'POST',

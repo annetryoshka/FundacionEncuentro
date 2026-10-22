@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
+import { setTimeout as esperar } from 'node:timers/promises';
 import { before, beforeEach, after, test } from 'node:test';
 import pg from 'pg';
 import { DatabaseService } from '../dist/database/database.service.js';
@@ -13,6 +14,7 @@ const nombre = `fe40_run_${randomUUID().replaceAll('-', '')}`;
 const terapeutaA = '00000000-0000-4000-8000-000000000002';
 const terapeutaB = '00000000-0000-4000-8000-000000000003';
 const marketing = '00000000-0000-4000-8000-000000000004';
+const inactiva = '00000000-0000-4000-8000-000000000005';
 let admin, conexion, api, db, creada = false;
 let carpetas;
 
@@ -40,10 +42,12 @@ before(async () => {
     for (const [id, rol, nombrePerfil] of [
       [actor, 'administrador', 'Admin QA'], [terapeutaA, 'terapeuta', 'Terapeuta A QA'],
       [terapeutaB, 'terapeuta', 'Terapeuta B QA'], [marketing, 'marketing', 'Marketing QA'],
+      [inactiva, 'terapeuta', 'Terapeuta Inactiva QA'],
     ]) {
       await conexion.query('insert into auth.users (id) values ($1)', [id]);
       await conexion.query('insert into perfiles (id, nombre_completo, rol) values ($1, $2, $3)', [id, nombrePerfil, rol]);
     }
+    await conexion.query('update perfiles set activo = false where id = $1', [inactiva]);
     db = new DatabaseService({ getOrThrow: () => url.toString() });
     api = await servidor(db, { fixture: actor, terapeutaA, terapeutaB, marketing });
   } catch {
@@ -230,4 +234,149 @@ test('FE-40 PG: paginación y búsqueda inválidas producen 400 sin llegar a err
   for (const consulta of ['pagina=1&pagina=2', 'tamano=1&tamano=2', 'busqueda=a&busqueda=b']) {
     assert.equal((await api.listar(new URLSearchParams(consulta))).status, 400);
   }
+});
+
+const asignar = (id, perfilId, token = 'fixture') => api.solicitar(`/carpetas/${id}/terapeuta`, {
+  metodo: 'PUT', cuerpo: { perfilId }, token,
+});
+const detalleComo = (id, token) => api.solicitar(`/carpetas/${id}`, { token });
+async function responsables(id) {
+  return (await conexion.query('select perfil_id, asignado_por from asignaciones_caso where caso_id = $1', [id])).rows;
+}
+async function auditorias(id) {
+  return (await conexion.query(`select usuario_id, accion, datos_anteriores, datos_nuevos from auditoria
+    where tabla = 'asignaciones_caso' and coalesce(datos_nuevos, datos_anteriores)->>'caso_id' = $1
+    order by creado_en, accion`, [id])).rows;
+}
+
+test('FE-38 PG: alta y transferencia HTTP actualizan detalle, listado y auditoría', opciones, async () => {
+  const id = carpetas[3].id;
+  assert.equal((await detalleComo(id, 'terapeutaA')).status, 404);
+  assert.equal((await detalleComo(id, 'terapeutaB')).status, 404);
+  for (const [nueva, token, anterior] of [[terapeutaA, 'terapeutaA', 'terapeutaB'], [terapeutaB, 'terapeutaB', 'terapeutaA']]) {
+    const res = await asignar(id, nueva); assert.equal(res.status, 200);
+    const respuesta = await res.json();
+    assert.equal(respuesta.terapeuta.id, nueva); assert.equal(respuesta.asignadoPor.id, actor);
+    assert.equal(respuesta.id, id); assert.ok(respuesta.asignadoEn);
+    assert.equal((await detalleComo(id, token)).status, 200);
+    assert.equal((await detalleComo(id, anterior)).status, 404);
+    assert.equal((await detalleComo(id, 'fixture')).status, 200);
+    assert.equal((await detalleComo(id, 'marketing')).status, 403);
+    assert.equal((await listado({ busqueda: 'angela' }, token)).carpetas[0].id, id);
+    assert.equal((await listado({ busqueda: 'angela' }, anterior)).total, 0);
+    assert.deepEqual(await responsables(id), [{ perfil_id: nueva, asignado_por: actor }]);
+  }
+  const eventos = await auditorias(id);
+  assert.equal(eventos.length, 3);
+  assert.ok(eventos.every((e) => e.usuario_id === actor));
+  assert.deepEqual(eventos.filter((e) => e.accion === 'INSERT').map((e) => e.datos_nuevos.perfil_id).sort(), [terapeutaA, terapeutaB]);
+  assert.equal(eventos.find((e) => e.accion === 'DELETE').datos_anteriores.perfil_id, terapeutaA);
+});
+
+test('FE-38 PG: peticiones directas de terapeutas/marketing y sin sesión no alteran responsable', opciones, async () => {
+  const id = carpetas[0].id;
+  for (const [token, estado] of [['terapeutaA', 403], ['terapeutaB', 403], ['marketing', 403], [null, 401], ['invalido', 401]]) {
+    for (const [ruta, metodo, cuerpo] of [
+      [`/carpetas/${id}/terapeuta`, 'PUT', { perfilId: terapeutaB }],
+      [`/casos/${id}/asignaciones`, 'POST', { perfilId: terapeutaB }],
+      [`/casos/${id}/asignaciones`, 'GET', undefined],
+      [`/casos/${id}/asignaciones/${terapeutaA}`, 'DELETE', undefined],
+    ]) {
+      assert.equal((await api.solicitar(ruta, { token, metodo, cuerpo })).status, estado);
+    }
+  }
+  assert.equal((await responsables(id))[0].perfil_id, terapeutaA);
+});
+
+test('FE-38 PG: UUID/cuerpos inválidos se rechazan sin cambios persistidos', opciones, async () => {
+  const id = carpetas[0].id;
+  const previas = await auditorias(id);
+  for (const cuerpo of [{}, { perfilId: '' }, { perfilId: 'invalido' }, { perfilId: null }, { perfilId: terapeutaB, rol: 'administrador' }]) {
+    assert.equal((await api.solicitar(`/carpetas/${id}/terapeuta`, { metodo: 'PUT', cuerpo })).status, 400);
+  }
+  assert.equal((await asignar('id-invalido', terapeutaB)).status, 400);
+  assert.equal((await asignar(randomUUID(), terapeutaB)).status, 404);
+  assert.equal((await asignar(carpetas[5].id, terapeutaB)).status, 404);
+  assert.equal((await responsables(id))[0].perfil_id, terapeutaA);
+  assert.deepEqual(await auditorias(id), previas);
+});
+
+test('FE-38 PG: inexistente, inactiva y otros roles conservan la asignación anterior', opciones, async () => {
+  const id = carpetas[0].id;
+  for (const [perfil, estado, mensaje] of [
+    [randomUUID(), 404, 'Usuario no encontrado'],
+    [inactiva, 400, 'Solo se puede asignar a terapeutas activos'],
+    [actor, 400, 'Solo se puede asignar a terapeutas activos'],
+    [marketing, 400, 'Solo se puede asignar a terapeutas activos'],
+  ]) {
+    const res = await asignar(id, perfil); assert.equal(res.status, estado);
+    assert.equal((await res.json()).message, mensaje);
+    assert.equal((await responsables(id))[0].perfil_id, terapeutaA);
+  }
+});
+
+test('FE-38 PG: repetir asignación devuelve 409 y no duplica responsable ni auditoría', opciones, async () => {
+  const id = carpetas[3].id;
+  assert.equal((await asignar(id, terapeutaA)).status, 200);
+  const antes = await auditorias(id);
+  const repetida = await asignar(id, terapeutaA); assert.equal(repetida.status, 409);
+  assert.equal((await repetida.json()).message, 'Ese terapeuta ya está asignado al caso');
+  assert.deepEqual(await responsables(id), [{ perfil_id: terapeutaA, asignado_por: actor }]);
+  assert.deepEqual(await auditorias(id), antes);
+});
+
+test('FE-38 PG: fallo real de INSERT revierte DELETE y auditoría de la sustitución', opciones, async () => {
+  const id = carpetas[0].id;
+  const antes = await responsables(id); const eventos = await auditorias(id);
+  await conexion.query(`alter table asignaciones_caso add constraint fe38_fallo
+    check (perfil_id <> '${terapeutaB}'::uuid) not valid`);
+  try {
+    assert.equal((await asignar(id, terapeutaB)).status, 500);
+    assert.deepEqual(await responsables(id), antes);
+    assert.deepEqual(await auditorias(id), eventos);
+    assert.equal((await detalleComo(id, 'terapeutaA')).status, 200);
+    assert.equal((await detalleComo(id, 'terapeutaB')).status, 404);
+  } finally { await conexion.query('alter table asignaciones_caso drop constraint fe38_fallo'); }
+});
+
+test('FE-38 PG: rutas relacionadas permiten a admin listar, asignar y quitar', opciones, async () => {
+  const id = carpetas[3].id;
+  const ruta = `/casos/${id}/asignaciones`;
+  const res = await api.solicitar(ruta, { metodo: 'POST', cuerpo: { perfilId: terapeutaA } });
+  assert.equal(res.status, 201); assert.equal((await res.json())[0].perfilId, terapeutaA);
+  const lista = await api.solicitar(ruta); assert.equal(lista.status, 200);
+  assert.equal((await lista.json())[0].perfilId, terapeutaA);
+  assert.equal((await api.solicitar(`${ruta}/${terapeutaA}`, { metodo: 'DELETE' })).status, 204);
+  assert.deepEqual(await responsables(id), []);
+  assert.equal((await detalleComo(id, 'terapeutaA')).status, 404);
+});
+
+test('FE-38 PG: dos asignaciones HTTP bloqueadas conservan una sola responsable', opciones, async (t) => {
+  const id = carpetas[3].id;
+  const bloqueo = await db.pool.connect(); let pendientes;
+  try {
+    await bloqueo.query('BEGIN');
+    await bloqueo.query('select id from casos where id = $1 for update', [id]);
+    pendientes = Promise.all([terapeutaA, terapeutaB].map((perfil) => asignar(id, perfil)
+      .then(async (r) => ({ estado: r.status, cuerpo: await r.json() }), () => ({ estado: 0 }))));
+    let bloqueadas = 0; const limite = Date.now() + 6000;
+    while (Date.now() < limite && bloqueadas < 2) {
+      bloqueadas = (await conexion.query(`select count(*)::int as n from pg_stat_activity
+        where datname = current_database() and state = 'active' and wait_event_type = 'Lock'
+        and query like '%from casos%for update%'`)).rows[0].n;
+      if (bloqueadas < 2) await esperar(50);
+    }
+    assert.equal(bloqueadas, 2);
+    t.diagnostic(`Conexiones PostgreSQL esperando Lock para asignación: ${bloqueadas}`);
+  } finally {
+    await bloqueo.query('ROLLBACK'); bloqueo.release();
+    if (pendientes) await pendientes;
+  }
+  assert.ok((await pendientes).every((r) => r.estado === 200));
+  const filas = await responsables(id); assert.equal(filas.length, 1);
+  assert.ok([terapeutaA, terapeutaB].includes(filas[0].perfil_id));
+  const autorizada = filas[0].perfil_id === terapeutaA ? 'terapeutaA' : 'terapeutaB';
+  const ajena = autorizada === 'terapeutaA' ? 'terapeutaB' : 'terapeutaA';
+  assert.equal((await detalleComo(id, autorizada)).status, 200);
+  assert.equal((await detalleComo(id, ajena)).status, 404);
 });
