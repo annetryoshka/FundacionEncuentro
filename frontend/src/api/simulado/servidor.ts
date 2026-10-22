@@ -108,12 +108,21 @@ export async function atenderSimulado(url: string, init: RequestInit = {}): Prom
 
     if (ruta === '/carpetas') {
       if (metodo === 'GET') return listarCarpetas(yo, searchParams)
-      if (metodo === 'POST')
-        return yo.rol === 'administrador' ? crearCarpeta(yo, cuerpo) : error(403, 'Solo administración')
+    }
+    if (ruta === '/casos' && metodo === 'POST') {
+      if (yo.rol !== 'administrador') return error(403, 'Solo administración')
+      const paciente = cuerpo.paciente as Record<string, unknown> | undefined
+      const caso = cuerpo.caso as Record<string, unknown> | undefined
+      return crearCarpeta(yo, { nombreCompleto: paciente?.nombreCompleto, fechaIngreso: caso?.fechaIngreso, tipo: caso?.tipo })
     }
 
     const detalle = ruta.match(/^\/carpetas\/([^/]+)$/)
     if (detalle && metodo === 'GET') return verCarpeta(yo, detalle[1])
+      if (detalle && metodo === 'PATCH') {
+  return yo.rol === 'administrador'
+    ? editarDatosPaciente(detalle[1], cuerpo)
+    : error(403, 'Solo administración')
+}
 
     const asignar = ruta.match(/^\/carpetas\/([^/]+)\/terapeuta$/)
     if (asignar && metodo === 'PUT') {
@@ -287,16 +296,6 @@ function crearCarpeta(yo: PerfilSim, cuerpo: Record<string, unknown>) {
   if (errores.length) return error(400, errores)
 
   const duplicados = datos.casos.filter((c) => normalizar(c.paciente.nombreCompleto) === normalizar(nombreCompleto))
-  if (duplicados.length) {
-    return error(409, 'Posible paciente duplicado', {
-      posiblesDuplicados: duplicados.map((c) => ({
-        id: c.id,
-        numero: c.numero,
-        tipo: c.tipo,
-        nombreCompleto: c.paciente.nombreCompleto,
-      })),
-    })
-  }
 
   datos.contadores[tipo] += 1
   const caso: CasoSim = {
@@ -311,8 +310,79 @@ function crearCarpeta(yo: PerfilSim, cuerpo: Record<string, unknown>) {
     asignacion: null,
   }
   datos.casos.push(caso)
-  return json(201, detalle(caso))
+  return json(201, { ...detalle(caso), numeroCorrelativo: caso.numero,
+    posiblesDuplicados: duplicados.map((c) => ({ pacienteId: c.paciente.id, nombreCompleto: c.paciente.nombreCompleto, similitud: 1 })),
+  })
 }
+
+/**
+ * FE-52: Actualizar los datos básicos del paciente.
+ * Solo permite cambiar el nombre y la fecha de ingreso.
+ */
+function editarDatosPaciente(
+  id: string,
+  cuerpo: Record<string, unknown>,
+) {
+  const caso = datos.casos.find((c) => c.id === id)
+
+  if (!caso) {
+    return error(404, 'Carpeta no encontrada')
+  }
+
+  const campos = Object.keys(cuerpo)
+
+  if (
+    campos.some(
+      (campo) =>
+        campo !== 'nombreCompleto' &&
+        campo !== 'fechaIngreso',
+    )
+  ) {
+    return error(400, 'Se enviaron campos no permitidos')
+  }
+
+  if (
+    typeof cuerpo.nombreCompleto !== 'string' ||
+    typeof cuerpo.fechaIngreso !== 'string'
+  ) {
+    return error(400, 'Nombre y fecha de ingreso son obligatorios')
+  }
+
+  const nombreCompleto = cuerpo.nombreCompleto
+    .trim()
+    .replace(/\s+/g, ' ')
+
+  const fechaIngreso = cuerpo.fechaIngreso
+
+  if (
+    nombreCompleto.length < 3 ||
+    nombreCompleto.length > 150 ||
+    !/\p{L}/u.test(nombreCompleto)
+  ) {
+    return error(400, 'El nombre del paciente no es válido')
+  }
+
+  const fecha = new Date(`${fechaIngreso}T00:00:00Z`)
+
+  const fechaValida =
+    /^\d{4}-\d{2}-\d{2}$/.test(fechaIngreso) &&
+    !Number.isNaN(fecha.getTime()) &&
+    fecha.toISOString().slice(0, 10) === fechaIngreso &&
+    fechaIngreso >= '1990-01-01' &&
+    fechaIngreso <= hoyIso()
+
+  if (!fechaValida) {
+    return error(400, 'La fecha de ingreso no es válida')
+  }
+
+  // Actualizar los datos del paciente.
+  caso.paciente.nombreCompleto = nombreCompleto
+  caso.fechaIngreso = fechaIngreso
+
+  // Se conserva el número de carpeta.
+  return json(200, detalle(caso))
+}
+
 
 function asignarTerapeuta(yo: PerfilSim, id: string, cuerpo: Record<string, unknown>) {
   const caso = datos.casos.find((c) => c.id === id)

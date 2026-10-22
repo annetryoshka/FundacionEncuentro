@@ -1,5 +1,5 @@
 import { peticion } from '../../api/cliente'
-import type { CarpetaDetalle, NuevaCarpeta, PaginaCarpetas } from './tipos'
+import type { AltaCarpeta, CarpetaDetalle, NuevaCarpeta, PaginaCarpetas } from './tipos'
 
 export const TAMANO_PAGINA = 10
 
@@ -13,8 +13,14 @@ export function obtenerCarpeta(id: string): Promise<CarpetaDetalle> {
   return peticion<CarpetaDetalle>(`/carpetas/${encodeURIComponent(id)}`)
 }
 
-export function registrarCarpeta(datos: NuevaCarpeta): Promise<CarpetaDetalle> {
-  return peticion<CarpetaDetalle>('/carpetas', { metodo: 'POST', cuerpo: datos })
+export function registrarCarpeta(datos: NuevaCarpeta): Promise<AltaCarpeta> {
+  return peticion<AltaCarpeta>('/casos', {
+    metodo: 'POST',
+    cuerpo: {
+      paciente: { nombreCompleto: datos.nombreCompleto },
+      caso: { fechaIngreso: datos.fechaIngreso, tipo: datos.tipo },
+    },
+  })
 }
 
 /** Reemplaza a la terapeuta responsable (una por caso). La anterior pierde el acceso. */
@@ -23,4 +29,23 @@ export function asignarTerapeuta(carpetaId: string, perfilId: string): Promise<C
     metodo: 'PUT',
     cuerpo: { perfilId },
   })
+}
+
+/**
+ * FE-52: Actualizar los datos básicos del paciente.
+ */
+export function actualizarDatosPaciente(
+  carpetaId: string,
+  datos: {
+    nombreCompleto: string
+    fechaIngreso: string
+  },
+): Promise<CarpetaDetalle> {
+  return peticion<CarpetaDetalle>(
+    `/carpetas/${encodeURIComponent(carpetaId)}`,
+    {
+      metodo: 'PATCH',
+      cuerpo: datos,
+    },
+  )
 }

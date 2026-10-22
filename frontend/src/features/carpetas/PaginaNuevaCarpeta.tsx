@@ -4,7 +4,7 @@ import { ErrorApi, mensajeErrorGeneral } from '../../api/cliente'
 import { Aviso, Boton, CampoTexto, EncabezadoPagina, GrupoOpciones, Tarjeta } from '../../componentes/ui'
 import { hoyIso } from '../../utilidades/fechas'
 import { registrarCarpeta } from './carpetasApi'
-import { NOMBRE_TIPO, numeroCarpeta, type NuevaCarpeta, type PosibleDuplicado, type TipoCaso } from './tipos'
+import { type NuevaCarpeta, type TipoCaso } from './tipos'
 import { validarNuevaCarpeta, type ErroresCarpeta } from './validacion'
 
 type Formulario = { [K in keyof NuevaCarpeta]: string }
@@ -30,7 +30,7 @@ export function PaginaNuevaCarpeta() {
   const [intento, setIntento] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
-  const [duplicados, setDuplicados] = useState<PosibleDuplicado[]>([])
+  const envioEnCurso = useRef(false)
 
   const refNombre = useRef<HTMLInputElement>(null)
   const refFecha = useRef<HTMLInputElement>(null)
@@ -39,16 +39,14 @@ export function PaginaNuevaCarpeta() {
   const cambiar = (campo: keyof Formulario, valor: string) => {
     const siguiente = { ...form, [campo]: valor }
     setForm(siguiente)
-    if (campo === 'nombreCompleto') setDuplicados([])
     if (intento) setErrores(validarNuevaCarpeta(siguiente))
   }
 
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
-    if (guardando) return
+    if (envioEnCurso.current) return
     setIntento(true)
     setErrorGeneral(null)
-    setDuplicados([])
 
     const encontrados = validarNuevaCarpeta(form)
     setErrores(encontrados)
@@ -56,6 +54,7 @@ export function PaginaNuevaCarpeta() {
     if (encontrados.fechaIngreso) return refFecha.current?.focus()
     if (encontrados.tipo) return
 
+    envioEnCurso.current = true
     setGuardando(true)
     try {
       const carpeta = await registrarCarpeta({
@@ -63,12 +62,14 @@ export function PaginaNuevaCarpeta() {
         fechaIngreso: form.fechaIngreso,
         tipo: form.tipo as TipoCaso,
       })
-      navegar(`/carpetas/${carpeta.id}`, { state: { recienCreada: true } })
+      navegar(`/carpetas/${carpeta.id}`, {
+        state: { recienCreada: true, revisarDuplicados: carpeta.posiblesDuplicados.length > 0 },
+      })
     } catch (error) {
       setGuardando(false)
+      envioEnCurso.current = false
       if (error instanceof ErrorApi && error.estado === 409) {
-        setDuplicados((error.datos.posiblesDuplicados as PosibleDuplicado[] | undefined) ?? [])
-        setErrorGeneral('Ya existe una carpeta con un nombre igual. No se registró una nueva para evitar duplicados.')
+        setErrorGeneral('El número de carpeta ya está registrado. Revisa el registro antes de volver a intentarlo.')
       } else {
         setErrorGeneral(
           error instanceof ErrorApi && error.estado === 400
@@ -134,23 +135,6 @@ export function PaginaNuevaCarpeta() {
             {errorGeneral && (
               <Aviso ref={refAviso} tipo="error">
                 <p>{errorGeneral}</p>
-                {duplicados.length > 0 && (
-                  <>
-                    <p className="mt-2 text-texto">Revisa si es la misma persona:</p>
-                    <ul className="mt-1 space-y-1">
-                      {duplicados.map((d) => (
-                        <li key={d.id}>
-                          <Link
-                            to={`/carpetas/${d.id}`}
-                            className="font-semibold text-texto underline underline-offset-2"
-                          >
-                            Carpeta {numeroCarpeta(d.numero)} ({NOMBRE_TIPO[d.tipo]}): {d.nombreCompleto}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
               </Aviso>
             )}
 

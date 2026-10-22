@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { act, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { llamadas, montarApp } from '../../test/montarApp'
 import { hoyIso } from '../../utilidades/fechas'
@@ -21,7 +21,7 @@ describe('PaginaNuevaCarpeta', () => {
 
     expect(screen.getByText('Escribe el nombre completo del paciente.')).toBeInTheDocument()
     expect(campo('Nombre completo del paciente')).toHaveFocus()
-    expect(llamadas(fetchEspia, 'POST', '/api/carpetas')).toHaveLength(0)
+    expect(llamadas(fetchEspia, 'POST', '/api/casos')).toHaveLength(0)
   })
 
   it('valida la fecha de ingreso', () => {
@@ -43,22 +43,90 @@ describe('PaginaNuevaCarpeta', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Rosa Apaza Limachi' })).toBeInTheDocument()
     expect(screen.getAllByText('Nº 10').length).toBeGreaterThan(0)
 
-    const [, init] = llamadas(fetchEspia, 'POST', '/api/carpetas')[0]
+    const [, init] = llamadas(fetchEspia, 'POST', '/api/casos')[0]
     expect(JSON.parse(String(init?.body))).toEqual({
-      nombreCompleto: 'Rosa Apaza Limachi',
-      fechaIngreso: hoyIso(),
-      tipo: 'voluntario',
+      paciente: { nombreCompleto: 'Rosa Apaza Limachi' },
+      caso: { fechaIngreso: hoyIso(), tipo: 'voluntario' },
     })
   })
 
-  it('un paciente duplicado muestra la advertencia y enlaza a la carpeta existente', async () => {
+  it('un nombre similar permite el alta y muestra una advertencia sin inventar un conflicto', async () => {
     const { usuario } = await montarApp('/carpetas/nueva')
     await usuario.type(campo('Nombre completo del paciente'), 'mariana gutierrez paz')
     await usuario.click(screen.getByRole('radio', { name: /Voluntario/ }))
     await usuario.click(screen.getByRole('button', { name: 'Registrar y abrir carpeta' }))
 
-    expect(await screen.findByText(/Ya existe una carpeta con un nombre igual/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Carpeta Nº 1 \(Voluntario\): Mariana Gutiérrez Paz/ })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Registrar paciente' })).toBeInTheDocument()
+    expect(await screen.findByText(/Se encontraron pacientes con nombres similares/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'mariana gutierrez paz' })).toBeInTheDocument()
+  })
+
+  it('doble clic mientras el alta está pendiente envía una sola solicitud', async () => {
+    const { usuario, fetchEspia } = await montarApp('/carpetas/nueva')
+    const simulado = fetchEspia.getMockImplementation()!
+    let completar!: () => void
+    fetchEspia.mockImplementation((entrada, init) => String(entrada).endsWith('/casos') && init?.method === 'POST'
+      ? new Promise<Response>((resolve) => { completar = () => { void simulado(entrada, init).then(resolve) } })
+      : simulado(entrada, init))
+    await usuario.type(campo('Nombre completo del paciente'), 'Paciente QA doble envío')
+    await usuario.click(screen.getByRole('radio', { name: /Voluntario/ }))
+    await usuario.dblClick(screen.getByRole('button', { name: 'Registrar y abrir carpeta' }))
+    expect(llamadas(fetchEspia, 'POST', '/api/casos')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Registrando…' })).toBeDisabled()
+    await act(async () => { completar() })
+    expect(await screen.findByRole('heading', { level: 1, name: 'Paciente QA doble envío' })).toBeInTheDocument()
+  })
+
+  it('409 de numeración no se presenta como un paciente duplicado', async () => {
+    const { usuario, fetchEspia } = await montarApp('/carpetas/nueva')
+    const simulado = fetchEspia.getMockImplementation()!
+    fetchEspia.mockImplementation((entrada, init) => String(entrada).endsWith('/casos') && init?.method === 'POST'
+      ? Promise.resolve(Response.json({ message: 'Número ya registrado' }, { status: 409 }))
+      : simulado(entrada, init))
+    await usuario.type(campo('Nombre completo del paciente'), 'Paciente QA conflicto')
+    await usuario.click(screen.getByRole('radio', { name: /Voluntario/ }))
+    await usuario.click(screen.getByRole('button', { name: 'Registrar y abrir carpeta' }))
+    expect(await screen.findByText(/El número de carpeta ya está registrado/)).toBeInTheDocument()
+    expect(screen.queryByText(/Ya existe una carpeta con un nombre igual/)).not.toBeInTheDocument()
+  })
+
+  it.each(['red', 'servidor'])('POST confirmado y GET fallido por %s: recupera el mismo detalle sin otra alta', async (fallo) => {
+    const { usuario, fetchEspia } = await montarApp('/carpetas/nueva')
+    const simulado = fetchEspia.getMockImplementation()!
+    let carpetaId = ''
+    let fallarDetalle = true
+    const consultas: string[] = []
+    fetchEspia.mockImplementation(async (entrada, init) => {
+      const ruta = new URL(String(entrada), 'http://qa').pathname
+      if (ruta === '/api/casos' && init?.method === 'POST') {
+        const respuesta = await simulado(entrada, init)
+        carpetaId = ((await respuesta.clone().json()) as { id: string }).id
+        return respuesta
+      }
+      if (carpetaId && ruta === `/api/carpetas/${carpetaId}` && (init?.method ?? 'GET') === 'GET') {
+        consultas.push(ruta)
+        if (fallarDetalle) {
+          if (fallo === 'red') throw new TypeError('Fallo de red simulado')
+          return Response.json({ message: 'Error del servidor simulado' }, { status: 500 })
+        }
+      }
+      return simulado(entrada, init)
+    })
+    await usuario.type(campo('Nombre completo del paciente'), 'Paciente QA detalle recuperable')
+    await usuario.click(screen.getByRole('radio', { name: /Voluntario/ }))
+    await usuario.click(screen.getByRole('button', { name: 'Registrar y abrir carpeta' }))
+
+    expect(await screen.findByText(/El registro se guardó/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Registrar y abrir carpeta' })).not.toBeInTheDocument()
+    expect(carpetaId).not.toBe('')
+    expect(consultas).toEqual([`/api/carpetas/${carpetaId}`])
+    expect(llamadas(fetchEspia, 'POST', '/api/casos')).toHaveLength(1)
+
+    fallarDetalle = false
+    await usuario.click(screen.getByRole('button', { name: 'Reintentar' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Paciente QA detalle recuperable' })).toBeInTheDocument()
+    expect(consultas).toEqual([`/api/carpetas/${carpetaId}`, `/api/carpetas/${carpetaId}`])
+    expect(llamadas(fetchEspia, 'POST', '/api/casos')).toHaveLength(1)
+    expect(screen.queryByText(/El registro se guardó/)).not.toBeInTheDocument()
   })
 })

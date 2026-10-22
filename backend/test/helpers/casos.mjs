@@ -38,10 +38,12 @@ export async function servidor(db) {
     await app.listen(0, '127.0.0.1');
     const base = await app.getUrl();
     return {
-      post: (body) => fetch(`${base}/api/casos`, { method: 'POST',
-        headers: { Authorization: 'Bearer fixture', 'Content-Type': 'application/json' },
+      post: (body, { token = 'fixture' } = {}) => fetch(`${base}/api/casos`, { method: 'POST',
+        headers: { ...(token === null ? {} : { Authorization: `Bearer ${token}` }), 'Content-Type': 'application/json' },
         body: JSON.stringify(body), signal: AbortSignal.timeout(15_000) }),
       get: (id) => fetch(`${base}/api/casos/${id}`, {
+        headers: { Authorization: 'Bearer fixture' }, signal: AbortSignal.timeout(15_000) }),
+      detalle: (id) => fetch(`${base}/api/carpetas/${id}`, {
         headers: { Authorization: 'Bearer fixture' }, signal: AbortSignal.timeout(15_000) }),
       close: async () => { try { await app.close(); } finally { globalThis.fetch = original; } },
     };

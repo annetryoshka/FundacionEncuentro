@@ -42,6 +42,13 @@ export interface NuevaCarpeta {
   tipo: TipoCaso
 }
 
+/** POST /api/casos: el detalle autorizado se consulta después con GET /api/carpetas/:id. */
+export interface AltaCarpeta {
+  id: string
+  numeroCorrelativo: number
+  posiblesDuplicados: { pacienteId: string; nombreCompleto: string; similitud: number }[]
+}
+
 /** Lo que trae un 409 de POST /api/carpetas en `posiblesDuplicados`. */
 export interface PosibleDuplicado {
   id: string
