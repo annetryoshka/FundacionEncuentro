@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Query,
   ParseUUIDPipe, Put,
 } from '@nestjs/common';
 
@@ -13,6 +14,7 @@ import type { Usuario } from '../../common/types/usuario.js';
 import { CasosService } from './casos.service.js';
 import { AsignacionesService } from './asignaciones.service.js';
 import { AsignarTerapeutaDto } from './dto/asignar-terapeuta.dto.js';
+import { ListarCarpetasQuery } from './dto/listar-carpetas.query.js';
 
 @Controller('carpetas')
 export class CarpetasController {
@@ -20,6 +22,12 @@ export class CarpetasController {
     private readonly casos: CasosService,
     private readonly asignaciones: AsignacionesService,
   ) {}
+
+  @Get()
+  @Roles('administrador', 'terapeuta')
+  listar(@Query() filtros: ListarCarpetasQuery, @UsuarioActual() usuario: Usuario) {
+    return this.casos.listarCarpetas(filtros, usuario);
+  }
 
   //consultar una carpeta con autorización por caso
   @Get(':id')

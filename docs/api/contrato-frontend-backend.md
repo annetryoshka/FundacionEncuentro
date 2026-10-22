@@ -14,7 +14,7 @@ necesita cambiar algo, actualicen este archivo y el `tipos.ts` correspondiente d
 | `POST /api/casos` | FE-32, FE-33 | FE-31 | ✅ alta integral y pruebas FE-34 |
 | `GET /api/carpetas/:id` | FE-37 | FE-31, FE-36 | ✅ implementado; consulta posterior al alta |
 | `PUT /api/carpetas/:id/terapeuta` | FE-37 | FE-36 | ✅ implementado |
-| `GET /api/carpetas` | FE-40 | FE-39 | ⏳ pendiente |
+| `GET /api/carpetas` | FE-40 | FE-39 | ✅ implementado; SQL probado con PostgreSQL real y Auth simulado |
 | `PATCH /api/carpetas/:id` | FE-52 | FE-52 | ⚠️ implementado; respuesta de asignación pendiente de corregir |
 
 "Probado de punta a punta": el backend NestJS real, con la migración 001 en PostgreSQL y un Supabase Auth de
@@ -37,7 +37,7 @@ migraciones 001 y 002. Esto no equivale a validar Supabase Auth real ni el naveg
 - Nunca devolver contraseñas, hashes ni tokens de otras personas.
 - Toda escritura dentro de `db.transaction(usuarioId, …)` (auditoría).
 
-## Permisos esperados en los endpoints pendientes
+## Permisos de carpetas
 
 | | `administrador` | `terapeuta` | `marketing` |
 | --- | --- | --- | --- |
@@ -127,15 +127,33 @@ Se usan `email` y `password`, igual que en el login.
   `SUPABASE_SERVICE_ROLE_KEY`, `email_confirm: true`) y luego `insert into perfiles` dentro de `transaction()`.
   Si falla el insert, borrar el usuario de Auth.
 
-## ⏳ `GET /api/carpetas` (FE-40)
+## ✅ `GET /api/carpetas` (FE-40)
 
 `?busqueda=&pagina=1&tamano=10`
 
-- Solo dígitos → número de carpeta exacto (puede salir uno voluntario y uno derivado con el mismo número).
-- Texto → nombre del paciente, sin distinguir tildes ni mayúsculas. La búsqueda con
-  `unaccent` sigue siendo una dependencia de FE-40; la migración 002 actual solo añade
-  la restricción de una asignación por caso.
-- Filtro por asignación **en el SQL, antes de paginar**. Excluir `deleted_at is not null`.
+- `busqueda` opcional, máximo 150 caracteres. Vacía o solo espacios lista todas las
+  carpetas autorizadas. Cada palabra del texto debe aparecer en el nombre, sin
+  distinguir orden, tildes ni mayúsculas; `%` y `_` se tratan como texto literal.
+- Solo dígitos → número exacto, admitiendo ceros iniciales. Puede devolver un
+  voluntario y un derivado con el mismo número. Un número fuera del rango `integer`
+  devuelve cero resultados, sin intentar convertirlo en SQL.
+- `pagina`: entero de 1 a 2147483647, predeterminado 1. `tamano`: entero de 1 a 100,
+  predeterminado 10 (mismo máximo del listado existente de casos). Valores inválidos,
+  parámetros repetidos o desconocidos: 400. Página sin filas: arreglo vacío y total
+  autorizado conservado. El desplazamiento máximo cabe en un entero SQL de 64 bits.
+- Administrador: todas las carpetas vigentes, incluidas las no asignadas. Terapeuta:
+  solo las actualmente asignadas a su perfil. Marketing: 403. Sin sesión o token
+  inválido: 401. El rol y el perfil proceden de los guards, nunca de la consulta.
+- Asignación, búsqueda y exclusión de casos o pacientes borrados lógicamente se
+  aplican **en SQL antes de paginar**, con el mismo fragmento de filtros para el total.
+- Orden: fecha de ingreso descendente, número descendente e UUID del caso ascendente
+  como desempate estable. `id` es `casos.id`; las fechas son AAAA-MM-DD.
+- Solo campos de resumen; no devuelve diagnóstico, comentarios, teléfonos ni otros
+  datos clínicos. `terapeuta` es `null` cuando no hay responsable.
+- Requiere aplicar `003_busqueda_carpetas_unaccent.sql` después de 001 y 002.
+  La 003 instala `unaccent` en `extensions`; no altera migraciones anteriores.
+- `GET /api/casos` mantiene su contrato previo independiente (`datos`, `limite`,
+  `desplazamiento`). El alta y el detalle de FE-34/FE-37 no cambian.
 
 ```json
 {
@@ -299,7 +317,8 @@ Corregir esa respuesta corresponde a FE-52; FE-34 no altera el flujo de edición
 - Comprobación manual desde navegador con Supabase QA real: pendiente. No se dispone
   en este cierre de credenciales QA ni de navegador conectado. No se usaron datos
   clínicos reales, contraseñas o tokens en las evidencias.
-- El listado `GET /api/carpetas` continúa pendiente de FE-40; no se implementa aquí.
+- En el cierre de FE-34 el listado `GET /api/carpetas` quedaba pendiente de FE-40;
+  ahora está implementado según la sección FE-40 de este contrato.
   Para comprobar el alta manualmente, entrar como administrador y abrir directamente
   `/carpetas/nueva`, registrar datos ficticios y verificar la navegación al detalle.
 - `PATCH /api/carpetas/:id` y su respuesta de asignación siguen siendo dependencia
@@ -320,9 +339,40 @@ Corregir esa respuesta corresponde a FE-52; FE-34 no altera el flujo de edición
 | No hay datos de prueba en el repo | FE-42 / FE-45 | Script con cuentas (Auth + perfiles) y carpetas |
 
 El índice sugerido históricamente ya forma parte de la migración 002. `unaccent`
-sigue pendiente del trabajo de búsqueda; no está incluido en esa migración:
+se incorpora con la migración 003 de FE-40, sin modificar la 002:
 
 ```sql
 create unique index uq_asignacion_un_responsable on public.asignaciones_caso (caso_id);
 create extension if not exists unaccent with schema extensions;
 ```
+
+## Evidencia FE-40
+
+- Rama `feature/FE-40-listado-carpetas`, base `14f0b54` de `origin/main`, que ya
+  contiene FE-34 (`894ef923e36d9fe1cbd3a03583f992da69ce58f7`). Jira no respondió;
+  se utilizó el contrato del repositorio. FE-52 permanece fuera de este cambio.
+- `npm.cmd run build` en backend: aprobado. No hay script de lint backend configurado.
+- `npm.cmd run test:unit`: 27 aprobadas. `node --test test/altas.test.mjs`: 25 aprobadas
+  con base simulada, para conservar el alta y la infraestructura HTTP existente.
+- `node --test test/concurrencia-postgres.test.mjs`: 9 aprobadas con PostgreSQL
+  desechable y migraciones 001–003; se conserva el alta y se observaron dos INSERT
+  esperando bloqueo real. Auth simulado. `git diff --check`: aprobado.
+- `node --test test/listado-carpetas-postgres.test.mjs`: 12 aprobadas, cero omitidas,
+  con `FE40_PG_QA=1` y `FE40_PG_ADMIN_URL` apuntando a la base local `fe40_qa`.
+  Se creó otra base exclusiva por ejecución, se aplicaron 001–003 y se eliminó al
+  finalizar. PostgreSQL 16.15 real, NestJS real, Auth simulado y datos ficticios.
+- Casos cubiertos: administrador, dos terapeutas, marketing, 401/403, total filtrado
+  antes de paginar, reasignación, tildes/mayúsculas, número exacto en ambas series,
+  ceros iniciales/números enormes, no asignadas, borrados, vacíos, orden con empates,
+  páginas extremas, parámetros inválidos/repetidos y consultas de inyección literales.
+- El frontend existente consume el contrato sin cambios; no se repitió su batería
+  porque no se modificaron sus archivos ni su simulador.
+- Ejecución QA reproducible: preparar PostgreSQL local desechable con base `fe40_qa`,
+  definir `FE40_PG_QA=1` y `FE40_PG_ADMIN_URL` solo en el entorno de la terminal,
+  compilar backend y ejecutar el archivo anterior. Requiere permiso de creación de
+  bases y extensiones. No usa `DATABASE_URL`, no carga `.env` ni toca bases compartidas.
+- Pendiente manual: aplicar migraciones en QA autorizado, iniciar backend y frontend
+  con su configuración QA y API real (no `dev:simulado`), entrar en `/carpetas` como
+  administrador, buscar por nombre sin tildes y por número, paginar y abrir un detalle.
+  Repetir como dos terapeutas con asignaciones distintas y comprobar marketing 403
+  en API. No se afirma verificación con Supabase Auth real ni navegador.
