@@ -108,8 +108,12 @@ export async function atenderSimulado(url: string, init: RequestInit = {}): Prom
 
     if (ruta === '/carpetas') {
       if (metodo === 'GET') return listarCarpetas(yo, searchParams)
-      if (metodo === 'POST')
-        return yo.rol === 'administrador' ? crearCarpeta(yo, cuerpo) : error(403, 'Solo administración')
+    }
+    if (ruta === '/casos' && metodo === 'POST') {
+      if (yo.rol !== 'administrador') return error(403, 'Solo administración')
+      const paciente = cuerpo.paciente as Record<string, unknown> | undefined
+      const caso = cuerpo.caso as Record<string, unknown> | undefined
+      return crearCarpeta(yo, { nombreCompleto: paciente?.nombreCompleto, fechaIngreso: caso?.fechaIngreso, tipo: caso?.tipo })
     }
 
     const detalle = ruta.match(/^\/carpetas\/([^/]+)$/)
@@ -292,16 +296,6 @@ function crearCarpeta(yo: PerfilSim, cuerpo: Record<string, unknown>) {
   if (errores.length) return error(400, errores)
 
   const duplicados = datos.casos.filter((c) => normalizar(c.paciente.nombreCompleto) === normalizar(nombreCompleto))
-  if (duplicados.length) {
-    return error(409, 'Posible paciente duplicado', {
-      posiblesDuplicados: duplicados.map((c) => ({
-        id: c.id,
-        numero: c.numero,
-        tipo: c.tipo,
-        nombreCompleto: c.paciente.nombreCompleto,
-      })),
-    })
-  }
 
   datos.contadores[tipo] += 1
   const caso: CasoSim = {
@@ -316,7 +310,9 @@ function crearCarpeta(yo: PerfilSim, cuerpo: Record<string, unknown>) {
     asignacion: null,
   }
   datos.casos.push(caso)
-  return json(201, detalle(caso))
+  return json(201, { ...detalle(caso), numeroCorrelativo: caso.numero,
+    posiblesDuplicados: duplicados.map((c) => ({ pacienteId: c.paciente.id, nombreCompleto: c.paciente.nombreCompleto, similitud: 1 })),
+  })
 }
 
 /**

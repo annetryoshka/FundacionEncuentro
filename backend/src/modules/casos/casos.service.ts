@@ -118,7 +118,7 @@ export class CasosService {
     }
     const nombre = paciente?.nombreCompleto.trim();
     if (paciente && !nombre) throw new BadRequestException('El nombre del paciente es obligatorio');
-    const casoId = await this.db.transaction(adminId, async (client) => {
+    return this.db.transaction(adminId, async (client) => {
       const { rows: hoyRows } = await client.query<{ hoy: string }>(
         `select to_char(current_date, 'YYYY-MM-DD') as hoy`,
       );
@@ -199,16 +199,16 @@ export class CasosService {
           ],
         );
       }
-      return nuevoCaso.rows[0].id;
+      // Construir la respuesta antes del COMMIT: si falla una lectura, el alta se revierte.
+      const carpeta = await this.obtener(nuevoCaso.rows[0].id, client);
+      const posiblesDuplicados = nombre
+        ? await this.buscarPosiblesDuplicados(nombre, carpeta.paciente.id, client)
+        : [];
+      return { ...carpeta, posiblesDuplicados };
     });
-    const carpeta = await this.obtener(casoId);
-    const posiblesDuplicados = nombre
-      ? await this.buscarPosiblesDuplicados(nombre, carpeta.paciente.id)
-      : [];
-    return { ...carpeta, posiblesDuplicados };
   }
-  async obtener(id: string) {
-    const { rows } = await this.db.query(
+  async obtener(id: string, client?: Pick<DatabaseService, 'query'>) {
+    const { rows } = await (client ?? this.db).query(
       `${SELECT_CARPETA} where c.id = $1 and c.deleted_at is null and p.deleted_at is null`,
       [id],
     );
@@ -340,8 +340,8 @@ export class CasosService {
     };
   }
 
-  private async buscarPosiblesDuplicados(nombre: string, pacienteId: string) {
-    const { rows } = await this.db.query(
+  private async buscarPosiblesDuplicados(nombre: string, pacienteId: string, client?: Pick<DatabaseService, 'query'>) {
+    const { rows } = await (client ?? this.db).query(
       `select id, nombre_completo, extensions.similarity(nombre_completo, $1) as similitud
          from pacientes
         where deleted_at is null and id <> $2

@@ -100,6 +100,12 @@ export function PaginaCarpeta() {
         Volver a carpetas
       </Link>
 
+      {recienCreada && error !== undefined && (
+        <Aviso tipo="info">
+          El registro se guardó. Puedes reintentar la consulta del detalle de esta carpeta.
+        </Aviso>
+      )}
+
       {error !== undefined ? (
         error instanceof ErrorApi &&
         (error.estado === 404 || error.estado === 403) ? (
@@ -146,6 +152,12 @@ export function PaginaCarpeta() {
                 </Link>
               </p>
             </Aviso>
+          )}
+
+          {recienCreada && (ubicacion.state as { revisarDuplicados?: boolean } | null)?.revisarDuplicados && (
+            <p role="status" className="rounded-xl bg-crema px-4 py-3 text-sm text-suave">
+              Se encontraron pacientes con nombres similares. Revisa si corresponde a una persona ya registrada.
+            </p>
           )}
 
           {/* FE-52: Mensaje de actualización correcta */}

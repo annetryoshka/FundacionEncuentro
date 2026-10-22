@@ -5,6 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "npm run build && npm run test:unit && npm run test:integration",
+    "test:unit": "vitest run src",
+    "test:integration": "node --test test/*.test.mjs",
     "build": "nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
