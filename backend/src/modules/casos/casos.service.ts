@@ -8,6 +8,8 @@ import { DatabaseService } from '../../database/database.service.js';
 import type { ListarCasosQuery } from './dto/listar-casos.query.js';
 import type { RegistrarCasoDto } from './dto/registrar-caso.dto.js';
 import type { ActualizarCasoDto } from './dto/actualizar-caso.dto.js';
+import type { Usuario } from '../../common/types/usuario.js';
+
 const SELECT_CARPETA = `
   select c.id, c.tipo, c.numero_correlativo, c.estado,
          to_char(c.fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
@@ -20,7 +22,7 @@ const SELECT_CARPETA = `
     from casos c
     join pacientes p on p.id = c.paciente_id
     left join contexto_judicial j on j.caso_id = c.id`;
-/** Texto vacío o solo espacios se guarda como null. */
+
 const limpiar = (valor?: string | null) => valor?.trim() || null;
 
 const esNumeroDuplicado = (error: unknown) => {
@@ -30,10 +32,7 @@ const esNumeroDuplicado = (error: unknown) => {
 @Injectable()
 export class CasosService {
   constructor(private readonly db: DatabaseService) {}
-  /**
-   * FE-52: Actualizar nombre del paciente y fecha de ingreso.
-   * Conserva identificadores, tipo y número correlativo.
-   */
+  /* FE-52: Actualizar nombre del paciente y fecha de ingreso*/
   async actualizarDatosPaciente(
     id: string,
     dto: ActualizarCasoDto,
@@ -105,11 +104,7 @@ export class CasosService {
     });
     return this.obtener(id);
   }
-  /**
-   * Registro integral: crea al paciente, abre su carpeta (caso con número
-   * correlativo automático) y, si es derivado, guarda el contexto judicial.
-   * Todo ocurre en una sola transacción: o se guarda completo o no se guarda nada.
-   */
+  /*Registro paciente correlativo automático, si es derivado guarda el contexto judicial*/
   async registrar(dto: RegistrarCasoDto, adminId: string) {
     const { paciente, pacienteId, caso, contextoJudicial } = dto;
     if (paciente && pacienteId) {
@@ -220,6 +215,87 @@ export class CasosService {
     if (!rows[0]) throw new NotFoundException('Caso no encontrado');
     return this.aCarpeta(rows[0]);
   }
+
+  async obtenerCarpetaAutorizada(id: string, usuario: Usuario) {
+    const { rows } = await this.db.query(
+  `select c.id, c.tipo, c.numero_correlativo, c.estado,
+          to_char(c.fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
+          c.diagnostico_ingreso, c.hipotesis_relacional,
+          c.comentarios_clinicos, c.creado_en,
+          p.id as paciente_id, p.nombre_completo,
+          to_char(p.fecha_nacimiento, 'YYYY-MM-DD') as fecha_nacimiento,
+          p.edad_al_ingreso, p.telefono,
+          t.id as terapeuta_id,
+          t.nombre_completo as terapeuta_nombre,
+          creador.id as creador_id,
+          creador.nombre_completo as creador_nombre,
+          asignador.id as asignador_id,
+          asignador.nombre_completo as asignador_nombre,
+          a.asignado_en
+     from casos c
+     join pacientes p on p.id = c.paciente_id
+     left join asignaciones_caso a on a.caso_id = c.id
+     left join perfiles t on t.id = a.perfil_id
+     left join perfiles creador on creador.id = c.creado_por
+     left join perfiles asignador on asignador.id = a.asignado_por
+    where c.id = $1
+      and c.deleted_at is null
+      and p.deleted_at is null
+      and (
+        $2 = 'administrador'
+        or (
+          $2 = 'terapeuta'
+          and a.perfil_id = $3
+        )
+      )`,
+  [id, usuario.rol, usuario.id],
+);
+
+  if (!rows[0]) {
+    throw new NotFoundException('Caso no encontrado');
+  }
+
+  const carpeta = rows[0];
+
+    return {
+      id: carpeta.id,
+      numero: carpeta.numero_correlativo,
+      tipo: carpeta.tipo,
+      estado: carpeta.estado,
+      fechaIngreso: carpeta.fecha_ingreso,
+
+      paciente: {
+        id: carpeta.paciente_id,
+        nombreCompleto: carpeta.nombre_completo,
+      },
+
+      terapeuta: carpeta.terapeuta_id
+        ? {
+            id: carpeta.terapeuta_id,
+            nombreCompleto: carpeta.terapeuta_nombre,
+          }
+        : null,
+
+      creadoPor: carpeta.creador_id
+        ? {
+            id: carpeta.creador_id,
+            nombreCompleto: carpeta.creador_nombre,
+          }
+        : null,
+
+      creadoEn: carpeta.creado_en,
+
+      asignadoPor: carpeta.asignador_id
+        ? {
+            id: carpeta.asignador_id,
+            nombreCompleto: carpeta.asignador_nombre,
+          }
+        : null,
+
+      asignadoEn: carpeta.asignado_en ?? null,
+    };
+}
+
   async listar(filtros: ListarCasosQuery) {
     const condiciones = ['c.deleted_at is null', 'p.deleted_at is null'];
     const valores: unknown[] = [];
@@ -263,7 +339,7 @@ export class CasosService {
       desplazamiento,
     };
   }
-  /** Pacientes con nombre muy parecido: es un aviso, no bloquea el registro. */
+
   private async buscarPosiblesDuplicados(nombre: string, pacienteId: string) {
     const { rows } = await this.db.query(
       `select id, nombre_completo, extensions.similarity(nombre_completo, $1) as similitud
