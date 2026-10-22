@@ -153,9 +153,30 @@ test('FE-40 PG: número exacto devuelve ambos tipos y nunca coincidencias parcia
 });
 
 test('FE-40 PG: búsqueda vacía y espacios listan solo autorizadas; sin coincidencias es vacío', opciones, async () => {
+  assert.deepEqual(await listado({ busqueda: '' }, 'terapeutaA'), await listado({}, 'terapeutaA'));
   assert.deepEqual(await listado({ busqueda: '   ' }, 'terapeutaA'), await listado({}, 'terapeutaA'));
   assert.deepEqual(await listado({ busqueda: 'NoExisteQA' }), { carpetas: [], total: 0, pagina: 1, tamano: 10 });
   assert.equal((await listado({ busqueda: 'borrado' })).total, 0);
+});
+
+test('FE-41 PG: combinar búsqueda y paginación nunca expone filas o totales ajenos', opciones, async () => {
+  for (const [token, indices] of [['terapeutaA', [0, 4]], ['terapeutaB', [1, 2]]]) {
+    for (const [busqueda, esperados] of [
+      ['QA', indices], ['12', indices.filter((i) => i < 2)],
+      ['perez', indices.filter((i) => [1, 2].includes(i))],
+    ]) {
+      const ids = [];
+      for (let pagina = 1; pagina <= esperados.length + 1; pagina++) {
+        const respuesta = await listado({ busqueda, pagina, tamano: 1 }, token);
+        assert.equal(respuesta.total, esperados.length);
+        assert.equal(respuesta.pagina, pagina); assert.equal(respuesta.tamano, 1);
+        assert.ok(respuesta.carpetas.every((c) => c.terapeuta.id === (token === 'terapeutaA' ? terapeutaA : terapeutaB)));
+        ids.push(...respuesta.carpetas.map((c) => c.id));
+      }
+      assert.deepEqual(new Set(ids), new Set(esperados.map((i) => carpetas[i].id)));
+      assert.equal(ids.length, esperados.length);
+    }
+  }
 });
 
 test('FE-40 PG: orden determinista y paginación sin repetidos incluso con empates', opciones, async () => {
