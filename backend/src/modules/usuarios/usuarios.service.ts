@@ -26,10 +26,31 @@ export class UsuariosService {
     private readonly admin: SupabaseAdminClient,
   ) {}
 
-  async listar(): Promise<UsuarioDetalle[]> {
-    const { rows } = await this.db.query(`${SELECT_USUARIO} order by p.creado_en`);
-    return rows.map(this.aDetalle);
+  async listar(filtros: { rol?: Rol; activo?: boolean } = {}): Promise<UsuarioDetalle[]> {
+  const condiciones: string[] = [];
+  const valores: unknown[] = [];
+
+  if (filtros.rol !== undefined) {
+    valores.push(filtros.rol);
+    condiciones.push(`p.rol = $${valores.length}`);
   }
+
+  if (filtros.activo !== undefined) {
+    valores.push(filtros.activo);
+    condiciones.push(`p.activo = $${valores.length}`);
+  }
+
+  const where = condiciones.length
+    ? ` where ${condiciones.join(' and ')}`
+    : '';
+
+  const { rows } = await this.db.query(
+    `${SELECT_USUARIO}${where} order by p.nombre_completo asc`,
+    valores,
+  );
+
+  return rows.map((fila) => this.aDetalle(fila));
+}
 
   async obtener(id: string): Promise<UsuarioDetalle> {
     const { rows } = await this.db.query(`${SELECT_USUARIO} where p.id = $1`, [id]);
