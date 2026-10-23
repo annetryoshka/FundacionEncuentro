@@ -9,6 +9,7 @@ import type { ListarCasosQuery } from "./dto/listar-casos.query.js";
 import type { RegistrarCasoDto } from "./dto/registrar-caso.dto.js";
 import type { ActualizarCasoDto } from "./dto/actualizar-caso.dto.js";
 import type { Usuario } from "../../common/types/usuario.js";
+import type { ListarCarpetasQuery } from './dto/listar-carpetas.query.js';
 
 const SELECT_CARPETA = `
   select c.id, c.tipo, c.numero_correlativo, c.estado,
@@ -336,6 +337,66 @@ export class CasosService {
         : null,
 
       actualizadoEn: carpeta.actualizado_en ?? null,
+    };
+  }
+
+  async listarCarpetas(filtros: ListarCarpetasQuery, usuario: Usuario) {
+    const valores: unknown[] = [usuario.rol, usuario.id];
+    const condiciones = [
+      'c.deleted_at is null',
+      'p.deleted_at is null',
+      "($1 = 'administrador' or ($1 = 'terapeuta' and a.perfil_id = $2))",
+    ];
+    const busqueda = filtros.busqueda?.trim();
+    if (busqueda && /^[0-9]+$/.test(busqueda)) {
+      const numero = busqueda.replace(/^0+/, '') || '0';
+      if (numero.length > 10 || Number(numero) > 2147483647) {
+        condiciones.push('false');
+      } else {
+        valores.push(Number(numero));
+        condiciones.push(`c.numero_correlativo = $${valores.length}`);
+      }
+    } else if (busqueda) {
+      for (const palabra of busqueda.split(/\s+/)) {
+        valores.push(palabra);
+        condiciones.push(`position(extensions.unaccent(lower($${valores.length}::text))
+          in extensions.unaccent(lower(p.nombre_completo))) > 0`);
+      }
+    }
+    const origen = `from casos c
+      join pacientes p on p.id = c.paciente_id
+      left join asignaciones_caso a on a.caso_id = c.id
+      left join perfiles t on t.id = a.perfil_id
+      where ${condiciones.join(' and ')}`;
+    const total = await this.db.query<{ total: string }>(
+      `select count(*) as total ${origen}`, valores,
+    );
+    const { pagina, tamano } = filtros;
+    const { rows } = await this.db.query(
+      `select c.id, c.numero_correlativo, c.tipo, c.estado,
+        to_char(c.fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
+        p.id as paciente_id, p.nombre_completo,
+        t.id as terapeuta_id, t.nombre_completo as terapeuta_nombre
+      ${origen}
+      order by c.fecha_ingreso desc, c.numero_correlativo desc, c.id asc
+      limit $${valores.length + 1} offset $${valores.length + 2}`,
+      [...valores, tamano, (pagina - 1) * tamano],
+    );
+    return {
+      carpetas: rows.map((fila) => ({
+        id: fila.id,
+        numero: fila.numero_correlativo,
+        tipo: fila.tipo,
+        estado: fila.estado,
+        fechaIngreso: fila.fecha_ingreso,
+        paciente: { id: fila.paciente_id, nombreCompleto: fila.nombre_completo },
+        terapeuta: fila.terapeuta_id
+          ? { id: fila.terapeuta_id, nombreCompleto: fila.terapeuta_nombre }
+          : null,
+      })),
+      total: Number(total.rows[0].total),
+      pagina,
+      tamano,
     };
   }
 

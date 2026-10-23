@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Query,
   ParseUUIDPipe, Put,
 } from '@nestjs/common';
 import { CarpetaAutorizadaRespuestaDto } from './dto/carpeta-autorizada-respuesta.dto.js';
@@ -20,6 +21,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ListarCarpetasQuery } from './dto/listar-carpetas.query.js';
 
 @Controller('carpetas')
 @ApiTags('Carpetas')
@@ -31,6 +33,13 @@ export class CarpetasController {
     private readonly asignaciones: AsignacionesService,
   ) {}
 
+  @Get()
+  @Roles('administrador', 'terapeuta')
+  listar(@Query() filtros: ListarCarpetasQuery, @UsuarioActual() usuario: Usuario) {
+    return this.casos.listarCarpetas(filtros, usuario);
+  }
+
+  //consultar una carpeta con autorización por caso
   @Get(':id')
   @Roles('administrador', 'terapeuta')
   @ApiOperation({
