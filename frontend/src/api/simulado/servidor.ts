@@ -194,8 +194,11 @@ function crearUsuario(cuerpo: Record<string, unknown>) {
   if (!nombreCompleto) errores.push('nombreCompleto es obligatorio')
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errores.push('El correo no tiene un formato válido')
   if (!['administrador', 'terapeuta', 'marketing'].includes(rol)) errores.push('rol no es válido')
-  if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-    errores.push('password no cumple la política')
+  // Igual que CrearUsuarioDto: 10 a 72 caracteres.
+  if (password.length < 10) {
+    errores.push('La contraseña debe tener al menos 10 caracteres')
+  } else if (password.length > 72) {
+    errores.push('La contraseña no puede pasar de 72 caracteres')
   }
   if (errores.length) return error(400, errores)
   if (datos.perfiles.some((p) => p.email === email)) return error(409, 'Ya existe una cuenta con ese correo')

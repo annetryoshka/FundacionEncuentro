@@ -9,7 +9,9 @@ export interface FormularioUsuario {
 export type ErroresUsuario = Partial<Record<keyof FormularioUsuario, string>>
 
 const FORMATO_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-export const LARGO_MINIMO_CONTRASENA = 8
+/** Igual que CrearUsuarioDto del backend (FE-29): de 10 a 72 caracteres. */
+export const LARGO_MINIMO_CONTRASENA = 10
+export const LARGO_MAXIMO_CONTRASENA = 72
 
 export function validarNuevoUsuario(datos: FormularioUsuario): ErroresUsuario {
   const errores: ErroresUsuario = {}
@@ -19,6 +21,7 @@ export function validarNuevoUsuario(datos: FormularioUsuario): ErroresUsuario {
 
   if (!nombre) errores.nombreCompleto = 'Escribe el nombre completo.'
   else if (nombre.length < 3) errores.nombreCompleto = 'El nombre es demasiado corto.'
+  else if (nombre.length > 120) errores.nombreCompleto = 'El nombre no puede pasar de 120 caracteres.'
 
   if (!correo) errores.correo = 'Escribe el correo electrónico.'
   else if (!FORMATO_CORREO.test(correo)) errores.correo = 'Revisa el correo: debe tener la forma nombre@dominio.com.'
@@ -27,6 +30,8 @@ export function validarNuevoUsuario(datos: FormularioUsuario): ErroresUsuario {
 
   if (!contrasena) {
     errores.contrasenaInicial = 'Escribe o genera una contraseña inicial.'
+  } else if (contrasena.length > LARGO_MAXIMO_CONTRASENA) {
+    errores.contrasenaInicial = `Usa como máximo ${LARGO_MAXIMO_CONTRASENA} caracteres.`
   } else if (contrasena.length < LARGO_MINIMO_CONTRASENA || !/[A-Za-z]/.test(contrasena) || !/\d/.test(contrasena)) {
     errores.contrasenaInicial = `Usa al menos ${LARGO_MINIMO_CONTRASENA} caracteres, con letras y números.`
   }

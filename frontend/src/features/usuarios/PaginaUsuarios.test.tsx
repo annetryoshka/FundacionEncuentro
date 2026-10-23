@@ -37,7 +37,7 @@ describe('PaginaUsuarios', () => {
     await usuario.type(campo('Nombre completo'), 'Otra Persona')
     await usuario.type(campo('Correo electrónico'), 'TERAPEUTA1@fundacion.test')
     await usuario.click(screen.getByRole('radio', { name: /Terapeuta/ }))
-    await usuario.type(campo('Contraseña inicial'), 'Segura123')
+    await usuario.type(campo('Contraseña inicial'), 'Segura1234')
     await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
     expect(await screen.findByText('Ya existe una cuenta con este correo.')).toBeInTheDocument()
@@ -50,7 +50,7 @@ describe('PaginaUsuarios', () => {
     await usuario.type(campo('Nombre completo'), 'Ana Prueba')
     await usuario.type(campo('Correo electrónico'), 'ana@fundacion.test')
     await usuario.click(screen.getByRole('radio', { name: /Terapeuta/ }))
-    await usuario.type(campo('Contraseña inicial'), 'Segura123')
+    await usuario.type(campo('Contraseña inicial'), 'Segura1234')
     await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
     expect(await screen.findByText(/Cuenta creada para/)).toBeInTheDocument()
@@ -62,12 +62,12 @@ describe('PaginaUsuarios', () => {
       nombreCompleto: 'Ana Prueba',
       email: 'ana@fundacion.test',
       rol: 'terapeuta',
-      password: 'Segura123',
+      password: 'Segura1234',
     })
 
     const login = await atenderSimulado('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email: 'ana@fundacion.test', password: 'Segura123' }),
+      body: JSON.stringify({ email: 'ana@fundacion.test', password: 'Segura1234' }),
     })
     expect(login.status).toBe(200)
     expect((await login.json()).usuario.rol).toBe('terapeuta')
@@ -75,9 +75,9 @@ describe('PaginaUsuarios', () => {
 
   it('pide una contraseña inicial segura', () => {
     const base = { nombreCompleto: 'Ana', correo: 'a@b.co', rol: 'terapeuta' }
-    expect(validarNuevoUsuario({ ...base, contrasenaInicial: 'corta1' }).contrasenaInicial).toMatch(/8 caracteres/)
+    expect(validarNuevoUsuario({ ...base, contrasenaInicial: 'Segura123' }).contrasenaInicial).toMatch(/10 caracteres/)
     expect(validarNuevoUsuario({ ...base, contrasenaInicial: 'sololetras' }).contrasenaInicial).toBeDefined()
-    expect(validarNuevoUsuario({ ...base, contrasenaInicial: 'Segura123' }).contrasenaInicial).toBeUndefined()
+    expect(validarNuevoUsuario({ ...base, contrasenaInicial: 'Segura1234' }).contrasenaInicial).toBeUndefined()
   })
 
   it('genera contraseñas que cumplen la política', () => {

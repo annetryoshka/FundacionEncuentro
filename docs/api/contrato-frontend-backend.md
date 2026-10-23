@@ -91,7 +91,7 @@ Supabase, y esa sesión queda abierta. Conviene llamar a `supabase.cerrarSesion(
 
 ---
 
-## ⏳ `GET /api/usuarios` (FE-29)
+## ✅ `GET /api/usuarios` (FE-29)
 
 Filtros opcionales: `?rol=terapeuta&activo=true` (la asignación los usa para listar terapeutas activas).
 
@@ -112,15 +112,16 @@ Filtros opcionales: `?rol=terapeuta&activo=true` (la asignación los usa para li
 
 Orden alfabético. `perfiles` no tiene correo: sale de `auth.users` (`join auth.users u on u.id = perfiles.id`).
 
-## ⏳ `POST /api/usuarios` (FE-29)
+## ✅ `POST /api/usuarios` (FE-29)
 
 ```json
-{ "nombreCompleto": "Ana Pérez", "email": "ana@fundacion.org", "rol": "terapeuta", "password": "Segura123" }
+{ "nombreCompleto": "Ana Pérez", "email": "ana@fundacion.org", "rol": "terapeuta", "password": "Segura12345" }
 ```
 
 Se usan `email` y `password`, igual que en el login.
 
-- `rol`: `administrador` | `terapeuta` | `marketing`. `password`: 8+ caracteres, con letras y números.
+- `rol`: `administrador` | `terapeuta` | `marketing`. `password`: de 10 a 72 caracteres (`CrearUsuarioDto`);
+  el frontend además pide letras y números y valida lo mismo antes de enviar (FE-46).
 - **201**: el usuario creado, con la misma forma que en el listado. **400** campos inválidos.
   **409** correo ya registrado: Supabase responde 422 `email_exists` y hay que traducirlo a 409.
 - Implementación sugerida: Admin API de Supabase (`POST {SUPABASE_URL}/auth/v1/admin/users` con la
@@ -376,3 +377,10 @@ create extension if not exists unaccent with schema extensions;
   administrador, buscar por nombre sin tildes y por número, paginar y abrir un detalle.
   Repetir como dos terapeutas con asignaciones distintas y comprobar marketing 403
   en API. No se afirma verificación con Supabase Auth real ni navegador.
+
+## Evidencia FE-46
+
+Demostración integrada en navegador con frontend real, backend de `main` y PostgreSQL 16 con 001–003:
+25 comprobaciones aprobadas (cuentas, alta, duplicados, asignación, búsqueda y permisos por rol).
+Auth fue un Supabase de prueba local. Detalle, incidencias corregidas y guion en
+`docs/pruebas/FE-46-demostracion-integrada.md`.

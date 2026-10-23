@@ -63,7 +63,7 @@ export function PaginaNuevaCarpeta() {
         tipo: form.tipo as TipoCaso,
       })
       navegar(`/carpetas/${carpeta.id}`, {
-        state: { recienCreada: true, revisarDuplicados: carpeta.posiblesDuplicados.length > 0 },
+        state: { recienCreada: true, posiblesDuplicados: carpeta.posiblesDuplicados },
       })
     } catch (error) {
       setGuardando(false)
