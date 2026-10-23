@@ -31,6 +31,7 @@ interface CasoSim {
   creadoPor: string | null
   creadoEn: string
   asignacion: { perfilId: string; asignadoPor: string; asignadoEn: string } | null
+  actualizacion?: { perfilId: string; actualizadoEn: string } | null
 }
 
 interface DatosSim {
@@ -120,7 +121,7 @@ export async function atenderSimulado(url: string, init: RequestInit = {}): Prom
     if (detalle && metodo === 'GET') return verCarpeta(yo, detalle[1])
       if (detalle && metodo === 'PATCH') {
   return yo.rol === 'administrador'
-    ? editarDatosPaciente(detalle[1], cuerpo)
+    ? editarDatosPaciente(yo, detalle[1], cuerpo)
     : error(403, 'Solo administración')
 }
 
@@ -247,6 +248,8 @@ function detalle(caso: CasoSim) {
     creadoEn: caso.creadoEn,
     asignadoPor: persona(caso.asignacion?.asignadoPor),
     asignadoEn: caso.asignacion?.asignadoEn ?? null,
+    actualizadoPor: persona(caso.actualizacion?.perfilId),
+    actualizadoEn: caso.actualizacion?.actualizadoEn ?? null,
   }
 }
 
@@ -320,6 +323,7 @@ function crearCarpeta(yo: PerfilSim, cuerpo: Record<string, unknown>) {
  * Solo permite cambiar el nombre y la fecha de ingreso.
  */
 function editarDatosPaciente(
+  yo: PerfilSim,
   id: string,
   cuerpo: Record<string, unknown>,
 ) {
@@ -373,6 +377,13 @@ function editarDatosPaciente(
 
   if (!fechaValida) {
     return error(400, 'La fecha de ingreso no es válida')
+  }
+
+  if (
+    caso.paciente.nombreCompleto !== nombreCompleto ||
+    caso.fechaIngreso !== fechaIngreso
+  ) {
+    caso.actualizacion = { perfilId: yo.id, actualizadoEn: new Date().toISOString() }
   }
 
   // Actualizar los datos del paciente.

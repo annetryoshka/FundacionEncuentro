@@ -240,6 +240,14 @@ export function PaginaCarpeta() {
                     'Sin dato'}
                   , el {fechaLarga(carpeta.creadoEn)}
                 </Dato>
+
+                {carpeta.actualizadoEn && (
+                  <Dato titulo="Última actualización" ancho>
+                    {carpeta.actualizadoPor?.nombreCompleto ??
+                      'Sin dato'}
+                    , el {fechaLarga(carpeta.actualizadoEn)}
+                  </Dato>
+                )}
               </dl>
             </Tarjeta>
 

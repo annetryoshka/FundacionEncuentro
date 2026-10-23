@@ -30,27 +30,8 @@ export class EditarPacienteController {
     @Body() dto: ActualizarCasoDto,
     @UsuarioActual() admin: Usuario,
   ) {
-    const carpeta = await this.casos.actualizarDatosPaciente(
-      id,
-      dto,
-      admin.id,
-    );
+    await this.casos.actualizarDatosPaciente(id, dto, admin.id);
 
-    return {
-      id: carpeta.id,
-      numero: carpeta.numeroCorrelativo,
-      tipo: carpeta.tipo,
-      estado: carpeta.estado,
-      fechaIngreso: carpeta.fechaIngreso,
-      paciente: {
-        id: carpeta.paciente.id,
-        nombreCompleto: carpeta.paciente.nombreCompleto,
-      },
-      terapeuta: null,
-      creadoPor: null,
-      creadoEn: carpeta.creadoEn,
-      asignadoPor: null,
-      asignadoEn: null,
-    };
+    return this.casos.obtenerCarpetaAutorizada(id, admin);
   }
 }
