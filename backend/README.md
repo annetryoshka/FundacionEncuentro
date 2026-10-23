@@ -30,6 +30,24 @@ await this.db.transaction(usuarioId, (client) =>
 
 Las lecturas usan `this.db.query(...)`. Siempre con parámetros (`$1`, `$2`), nunca concatenando texto.
 
+## Datos de demostración
+
+`npm run datos:demo` carga en la base del `.env` las mismas cuentas y carpetas que el modo simulado del
+frontend: 5 cuentas (contraseña `Encuentro2026`), 14 pacientes y 15 carpetas con asignaciones y contexto judicial.
+
+| Correo | Rol |
+|---|---|
+| `direccion@fundacion.test` | Dirección (administrador) |
+| `terapeuta1@fundacion.test` | Terapeuta (Sofía Mamani) |
+| `terapeuta2@fundacion.test` | Terapeuta (Carla Rojas) |
+| `apoyo@fundacion.test` | Apoyo / marketing |
+| `inactiva@fundacion.test` | Terapeuta inactiva (el login la rechaza) |
+
+- Se puede correr varias veces: solo crea lo que falta y vuelve a poner la contraseña de las cuentas.
+- No toca otros datos. Los números de carpeta los asigna la base, así que siguen después de los existentes.
+- `npm run datos:demo:borrar` borra solo lo que crea el script. Para dejarlo como nuevo antes de una demo:
+  borrar y volver a cargar.
+
 ## Seguridad
 
 - `.env` nunca se sube a Git (ya está en `.gitignore`).
