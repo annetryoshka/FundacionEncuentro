@@ -93,7 +93,7 @@ Archivos creados o modificados:
 - `backend/package.json`: añade únicamente el comando test con el runner integrado de Node, sin dependencias nuevas.
 - `backend/test/cuentas-roles.test.mjs`: integración local HTTP y caracterizaciones del backend.
 - `frontend/src/features/usuarios/CuentasRoles.test.tsx`: casos de rutas no cubiertos, errores remotos del formulario y formato de listado.
-- `docs/FE-30-verificacion-cuentas-roles.md`: este informe.
+- `docs/pruebas/FE-30-verificacion-cuentas-roles.md`: este informe.
 
 No se modificó código de producción en `backend/src`, `frontend/src`, migraciones o reglas de negocio. Solo se agregó un archivo de pruebas en frontend/src. No se modificó el lockfile. No se hicieron commit, push, merge ni cambios en Jira.
 
