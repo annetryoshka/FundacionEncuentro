@@ -176,7 +176,7 @@ function FormularioUsuario({ alCrear }: { alCrear: () => void }) {
       } else {
         setErrorGeneral(
           error instanceof ErrorApi && error.estado === 400
-            ? 'El servidor rechazó los datos. Revisa los campos e inténtalo de nuevo.'
+            ? `El servidor rechazó los datos: ${error.message}`
             : mensajeErrorGeneral(error),
         )
         requestAnimationFrame(() => refAviso.current?.focus())
@@ -241,7 +241,7 @@ function FormularioUsuario({ alCrear }: { alCrear: () => void }) {
               value={form.contrasenaInicial}
               onChange={(e) => cambiar('contrasenaInicial', e.target.value)}
               error={errores.contrasenaInicial}
-              ayuda="Al menos 8 caracteres, con letras y números. Entrégala en persona."
+              ayuda="Al menos 10 caracteres, con letras y números. Entrégala en persona."
               accesorio={
                 <button
                   type="button"

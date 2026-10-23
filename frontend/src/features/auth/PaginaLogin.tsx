@@ -77,28 +77,30 @@ export function PaginaLogin() {
         <aside className="relative flex flex-col overflow-hidden bg-white">
           <OndaSuperior className="absolute top-0 right-0 h-20 w-36 sm:h-24 sm:w-44 lg:h-44 lg:w-80" />
 
-          <div className="relative flex flex-1 flex-col items-center px-4 pt-6 pb-4 text-center sm:px-8 lg:items-start lg:justify-center lg:px-14 lg:pt-12 lg:pb-8 lg:text-left xl:px-20">
+          <div className="relative flex flex-1 flex-col items-center px-4 pt-6 pb-4 text-center sm:px-8 lg:justify-center lg:px-14 lg:pt-12 lg:pb-8 xl:px-20">
             <Logo className="size-24 sm:size-28 lg:size-40" />
 
             <p className="mt-3 -rotate-2 font-script leading-none lg:mt-8">
               <span className="text-4xl text-naranja sm:text-5xl lg:block lg:text-7xl">Encuentro</span>{' '}
-              <span className="text-2xl text-verde sm:text-3xl lg:mt-1 lg:block lg:pl-24 lg:text-4xl">con tu</span>{' '}
+              <span className="text-2xl text-verde sm:text-3xl lg:mt-1 lg:block lg:text-4xl">con tu</span>{' '}
               <span className="text-4xl text-verde-oscuro sm:text-5xl lg:block lg:text-7xl">Bienestar</span>
             </p>
 
-            <p className="mt-10 hidden items-center gap-3 font-script text-2xl lg:flex xl:text-3xl">
+            <p className="mt-10 hidden flex-wrap items-center justify-center gap-3 font-script text-2xl lg:flex xl:text-3xl">
               <span className="text-verde">Escuchamos</span>
               <span className="text-naranja">Comprendemos</span>
-              <span className="text-verde-oscuro">Acompañamos</span>
-              <Corazon className="size-6 text-naranja" />
+              <span className="inline-flex items-center gap-2 text-verde-oscuro">
+                Acompañamos
+                <Corazon className="size-6 text-naranja" />
+              </span>
             </p>
           </div>
 
           <div className="relative">
             <OndaInferior className="block h-10 w-full sm:h-12 lg:h-20" />
-            <div className="hidden bg-verde px-14 pt-1 pb-10 text-white lg:block xl:px-20">
+            <div className="hidden bg-verde px-14 pt-1 pb-10 text-center text-white lg:block xl:px-20">
               <p className="font-script text-3xl">Terapia familiar sistémica</p>
-              <p className="mt-2 max-w-md text-white/90">
+              <p className="mx-auto mt-2 max-w-md text-white/90">
                 Acompañamos a tu familia en el camino hacia una vida más sana y en armonía.
               </p>
             </div>

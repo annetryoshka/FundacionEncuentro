@@ -11,7 +11,7 @@ import { AsignacionTerapeuta } from './AsignacionTerapeuta'
 import { FormularioEditarPaciente } from './FormularioEditarPaciente'
 import { obtenerCarpeta } from './carpetasApi'
 import { EtiquetaEstado } from './Etiquetas'
-import { NOMBRE_TIPO, numeroCarpeta, type CarpetaDetalle } from './tipos'
+import { NOMBRE_TIPO, numeroCarpeta, type AltaCarpeta, type CarpetaDetalle } from './tipos'
 
 /**
  * Resumen de la carpeta del paciente.
@@ -27,10 +27,14 @@ export function PaginaCarpeta() {
   const { tieneRol } = useSesion()
   const ubicacion = useLocation()
 
-  const recienCreada = Boolean(
-    (ubicacion.state as { recienCreada?: boolean } | null)
-      ?.recienCreada,
-  )
+  const estadoNavegacion = (ubicacion.state as {
+    recienCreada?: boolean
+    posiblesDuplicados?: AltaCarpeta['posiblesDuplicados']
+  } | null) ?? {}
+  const recienCreada = Boolean(estadoNavegacion.recienCreada)
+  // FE-11: nombres parecidos que devolvió POST /api/casos. Son UUID de pacientes,
+  // no de carpetas, así que se enlazan a la búsqueda por nombre y no a /carpetas/:id.
+  const posiblesDuplicados = estadoNavegacion.posiblesDuplicados ?? []
 
   const { datos, error, recargar } = useCarga(
     () => obtenerCarpeta(id),
@@ -154,10 +158,25 @@ export function PaginaCarpeta() {
             </Aviso>
           )}
 
-          {recienCreada && (ubicacion.state as { revisarDuplicados?: boolean } | null)?.revisarDuplicados && (
-            <p role="status" className="rounded-xl bg-crema px-4 py-3 text-sm text-suave">
-              Se encontraron pacientes con nombres similares. Revisa si corresponde a una persona ya registrada.
-            </p>
+          {recienCreada && posiblesDuplicados.length > 0 && (
+            <Aviso tipo="info">
+              <p className="font-semibold">
+                Se encontraron pacientes con nombres similares. Revisa si corresponde a una persona ya registrada:
+              </p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                {posiblesDuplicados.map((d) => (
+                  <li key={d.pacienteId}>
+                    <Link
+                      to={`/carpetas?q=${encodeURIComponent(d.nombreCompleto)}`}
+                      className="underline underline-offset-2"
+                    >
+                      {d.nombreCompleto}
+                    </Link>{' '}
+                    <span className="text-suave">({Math.round(d.similitud * 100)}% parecido)</span>
+                  </li>
+                ))}
+              </ul>
+            </Aviso>
           )}
 
           {/* FE-52: Mensaje de actualización correcta */}

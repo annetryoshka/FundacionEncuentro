@@ -58,6 +58,11 @@ describe('PaginaNuevaCarpeta', () => {
 
     expect(await screen.findByText(/Se encontraron pacientes con nombres similares/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'mariana gutierrez paz' })).toBeInTheDocument()
+    // FE-11: la advertencia nombra a la persona parecida y lleva a buscarla, no a /carpetas/:idDePaciente.
+    expect(screen.getByRole('link', { name: 'Mariana Gutiérrez Paz' })).toHaveAttribute(
+      'href',
+      '/carpetas?q=Mariana%20Guti%C3%A9rrez%20Paz',
+    )
   })
 
   it('doble clic mientras el alta está pendiente envía una sola solicitud', async () => {
