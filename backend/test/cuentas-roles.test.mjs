@@ -245,11 +245,10 @@ test('fallo al crear perfil deshace la cuenta Auth simulada', async () => {
   assert.equal(cuentas.size, 3);
   assert.equal(llamadas.filter((c) => c.method === 'DELETE').length, 1);
 });
-test('CARACTERIZACIÓN: listado backend es un arreglo, no el objeto esperado por frontend', async () => {
+test('listado backend devuelve { usuarios } como espera el frontend', async () => {
   const res = await solicitar('/usuarios');
   assert.equal(res.status, 200);
   const body = await res.json();
-  assert.equal(Array.isArray(body), true);
-  assert.equal(body.usuarios, undefined);
-  assert.equal(body.some((u) => 'password' in u), false);
+  assert.equal(Array.isArray(body.usuarios), true);
+  assert.equal(body.usuarios.some((u) => 'password' in u), false);
 });

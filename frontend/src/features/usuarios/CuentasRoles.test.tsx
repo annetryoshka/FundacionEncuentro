@@ -18,14 +18,13 @@ describe('FE-30: restricciones y contrato de cuentas', () => {
     expect(llamadas(fetchEspia, 'POST', '/api/carpetas')).toHaveLength(0)
   })
 
-  it('CARACTERIZACIÓN: el arreglo actual del backend no se interpreta como listado de usuarios', async () => {
+  it('el listado { usuarios } del backend se interpreta como listado de usuarios', async () => {
     configurarSesionApi({ token: () => 'fixture', renovar: async () => null, invalidar: () => {} })
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json([
-      { id: 'cuenta-ficticia', email: 'qa@example.test', nombreCompleto: 'Cuenta QA',
-        rol: 'terapeuta', activo: true, creadoEn: '2026-10-16T12:00:00Z' },
-    ]))
+    const cuenta = { id: 'cuenta-ficticia', email: 'qa@example.test', nombreCompleto: 'Cuenta QA',
+      rol: 'terapeuta', activo: true, creadoEn: '2026-10-16T12:00:00Z' }
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ usuarios: [cuenta] }))
     try {
-      expect(await listarUsuarios()).toBeUndefined()
+      expect(await listarUsuarios()).toEqual([cuenta])
     } finally {
       configurarSesionApi(null)
     }
@@ -41,12 +40,11 @@ describe('FE-30: restricciones y contrato de cuentas', () => {
     await usuario.type(screen.getByLabelText('Nombre completo', { selector: 'input' }), 'Cuenta QA')
     await usuario.type(screen.getByLabelText('Correo electrónico', { selector: 'input' }), 'qa@example.test')
     await usuario.click(screen.getByRole('radio', { name: /Terapeuta/ }))
-    // Reproduce también que la UI permite enviar 8 caracteres; el DTO real exige 10.
-    await usuario.type(screen.getByLabelText('Contraseña inicial', { selector: 'input' }), 'Abcd1234')
+    await usuario.type(screen.getByLabelText('Contraseña inicial', { selector: 'input' }), 'Abcd123456')
     await usuario.click(screen.getByRole('button', { name: 'Crear cuenta' }))
     expect(await screen.findByText(estado === 409
       ? 'Ya existe una cuenta con este correo.'
-      : 'El servidor rechazó los datos. Revisa los campos e inténtalo de nuevo.')).toBeInTheDocument()
+      : 'El servidor rechazó los datos: Datos inválidos')).toBeInTheDocument()
     expect(llamadas(fetchEspia, 'POST', '/api/usuarios')).toHaveLength(1)
     expect(screen.queryByText(/Cuenta creada para/)).not.toBeInTheDocument()
   })

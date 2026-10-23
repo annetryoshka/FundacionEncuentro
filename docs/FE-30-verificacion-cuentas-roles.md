@@ -102,3 +102,10 @@ No se modificó código de producción en `backend/src`, `frontend/src`, migraci
 **No marcar FE-30 como Listo todavía.** Los guards y flujos probados responden correctamente dentro del entorno simulado, pero FE30-01 y FE30-02 impiden declarar integrada la gestión de cuentas. La coincidencia clínica frontend/backend sigue pendiente y no hay evidencia real de unicidad del proveedor.
 
 Para cerrar: resolver o acordar formalmente los defectos con sus responsables; invertir las pruebas de caracterización para exigir el contrato correcto; documentar el alcance aceptado de FE-37 y completar las verificaciones de correo/roles en un entorno QA aislado, sin registrar credenciales o tokens ni modificar la base real. Repetir las validaciones tras cualquier corrección.
+
+## Seguimiento tras la integración (2026-10-23)
+
+- FE30-01 corregido en `93d18e4` (FE-29): `GET /api/usuarios` devuelve `{ usuarios }` y acepta los filtros `rol` y `activo`.
+- FE30-02 corregido en `d4678b5` (FE-28, FE-46): formulario y simulador exigen de 10 a 72 caracteres, igual que `CrearUsuarioDto`.
+- Las pruebas de caracterización se invirtieron para exigir el contrato correcto.
+- El acceso de terapeuta a sus carpetas asignadas ya está en `/api/carpetas` (FE-37, FE-40).
