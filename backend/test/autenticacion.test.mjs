@@ -172,7 +172,7 @@ test('token expirado según el proveedor simulado: 401 y sin consulta de perfil'
 });
 test('admin accede a operación protegida y no recibe secretos', async () => {
   const res = await pedir('/usuarios');
-  assert.equal(res.status, 200); assert.deepEqual(await res.json(), []);
+  assert.equal(res.status, 200); assert.deepEqual(await res.json(), { usuarios: [] });
 });
 for (const i of [1, 2]) {
   test(`${roles[i]}: operación administrativa devuelve 403 aunque envíe rol en cabecera`, async () => {
