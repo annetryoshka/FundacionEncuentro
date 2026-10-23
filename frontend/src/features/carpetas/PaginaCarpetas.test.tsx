@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { montarApp } from '../../test/montarApp'
+import { llamadas, montarApp } from '../../test/montarApp'
 
 /** FE-39 · Listado y búsqueda de carpetas (criterios de FE-16 que tocan la interfaz). */
 describe('PaginaCarpetas', () => {
@@ -67,5 +67,48 @@ describe('PaginaCarpetas', () => {
     await usuario.click((await resultados()).getByRole('link', { name: /Paola Gutiérrez Mendoza/ }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Paola Gutiérrez Mendoza' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Resumen' })).toBeInTheDocument()
+  })
+
+  it('conserva búsqueda al paginar, reinicia página al buscar y permite limpiar', async () => {
+    const { usuario, fetchEspia } = await montarApp('/carpetas?q=a')
+    await screen.findByText('Página 1 de 2')
+    await usuario.click(screen.getByRole('button', { name: 'Siguiente' }))
+    await screen.findByText('Página 2 de 2')
+    const ultimaConsulta = () => new URL(String(llamadas(fetchEspia, 'GET', '/api/carpetas').at(-1)![0]), 'http://x').searchParams
+    expect(ultimaConsulta().get('busqueda')).toBe('a')
+    expect(ultimaConsulta().get('pagina')).toBe('2')
+    expect(ultimaConsulta().get('tamano')).toBe('10')
+    await buscar(usuario, 'gutierrez')
+    await screen.findByText('2 resultados para «gutierrez»')
+    expect(ultimaConsulta().get('pagina')).toBe('1')
+    expect(ultimaConsulta().get('busqueda')).toBe('gutierrez')
+    await usuario.click(screen.getByRole('button', { name: 'Limpiar' }))
+    await screen.findByText('14 carpetas')
+    expect(screen.getByLabelText('Buscar por nombre o número de carpeta')).toHaveValue('')
+    expect(ultimaConsulta().get('pagina')).toBe('1')
+    expect(ultimaConsulta().has('busqueda')).toBe(false)
+  })
+
+  it.each(['red', '500'])('muestra fallo %s y reintenta conservando la búsqueda', async (fallo) => {
+    const { usuario, fetchEspia } = await montarApp('/carpetas')
+    await screen.findByText('14 carpetas')
+    const simulado = fetchEspia.getMockImplementation()!
+    let pendiente = true
+    fetchEspia.mockImplementation((entrada, init) => {
+      if (new URL(String(entrada), 'http://x').pathname === '/api/carpetas' && pendiente) {
+        pendiente = false
+        return fallo === 'red'
+          ? Promise.reject(new TypeError('Fallo ficticio QA'))
+          : Promise.resolve(Response.json({ message: 'Fallo ficticio QA' }, { status: 500 }))
+      }
+      return simulado(entrada, init)
+    })
+    await buscar(usuario, 'gutierrez')
+    expect(await screen.findByRole('alert')).toHaveTextContent(fallo === 'red' ? 'No hay conexión' : 'El servidor tuvo un problema')
+    await usuario.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await screen.findByText('2 resultados para «gutierrez»')
+    const consultas = llamadas(fetchEspia, 'GET', '/api/carpetas').slice(-2)
+    expect(consultas).toHaveLength(2)
+    expect(String(consultas[0][0])).toBe(String(consultas[1][0]))
   })
 })
