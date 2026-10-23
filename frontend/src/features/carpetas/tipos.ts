@@ -25,6 +25,8 @@ export interface CarpetaDetalle extends CarpetaResumen {
   creadoEn: string
   asignadoPor: PersonaBreve | null
   asignadoEn: string | null
+  actualizadoPor: PersonaBreve | null
+  actualizadoEn: string | null
 }
 
 /** Respuesta paginada de GET /api/carpetas. */

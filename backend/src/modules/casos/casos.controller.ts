@@ -5,7 +5,6 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
-  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -16,7 +15,7 @@ import { Roles } from '../../common/decorators/roles.decorator.js';
 import { UsuarioActual } from '../../common/decorators/usuario-actual.decorator.js';
 import type { Usuario } from '../../common/types/usuario.js';
 import { CasosService } from './casos.service.js';
-import { ActualizarCasoDto } from './dto/actualizar-caso.dto.js';
+import { ActualizarCasoDto } from './dto/actualizar-caso.dto.js'; 
 import { ListarCasosQuery } from './dto/listar-casos.query.js';
 import { RegistrarCasoDto } from './dto/registrar-caso.dto.js';
 import {
@@ -108,15 +107,12 @@ export class CasosController {
 @ApiResponse({ status: 401, description: 'No autenticado.' })
 @ApiResponse({ status: 403, description: 'Sin permisos de administrador.' })
 @ApiResponse({ status: 404, description: 'Caso no encontrado.' })
-  actualizar(
+  async actualizar(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ActualizarCasoDto,
     @UsuarioActual() admin: Usuario,
   ) {
-    return this.casos.actualizarDatosPaciente(
-      id,
-      dto,
-      admin.id,
-    );
+    await this.casos.actualizarDatosPaciente(id, dto, admin.id);
+    return this.casos.obtener(id);
   }
 }

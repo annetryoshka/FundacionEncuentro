@@ -26,6 +26,8 @@ const carpeta: CarpetaDetalle = {
   creadoEn: '2026-09-15T12:00:00.000Z',
   asignadoPor: null,
   asignadoEn: null,
+  actualizadoPor: null,
+  actualizadoEn: null,
 }
 
 const actualizar = vi.mocked(actualizarDatosPaciente)

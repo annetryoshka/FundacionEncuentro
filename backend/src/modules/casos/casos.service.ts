@@ -3,12 +3,12 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { DatabaseService } from '../../database/database.service.js';
-import type { ListarCasosQuery } from './dto/listar-casos.query.js';
-import type { RegistrarCasoDto } from './dto/registrar-caso.dto.js';
-import type { ActualizarCasoDto } from './dto/actualizar-caso.dto.js';
-import type { Usuario } from '../../common/types/usuario.js';
+} from "@nestjs/common";
+import { DatabaseService } from "../../database/database.service.js";
+import type { ListarCasosQuery } from "./dto/listar-casos.query.js";
+import type { RegistrarCasoDto } from "./dto/registrar-caso.dto.js";
+import type { ActualizarCasoDto } from "./dto/actualizar-caso.dto.js";
+import type { Usuario } from "../../common/types/usuario.js";
 
 const SELECT_CARPETA = `
   select c.id, c.tipo, c.numero_correlativo, c.estado,
@@ -27,7 +27,7 @@ const limpiar = (valor?: string | null) => valor?.trim() || null;
 
 const esNumeroDuplicado = (error: unknown) => {
   const e = error as { code?: string; constraint?: string };
-  return e.code === '23505' && e.constraint === 'uq_caso_numero';
+  return e.code === "23505" && e.constraint === "uq_caso_numero";
 };
 @Injectable()
 export class CasosService {
@@ -38,17 +38,13 @@ export class CasosService {
     dto: ActualizarCasoDto,
     adminId: string,
   ) {
-    const nombreCompleto = dto.nombreCompleto
-      .trim()
-      .replace(/\s+/g, ' ');
+    const nombreCompleto = dto.nombreCompleto.trim().replace(/\s+/g, " ");
     if (
       nombreCompleto.length < 3 ||
       nombreCompleto.length > 150 ||
       !/\p{L}/u.test(nombreCompleto)
     ) {
-      throw new BadRequestException(
-        'El nombre del paciente no es válido',
-      );
+      throw new BadRequestException("El nombre del paciente no es válido");
     }
     await this.db.transaction(adminId, async (client) => {
       const { rows } = await client.query<{
@@ -69,24 +65,19 @@ export class CasosService {
         [id],
       );
       if (!rows[0]) {
-        throw new NotFoundException('Caso no encontrado');
+        throw new NotFoundException("Caso no encontrado");
       }
       const registro = rows[0];
       const fechaIngreso = dto.fechaIngreso;
-      if (
-        fechaIngreso < '1990-01-01' ||
-        fechaIngreso > registro.hoy
-      ) {
-        throw new BadRequestException(
-          'La fecha de ingreso no es válida',
-        );
+      if (fechaIngreso < "1990-01-01" || fechaIngreso > registro.hoy) {
+        throw new BadRequestException("La fecha de ingreso no es válida");
       }
       if (
         registro.fecha_nacimiento &&
         registro.fecha_nacimiento > fechaIngreso
       ) {
         throw new BadRequestException(
-          'La fecha de ingreso no puede ser anterior al nacimiento',
+          "La fecha de ingreso no puede ser anterior al nacimiento",
         );
       }
       await client.query(
@@ -102,22 +93,28 @@ export class CasosService {
         [fechaIngreso, id],
       );
     });
-    return this.obtener(id);
   }
   /*Registro paciente correlativo automático, si es derivado guarda el contexto judicial*/
   async registrar(dto: RegistrarCasoDto, adminId: string) {
     const { paciente, pacienteId, caso, contextoJudicial } = dto;
     if (paciente && pacienteId) {
-      throw new BadRequestException('Envía los datos de un paciente nuevo o el id de uno existente, no ambos');
+      throw new BadRequestException(
+        "Envía los datos de un paciente nuevo o el id de uno existente, no ambos",
+      );
     }
     if (!paciente && !pacienteId) {
-      throw new BadRequestException('Falta el paciente: envía "paciente" (nuevo) o "pacienteId" (existente)');
+      throw new BadRequestException(
+        'Falta el paciente: envía "paciente" (nuevo) o "pacienteId" (existente)',
+      );
     }
-    if (caso.tipo === 'voluntario' && contextoJudicial) {
-      throw new BadRequestException('Un caso voluntario no lleva contexto judicial');
+    if (caso.tipo === "voluntario" && contextoJudicial) {
+      throw new BadRequestException(
+        "Un caso voluntario no lleva contexto judicial",
+      );
     }
     const nombre = paciente?.nombreCompleto.trim();
-    if (paciente && !nombre) throw new BadRequestException('El nombre del paciente es obligatorio');
+    if (paciente && !nombre)
+      throw new BadRequestException("El nombre del paciente es obligatorio");
     return this.db.transaction(adminId, async (client) => {
       const { rows: hoyRows } = await client.query<{ hoy: string }>(
         `select to_char(current_date, 'YYYY-MM-DD') as hoy`,
@@ -125,35 +122,43 @@ export class CasosService {
       const hoy = hoyRows[0].hoy;
       const fechaIngreso = caso.fechaIngreso ?? hoy;
       if (fechaIngreso > hoy) {
-        throw new BadRequestException('La fecha de ingreso no puede ser futura');
+        throw new BadRequestException(
+          "La fecha de ingreso no puede ser futura",
+        );
       }
-      if (paciente?.fechaNacimiento && paciente.fechaNacimiento > fechaIngreso) {
-        throw new BadRequestException('La fecha de nacimiento no puede ser posterior al ingreso');
+      if (
+        paciente?.fechaNacimiento &&
+        paciente.fechaNacimiento > fechaIngreso
+      ) {
+        throw new BadRequestException(
+          "La fecha de nacimiento no puede ser posterior al ingreso",
+        );
       }
       let idPaciente: string;
       if (pacienteId) {
         const existe = await client.query(
-          'select 1 from pacientes where id = $1 and deleted_at is null',
+          "select 1 from pacientes where id = $1 and deleted_at is null",
           [pacienteId],
         );
-        if (existe.rowCount === 0) throw new NotFoundException('Paciente no encontrado');
+        if (existe.rowCount === 0)
+          throw new NotFoundException("Paciente no encontrado");
         idPaciente = pacienteId;
       } else {
         const pac = await client.query<{ id: string }>(
-        `insert into pacientes (nombre_completo, fecha_nacimiento, edad_al_ingreso, telefono, creado_por)
+          `insert into pacientes (nombre_completo, fecha_nacimiento, edad_al_ingreso, telefono, creado_por)
          values ($1, $2::date,
                  coalesce($3::int, case when $2::date is null then null
                                         else date_part('year', age($4::date, $2::date))::int end),
                  $5, $6)
          returning id`,
-        [
-          nombre,
-          paciente!.fechaNacimiento ?? null,
-          paciente!.edadAlIngreso ?? null,
-          fechaIngreso,
-          limpiar(paciente!.telefono),
-          adminId,
-        ],
+          [
+            nombre,
+            paciente!.fechaNacimiento ?? null,
+            paciente!.edadAlIngreso ?? null,
+            fechaIngreso,
+            limpiar(paciente!.telefono),
+            adminId,
+          ],
         );
         idPaciente = pac.rows[0].id;
       }
@@ -202,23 +207,27 @@ export class CasosService {
       // Construir la respuesta antes del COMMIT: si falla una lectura, el alta se revierte.
       const carpeta = await this.obtener(nuevoCaso.rows[0].id, client);
       const posiblesDuplicados = nombre
-        ? await this.buscarPosiblesDuplicados(nombre, carpeta.paciente.id, client)
+        ? await this.buscarPosiblesDuplicados(
+            nombre,
+            carpeta.paciente.id,
+            client,
+          )
         : [];
       return { ...carpeta, posiblesDuplicados };
     });
   }
-  async obtener(id: string, client?: Pick<DatabaseService, 'query'>) {
+  async obtener(id: string, client?: Pick<DatabaseService, "query">) {
     const { rows } = await (client ?? this.db).query(
       `${SELECT_CARPETA} where c.id = $1 and c.deleted_at is null and p.deleted_at is null`,
       [id],
     );
-    if (!rows[0]) throw new NotFoundException('Caso no encontrado');
+    if (!rows[0]) throw new NotFoundException("Caso no encontrado");
     return this.aCarpeta(rows[0]);
   }
 
   async obtenerCarpetaAutorizada(id: string, usuario: Usuario) {
     const { rows } = await this.db.query(
-  `select c.id, c.tipo, c.numero_correlativo, c.estado,
+      `select c.id, c.tipo, c.numero_correlativo, c.estado,
           to_char(c.fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
           c.diagnostico_ingreso, c.hipotesis_relacional,
           c.comentarios_clinicos, c.creado_en,
@@ -231,13 +240,38 @@ export class CasosService {
           creador.nombre_completo as creador_nombre,
           asignador.id as asignador_id,
           asignador.nombre_completo as asignador_nombre,
-          a.asignado_en
+          a.asignado_en,
+          editor.id as editor_id,
+          editor.nombre_completo as editor_nombre,
+          ultima.creado_en as actualizado_en
      from casos c
      join pacientes p on p.id = c.paciente_id
      left join asignaciones_caso a on a.caso_id = c.id
      left join perfiles t on t.id = a.perfil_id
      left join perfiles creador on creador.id = c.creado_por
      left join perfiles asignador on asignador.id = a.asignado_por
+     left join lateral (
+       select au.usuario_id, au.creado_en
+         from auditoria au
+        where au.accion = 'UPDATE'
+          and (
+            (
+              au.tabla = 'pacientes'
+              and au.registro_id = p.id
+              and au.datos_anteriores ->> 'nombre_completo'
+                  is distinct from au.datos_nuevos ->> 'nombre_completo'
+            )
+            or (
+              au.tabla = 'casos'
+              and au.registro_id = c.id
+              and au.datos_anteriores ->> 'fecha_ingreso'
+                  is distinct from au.datos_nuevos ->> 'fecha_ingreso'
+            )
+          )
+        order by au.creado_en desc
+        limit 1
+     ) ultima on true
+     left join perfiles editor on editor.id = ultima.usuario_id
     where c.id = $1
       and c.deleted_at is null
       and p.deleted_at is null
@@ -248,14 +282,14 @@ export class CasosService {
           and a.perfil_id = $3
         )
       )`,
-  [id, usuario.rol, usuario.id],
-);
+      [id, usuario.rol, usuario.id],
+    );
 
-  if (!rows[0]) {
-    throw new NotFoundException('Caso no encontrado');
-  }
+    if (!rows[0]) {
+      throw new NotFoundException("Caso no encontrado");
+    }
 
-  const carpeta = rows[0];
+    const carpeta = rows[0];
 
     return {
       id: carpeta.id,
@@ -293,22 +327,32 @@ export class CasosService {
         : null,
 
       asignadoEn: carpeta.asignado_en ?? null,
+
+      actualizadoPor: carpeta.editor_id
+        ? {
+            id: carpeta.editor_id,
+            nombreCompleto: carpeta.editor_nombre,
+          }
+        : null,
+
+      actualizadoEn: carpeta.actualizado_en ?? null,
     };
-}
+  }
 
   async listar(filtros: ListarCasosQuery) {
-    const condiciones = ['c.deleted_at is null', 'p.deleted_at is null'];
+    const condiciones = ["c.deleted_at is null", "p.deleted_at is null"];
     const valores: unknown[] = [];
     const agregar = (sql: string, valor: unknown) => {
       valores.push(valor);
-      condiciones.push(sql.replace('?', `$${valores.length}`));
+      condiciones.push(sql.replace("?", `$${valores.length}`));
     };
-    if (filtros.tipo) agregar('c.tipo = ?', filtros.tipo);
-    if (filtros.estado) agregar('c.estado = ?', filtros.estado);
-    if (filtros.pacienteId) agregar('c.paciente_id = ?', filtros.pacienteId);
+    if (filtros.tipo) agregar("c.tipo = ?", filtros.tipo);
+    if (filtros.estado) agregar("c.estado = ?", filtros.estado);
+    if (filtros.pacienteId) agregar("c.paciente_id = ?", filtros.pacienteId);
     const busqueda = filtros.q?.trim();
-    if (busqueda) agregar('position(lower(?) in lower(p.nombre_completo)) > 0', busqueda);
-    const donde = condiciones.join(' and ');
+    if (busqueda)
+      agregar("position(lower(?) in lower(p.nombre_completo)) > 0", busqueda);
+    const donde = condiciones.join(" and ");
     const limite = filtros.limite ?? 20;
     const desplazamiento = filtros.desplazamiento ?? 0;
     const total = await this.db.query<{ total: string }>(
@@ -340,7 +384,11 @@ export class CasosService {
     };
   }
 
-  private async buscarPosiblesDuplicados(nombre: string, pacienteId: string, client?: Pick<DatabaseService, 'query'>) {
+  private async buscarPosiblesDuplicados(
+    nombre: string,
+    pacienteId: string,
+    client?: Pick<DatabaseService, "query">,
+  ) {
     const { rows } = await (client ?? this.db).query(
       `select id, nombre_completo, extensions.similarity(nombre_completo, $1) as similitud
          from pacientes
