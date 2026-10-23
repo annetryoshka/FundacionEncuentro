@@ -40,8 +40,9 @@ describe('Plantilla y navegación', () => {
     expect(screen.getByRole('heading', { name: 'No encontramos esta página' })).toBeInTheDocument()
   })
 
-  it('cerrar sesión avisa al backend, vuelve al acceso y el token deja de servir (FE-24)', async () => {
+  it('cerrar sesión avisa al backend y vuelve al acceso; solo el simulador garantiza rechazo inmediato del token', async () => {
     const { usuario, fetchEspia } = await montarApp('/inicio', 'direccion')
+    const refreshToken = sessionStorage.getItem('fundacion-encuentro:refresh')
     const token = new Headers(fetchEspia.mock.calls.at(-1)?.[1]?.headers).get('Authorization')
     await usuario.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
@@ -50,6 +51,10 @@ describe('Plantilla y navegación', () => {
     expect(sessionStorage.length).toBe(0)
     const reuso = await atenderSimulado('/api/auth/me', { headers: { Authorization: token ?? '' } })
     expect(reuso.status).toBe(401)
+    const renovar = await atenderSimulado('/api/auth/refresh', {
+      method: 'POST', body: JSON.stringify({ refreshToken }),
+    })
+    expect(renovar.status).toBe(401)
   })
 
   it('si el token venció, lo renueva con el refresh token y sigue sin interrumpir', async () => {
