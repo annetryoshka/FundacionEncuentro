@@ -10,6 +10,8 @@ import type { RegistrarCasoDto } from "./dto/registrar-caso.dto.js";
 import type { ActualizarCasoDto } from "./dto/actualizar-caso.dto.js";
 import type { Usuario } from "../../common/types/usuario.js";
 import type { ListarCarpetasQuery } from './dto/listar-carpetas.query.js';
+import type { ActualizarEstadoCasoDto } from './dto/actualizar-estado-caso.dto.js';
+import type { ActualizarClasificacionDto } from './dto/actualizar-clasificacion.dto.js';
 
 const SELECT_CARPETA = `
   select c.id, c.tipo, c.numero_correlativo, c.estado,
@@ -228,7 +230,7 @@ export class CasosService {
 
   async obtenerCarpetaAutorizada(id: string, usuario: Usuario) {
     const { rows } = await this.db.query(
-      `select c.id, c.tipo, c.numero_correlativo, c.estado,
+      `select c.id, c.tipo, c.numero_correlativo, c.estado, c.clasificacion,
           to_char(c.fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
           c.diagnostico_ingreso, c.hipotesis_relacional,
           c.comentarios_clinicos, c.creado_en,
@@ -252,26 +254,34 @@ export class CasosService {
      left join perfiles creador on creador.id = c.creado_por
      left join perfiles asignador on asignador.id = a.asignado_por
      left join lateral (
-       select au.usuario_id, au.creado_en
-         from auditoria au
-        where au.accion = 'UPDATE'
-          and (
-            (
-              au.tabla = 'pacientes'
-              and au.registro_id = p.id
-              and au.datos_anteriores ->> 'nombre_completo'
-                  is distinct from au.datos_nuevos ->> 'nombre_completo'
-            )
-            or (
-              au.tabla = 'casos'
-              and au.registro_id = c.id
-              and au.datos_anteriores ->> 'fecha_ingreso'
-                  is distinct from au.datos_nuevos ->> 'fecha_ingreso'
-            )
-          )
-        order by au.creado_en desc
-        limit 1
-     ) ultima on true
+  select au.usuario_id, au.creado_en
+    from auditoria au
+   where au.accion = 'UPDATE'
+     and (
+       (
+         au.tabla = 'pacientes'
+         and au.registro_id = p.id
+         and (
+           au.datos_anteriores ->> 'nombre_completo'
+             is distinct from au.datos_nuevos ->> 'nombre_completo'
+         )
+       )
+       or (
+         au.tabla = 'casos'
+         and au.registro_id = c.id
+         and (
+           au.datos_anteriores ->> 'fecha_ingreso'
+             is distinct from au.datos_nuevos ->> 'fecha_ingreso'
+           or au.datos_anteriores ->> 'estado'
+             is distinct from au.datos_nuevos ->> 'estado'
+           or au.datos_anteriores ->> 'clasificacion'
+             is distinct from au.datos_nuevos ->> 'clasificacion'
+         )
+       )
+     )
+   order by au.creado_en desc, au.id desc
+   limit 1
+) ultima on true
      left join perfiles editor on editor.id = ultima.usuario_id
     where c.id = $1
       and c.deleted_at is null
@@ -297,6 +307,7 @@ export class CasosService {
       numero: carpeta.numero_correlativo,
       tipo: carpeta.tipo,
       estado: carpeta.estado,
+      clasificacion: carpeta.clasificacion,
       fechaIngreso: carpeta.fecha_ingreso,
 
       paciente: {
@@ -347,6 +358,15 @@ export class CasosService {
       'p.deleted_at is null',
       "($1 = 'administrador' or ($1 = 'terapeuta' and a.perfil_id = $2))",
     ];
+      if (filtros.clasificacion !== undefined) {
+        valores.push(filtros.clasificacion);
+        condiciones.push(`c.clasificacion = $${valores.length}`);
+      }
+
+      if (filtros.estado !== undefined) {
+        valores.push(filtros.estado);
+        condiciones.push(`c.estado = $${valores.length}`);
+      }
     const busqueda = filtros.busqueda?.trim();
     if (busqueda && /^[0-9]+$/.test(busqueda)) {
       const numero = busqueda.replace(/^0+/, '') || '0';
@@ -373,7 +393,7 @@ export class CasosService {
     );
     const { pagina, tamano } = filtros;
     const { rows } = await this.db.query(
-      `select c.id, c.numero_correlativo, c.tipo, c.estado,
+      `select c.id, c.numero_correlativo, c.tipo, c.estado, c.clasificacion,
         to_char(c.fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
         p.id as paciente_id, p.nombre_completo,
         t.id as terapeuta_id, t.nombre_completo as terapeuta_nombre
@@ -388,6 +408,7 @@ export class CasosService {
         numero: fila.numero_correlativo,
         tipo: fila.tipo,
         estado: fila.estado,
+        clasificacion: fila.clasificacion,
         fechaIngreso: fila.fecha_ingreso,
         paciente: { id: fila.paciente_id, nombreCompleto: fila.nombre_completo },
         terapeuta: fila.terapeuta_id
@@ -400,9 +421,25 @@ export class CasosService {
     };
   }
 
-  async listar(filtros: ListarCasosQuery) {
-    const condiciones = ["c.deleted_at is null", "p.deleted_at is null"];
-    const valores: unknown[] = [];
+  async listar(filtros: ListarCasosQuery, usuario: Usuario) {
+    const condiciones = [
+    'c.deleted_at is null',
+    'p.deleted_at is null',
+    `(
+      $1::text = 'administrador'
+      or (
+        $1::text = 'terapeuta'
+        and exists (
+          select 1
+            from asignaciones_caso a
+           where a.caso_id = c.id
+             and a.perfil_id = $2::uuid
+        )
+      )
+    )`,
+  ];
+
+  const valores: unknown[] = [usuario.rol, usuario.id];
     const agregar = (sql: string, valor: unknown) => {
       valores.push(valor);
       condiciones.push(sql.replace("?", `$${valores.length}`));
@@ -494,4 +531,117 @@ export class CasosService {
         : null,
     };
   }
+
+ async actualizarEstado(
+  id: string,
+  dto: ActualizarEstadoCasoDto,
+  usuario: Usuario,
+) {
+  return this.db.transaction(usuario.id, async (client) => {
+    const caso = await client.query(
+      `select c.id
+         from casos c
+         join pacientes p on p.id = c.paciente_id
+        where c.id = $1
+          and c.deleted_at is null
+          and p.deleted_at is null
+        for update of c`,
+      [id],
+    );
+
+    if (!caso.rows[0]) {
+      throw new NotFoundException('Caso no encontrado');
+    }
+
+    const acceso = await client.query(
+      `select 1
+        where $1::text = 'administrador'
+           or (
+             $1::text = 'terapeuta'
+             and exists (
+               select 1 from asignaciones_caso
+                where caso_id = $2
+                  and perfil_id = $3
+             )
+           )`,
+      [usuario.rol, id, usuario.id],
+    );
+
+    if (!acceso.rows[0]) {
+      throw new NotFoundException('Caso no encontrado');
+    }
+
+    const { rows } = await client.query(
+      `update casos
+          set estado = $1
+        where id = $2
+        returning id, estado, actualizado_en`,
+      [dto.estado, id],
+    );
+
+    return {
+      id: rows[0].id,
+      estado: rows[0].estado,
+      actualizadoPor: usuario.id,
+      actualizadoEn: rows[0].actualizado_en,
+    };
+  });
+}
+
+ async actualizarClasificacion(
+  id: string,
+  dto: ActualizarClasificacionDto,
+  usuario: Usuario,
+) {
+  return this.db.transaction(usuario.id, async (client) => {
+    // La asignación también bloquea el caso: así una reasignación no puede intercalarse entre verificar permisos y actualizar.
+    const caso = await client.query(
+      `select c.id
+         from casos c
+         join pacientes p on p.id = c.paciente_id
+        where c.id = $1
+          and c.deleted_at is null
+          and p.deleted_at is null
+        for update of c`,
+      [id],
+    );
+
+    if (!caso.rows[0]) {
+      throw new NotFoundException('Caso no encontrado');
+    }
+
+    const acceso = await client.query(
+      `select 1
+        where $1::text = 'administrador'
+           or (
+             $1::text = 'terapeuta'
+             and exists (
+               select 1 from asignaciones_caso
+                where caso_id = $2
+                  and perfil_id = $3
+             )
+           )`,
+      [usuario.rol, id, usuario.id],
+    );
+
+    if (!acceso.rows[0]) {
+      throw new NotFoundException('Caso no encontrado');
+    }
+
+    const { rows } = await client.query(
+      `update casos
+          set clasificacion = $1
+        where id = $2
+        returning id, clasificacion, actualizado_en`,
+      [dto.clasificacion, id],
+    );
+
+    return {
+      id: rows[0].id,
+      clasificacion: rows[0].clasificacion,
+      actualizadoPor: usuario.id,
+      actualizadoEn: rows[0].actualizado_en,
+    };
+  });
+}
 }
