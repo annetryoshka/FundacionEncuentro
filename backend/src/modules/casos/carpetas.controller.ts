@@ -5,12 +5,13 @@ import {
   Param,
   Query,
   ParseUUIDPipe, Put,
+  Patch,
 } from '@nestjs/common';
 import { CarpetaAutorizadaRespuestaDto } from './dto/carpeta-autorizada-respuesta.dto.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { UsuarioActual } from '../../common/decorators/usuario-actual.decorator.js';
 import type { Usuario } from '../../common/types/usuario.js';
-
+import { ActualizarClasificacionDto } from './dto/actualizar-clasificacion.dto.js';
 import { CasosService } from './casos.service.js';
 import { AsignacionesService } from './asignaciones.service.js';
 import { AsignarTerapeutaDto } from './dto/asignar-terapeuta.dto.js';
@@ -23,7 +24,6 @@ import {
 } from '@nestjs/swagger';
 import { ListarCarpetasQuery } from './dto/listar-carpetas.query.js';
 
-@Controller('carpetas')
 @ApiTags('Carpetas')
 @ApiBearerAuth()
 @Controller('carpetas')
@@ -122,4 +122,23 @@ export class CarpetasController {
 
     return this.casos.obtenerCarpetaAutorizada(id, admin);
   }
+  @Patch(':id/clasificacion')
+  @Roles('administrador', 'terapeuta')
+  @ApiOperation({ summary: 'Actualizar clasificación social/privado' })
+  @ApiResponse({ status: 200, description: 'Clasificación actualizada.' })
+  @ApiResponse({ status: 400, description: 'Clasificación o UUID inválido.' })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  @ApiResponse({ status: 403, description: 'Rol no permitido.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Carpeta inexistente o no accesible.',
+  })
+  actualizarClasificacion(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ActualizarClasificacionDto,
+    @UsuarioActual() usuario: Usuario,
+  ) {
+    return this.casos.actualizarClasificacion(id, dto, usuario);
+  }
+  
 }
