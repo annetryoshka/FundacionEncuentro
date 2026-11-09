@@ -23,6 +23,23 @@ Backlog: 8 HU, 30 puntos, 74 h en subtareas de HU + 46 h de la tarea transversal
 | Gemina | 0 | 16 | 4 | 20 | | |
 | Emilia | 16 | 0 | 4 | 20 | | |
 
+## Reporte 1 — corte 2026-11-09 (`main` en `4c50218`)
+
+```
+Terminado:
+- FE-14 (parte backend): clasificación y actualización autorizada de casos (FE-48, PR #18, 2026-11-06).
+- Especificaciones de las HU del Sprint 2 por Andrea: FE-59, FE-61, FE-66, FE-71, FE-76, FE-81, FE-86, FE-91.
+- Guion y datos ficticios de aceptación (FE-96).
+Pendiente:
+- Código de FE-50, FE-13, FE-55, FE-56, FE-57, FE-7 y FE-6; pantalla de FE-14.
+- 4 decisiones abiertas (ver FE-98): constancia, ficha de diagnóstico, pagos por sesión, identificador de sesión.
+Desviaciones de carga:
+- Horas reales por persona aún no registradas: se anotarán en la tabla de arriba en el siguiente corte.
+Decisiones de alcance:
+- Ninguna por ahora. Si un bloqueo supera el margen, se retira FE-6 primero.
+Margen consumido: 0 h de 24 (sin registro de horas todavía)
+```
+
 ## Formato de reporte (repetir en cada corte)
 
 ```
