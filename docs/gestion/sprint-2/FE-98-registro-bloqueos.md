@@ -24,11 +24,15 @@ Tarea padre: FE-58 · Responsable: Gemina Ponce (Scrum Master y PM) · Estimaci�
 
 ## Registro de bloqueos
 
-> Completar durante el sprint, una fila por bloqueo. Un bloqueo se cierra solo con acción y resolución anotadas.
+Un bloqueo se cierra solo con acción y resolución anotadas. Corte inicial: **2026-11-09**, sobre `main` en `4c50218`. Las fuentes son los documentos de Andrea en `docs/srs/sprint-2/` y el guion `docs/pruebas/FE-96-aceptacion-sprint-2.md` (sección "Decisiones pendientes").
 
 | # | Fecha | Historia | Bloqueo | Responsable | Acción | Estado | Resolución |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | | | | | | Abierto | |
+| 1 | 2026-11-09 | FE-50 | Falta decidir condiciones, estados y evidencia de la constancia de consentimiento (FE-61). | Andrea (PO) | Confirmar la propuesta de FE-61 con la fundación y publicarla como decisión. | Abierto | |
+| 2 | 2026-11-09 | FE-13 | Falta confirmar la ficha de referencia y el mínimo obligatorio del diagnóstico (FE-66). | Andrea (PO) | Validar el mínimo obligatorio y cerrar FE-66. | Abierto | |
+| 3 | 2026-11-09 | FE-7 | Falta definir cuántos pagos admite una sesión y qué métodos entran en la demo (FE-86). | Andrea (PO) | Decidir cardinalidad y métodos; actualizar FE-86. | Abierto | |
+| 4 | 2026-11-09 | FE-55, FE-56, FE-7 | Falta confirmar el identificador de sesión compartido y validar sus relaciones en la API. | Adriana (backend) con Alejandro (BD) | Acordar el contrato de sesión y registrarlo en `docs/api/contrato-frontend-backend.md`. | Abierto | |
+| 5 | 2026-11-09 | FE-50, 13, 55, 56, 57, 7, 6 | No hay ramas de implementación de estas HU en el repositorio; solo existe el backend de clasificación (FE-48, PR #18). | Gemina (seguimiento) | Pedir a cada responsable la rama y la fecha prevista de su primer PR. | Abierto | |
 
 ## Regla de escalamiento
 
