@@ -1,0 +1,29 @@
+{
+  "casos": [
+    {"id": "A", "origen": "voluntario", "numero": 101, "ingreso": "2026-10-10", "clasificacion": "social", "estado": "iniciado", "terapeuta": "T1"},
+    {"id": "B", "origen": "derivado", "numero": 101, "ingreso": "2026-10-11", "clasificacion": "privado", "estado": "en_proceso", "terapeuta": "T2"},
+    {"id": "C", "origen": "voluntario", "numero": 102, "ingreso": "2026-10-11", "clasificacion": null, "estado": "concluido", "terapeuta": null},
+    {"id": "D", "origen": "voluntario", "numero": 103, "ingreso": "2026-10-12", "clasificacion": "social", "estado": "iniciado", "terapeuta": "T1"}
+  ],
+  "sesiones": [
+    {"id": "S-A1", "caso": "A", "numero": 1, "fecha": "2026-10-12"},
+    {"id": "S-A2", "caso": "A", "numero": 2, "fecha": "2026-10-12"},
+    {"id": "S-B1", "caso": "B", "numero": 1, "fecha": "2026-10-19"},
+    {"id": "S-C1", "caso": "C", "numero": 1, "fecha": "2026-10-11"},
+    {"id": "S-D1", "caso": "D", "numero": 1, "fecha": "2026-10-20"}
+  ],
+  "tareas": [
+    {"id": "T-A1", "sesion": "S-A1", "descripcion": "Actividad ficticia 1", "estado": "pendiente"},
+    {"id": "T-A2", "sesion": "S-A1", "descripcion": "Actividad ficticia 2", "estado": "realizada"}
+  ],
+  "pagos": [
+    {"id": "P-A1", "sesion": "S-A1", "fecha": "2026-10-12", "metodo": "qr", "montoCentavos": 7550},
+    {"id": "P-A2", "sesion": "S-A2", "fecha": "2026-10-20", "metodo": "transferencia", "montoCentavos": 4025},
+    {"id": "P-B1", "sesion": "S-B1", "fecha": "2026-10-19", "metodo": "transferencia", "montoCentavos": 12500},
+    {"id": "P-C1", "sesion": "S-C1", "fecha": "2026-10-15", "metodo": "qr", "montoCentavos": 2510}
+  ],
+  "periodos": [
+    {"desde": "2026-10-12", "hasta": "2026-10-19", "sesiones": 3, "pagosCentavos": 22560},
+    {"desde": "2026-10-01", "hasta": "2026-10-05", "sesiones": 0, "pagosCentavos": 0}
+  ]
+}
