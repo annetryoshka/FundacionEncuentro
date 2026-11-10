@@ -106,7 +106,7 @@ test('FE-40 PG: admin ve vigentes, sin responsable y solo campos de resumen', op
   assert.deepEqual([pagina.total, pagina.pagina, pagina.tamano, pagina.carpetas.length], [5, 1, 10, 5]);
   assert.deepEqual(new Set(pagina.carpetas.map((c) => c.id)), new Set(carpetas.slice(0, 5).map((c) => c.id)));
   for (const c of pagina.carpetas) {
-    assert.deepEqual(Object.keys(c).sort(), ['id', 'numero', 'tipo', 'estado', 'fechaIngreso', 'paciente', 'terapeuta'].sort());
+    assert.deepEqual(Object.keys(c).sort(), ['id', 'numero', 'tipo', 'estado', 'clasificacion', 'fechaIngreso', 'paciente', 'terapeuta'].sort());
     assert.deepEqual(Object.keys(c.paciente).sort(), ['id', 'nombreCompleto']);
     assert.match(c.fechaIngreso, /^\d{4}-\d{2}-\d{2}$/);
     const original = carpetas.find((fila) => fila.id === c.id);
