@@ -292,6 +292,36 @@ o para la terapeuta asignada. Caso ajeno/inexistente: 404; marketing: 403; sin s
 Una responsable por caso: borrar la asignación anterior e insertar la nueva en la misma transacción.
 La terapeuta anterior recibe 404 en su siguiente petición a ese caso.
 
+## ✅ Clasificación, estado y filtros (backend FE-48 · interfaz FE-47)
+
+Reglas completas en `docs/srs/sprint-2/FE-59-clasificacion-y-filtros.md`. Requiere aplicar
+`004_clasificacion_casos.sql` después de 001–003.
+
+- `GET /api/carpetas` acepta además `clasificacion=social|privado` y
+  `estado=iniciado|en_proceso|concluido`. Se combinan con `busqueda` y la paginación; un
+  valor desconocido es 400. Cada carpeta del resumen trae `clasificacion` (`null` = sin
+  clasificar). «Todos» significa no enviar el parámetro, así que incluye las sin clasificar.
+- `GET /api/carpetas/:id` incluye `clasificacion`, `actualizadoPor` y `actualizadoEn`.
+- `PATCH /api/carpetas/:id/clasificacion` `{ "clasificacion": "social" | "privado" }` →
+  200 `{ id, clasificacion, actualizadoPor, actualizadoEn }` (`actualizadoPor` es el UUID).
+- `PATCH /api/casos/:id/estado` `{ "estado": "iniciado" | "en_proceso" | "concluido" }` →
+  200 `{ id, estado, actualizadoPor, actualizadoEn }`.
+- Los dos PATCH: administración o la terapeuta asignada. Caso inexistente o no asignado: 404
+  "Caso no encontrado". Marketing: 403. Valor inválido o campos extra: 400. No cambian número,
+  origen, paciente ni terapeuta.
+
+Uso en el frontend (FE-47):
+
+- Listado: selectores «Clasificación» y «Estado» junto a la búsqueda. Se aplican al elegirlos,
+  viven en la URL (`?q=&clasificacion=&estado=&pagina=`) y cualquier cambio vuelve a la
+  página 1. Un valor desconocido en la URL se ignora (no se envía). Sin resultados, el mensaje
+  nombra el filtro y ofrece «Quitar filtros».
+- Carpeta: tarjeta «Clasificación y estado» con dos guardados independientes, cada uno con su
+  carga y su resultado. Como el PATCH solo devuelve el campo guardado y el UUID de quien
+  actualizó, después de guardar se vuelve a pedir `GET /api/carpetas/:id` para mostrar el
+  nombre en «Última actualización». Un 404 se explica como pérdida de acceso (reasignación).
+- No existe filtro «solo sin clasificar»: el backend no lo ofrece y FE-59 no lo pide.
+
 ## ⚠️ Edición `PATCH /api/carpetas/:id` (FE-52)
 
 La ruta está implementada y recibe `nombreCompleto` y `fechaIngreso`, pero su

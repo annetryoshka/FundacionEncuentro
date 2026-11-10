@@ -5,7 +5,9 @@ import { CARPETA_DE_SOFIA, CARPETA_SIN_ASIGNAR, CUENTAS, llamadas, montarApp } f
 
 /** FE-36 · Asignación de terapeuta en la carpeta (criterios de FE-35 que tocan la interfaz). */
 describe('AsignacionTerapeuta', () => {
-  const selector = () => screen.findByRole('combobox')
+  // La carpeta también tiene los selectores de clasificación y estado (FE-47).
+  const SELECTOR_TERAPEUTA = { name: /^(Asignar a|Cambiar responsable)$/ }
+  const selector = () => screen.findByRole('combobox', SELECTOR_TERAPEUTA)
 
   async function tokenDe(correo: string) {
     const r = await atenderSimulado('/api/auth/login', {
@@ -61,7 +63,7 @@ describe('AsignacionTerapeuta', () => {
   it('una terapeuta ve a la responsable pero no puede cambiarla', async () => {
     await montarApp(`/carpetas/${CARPETA_DE_SOFIA}`, 'sofia')
     expect(await screen.findByRole('heading', { name: 'Terapeuta responsable' })).toBeInTheDocument()
-    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', SELECTOR_TERAPEUTA)).not.toBeInTheDocument()
   })
 
   it('cambiar el id en la URL no abre una carpeta ajena', async () => {
