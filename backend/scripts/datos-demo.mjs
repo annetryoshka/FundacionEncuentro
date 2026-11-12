@@ -39,6 +39,10 @@ const PACIENTES = [
 // Segunda carpeta de un paciente que ya existe (FE-33): Mariana vuelve al centro.
 const SEGUNDAS = [{ paciente: 1, tipo: 'voluntario', estado: 'iniciado', fecha: '2026-10-15', terapeuta: 'sofia' }];
 
+// Sprint 2: requiere las migraciones de db/migrations desde la 005. Carpetas por número de la lista de arriba.
+// [FE-60] clasificación
+const CLASIFICACION = { 1: 'privado', 2: 'social', 3: 'privado', 5: 'social', 6: 'social', 7: 'social', 8: 'privado', 10: 'social', 11: 'privado', 14: 'social' };
+
 const idCaso = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const idPaciente = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const casos = [
@@ -142,12 +146,40 @@ async function crearCarpetas(cuentas) {
   return resumen;
 }
 
+// Datos del Sprint 2 sobre las carpetas de demostración. Se puede repetir: no duplica nada.
+async function crearDatosSprint2(cuentas) {
+  const cliente = await pool.connect();
+  const resumen = {};
+  const terapeutaDe = (carpeta) => cuentas[casos[carpeta - 1].terapeuta];
+  try {
+    await cliente.query('begin');
+    await cliente.query(`select set_config('app.usuario_id', $1, true)`, [cuentas.direccion]);
+    // [FE-60] clasificación
+    resumen.clasificaciones = 0;
+    for (const [carpeta, clasificacion] of Object.entries(CLASIFICACION)) {
+      const r = await cliente.query('update casos set clasificacion = $1 where id = $2 and clasificacion is null', [clasificacion, idCaso(carpeta)]);
+      resumen.clasificaciones += r.rowCount;
+    }
+    await cliente.query('commit');
+  } catch (error) {
+    await cliente.query('rollback');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+  return resumen;
+}
+
 async function borrar() {
   const idsCasos = casos.map((c) => c.id);
   const idsPacientes = PACIENTES.map((_, i) => idPaciente(i + 1));
   const cliente = await pool.connect();
   try {
     await cliente.query('begin');
+    const tablas = ['pagos', 'tareas_terapeuticas', 'fichas_seguimiento', 'fichas_diagnostico'];
+    for (const tabla of tablas) {
+      await cliente.query(`delete from ${tabla} where caso_id = any($1)`, [idsCasos]);
+    }
     await cliente.query('delete from asignaciones_caso where caso_id = any($1)', [idsCasos]);
     await cliente.query('delete from contexto_judicial where caso_id = any($1)', [idsCasos]);
     const c = await cliente.query('delete from casos where id = any($1)', [idsCasos]);
@@ -185,8 +217,10 @@ try {
   } else {
     const cuentas = await crearCuentas();
     const r = await crearCarpetas(cuentas);
+    const s = await crearDatosSprint2(cuentas);
     console.log(`Cuentas listas (contraseña ${CONTRASENA}): ${CUENTAS.map((c) => c.email).join(', ')}`);
     console.log(`Nuevos: ${r.pacientes} pacientes, ${r.carpetas} carpetas, ${r.asignaciones} asignaciones.`);
+    console.log(`Sprint 2, nuevos: ${Object.entries(s).map(([dato, n]) => `${n} ${dato}`).join(', ')}.`);
   }
 } finally {
   await pool.end();

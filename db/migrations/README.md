@@ -7,6 +7,25 @@
    | `migrations/001_esquema_base.sql` | Esquema base: pacientes, casos, fichas, pagos, auditoría y RLS |
    | `migrations/002_asignacion_unica_por_caso.sql` | Una responsable actual por caso |
    | `migrations/003_busqueda_carpetas_unaccent.sql` | Extensión unaccent en extensions para búsqueda FE-40 sin tildes |
+   | `migrations/004_clasificacion_casos.sql` | Clasificación social/privado del caso (FE-14) |
+   | `migrations/007_identidad_y_clasificacion_casos.sql` | FE-60: el origen y el número del caso no cambian; índice de clasificación |
+
+   ## Pruebas de las migraciones con PostgreSQL local
+
+   Cada archivo `backend/test/*-postgres.test.mjs` del Sprint 2 crea una base desechable, aplica todas las migraciones, carga datos ficticios y la borra al terminar. Nunca usa Supabase.
+
+   ```powershell
+   docker run -d --name fe-qa-pg -e POSTGRES_PASSWORD=qa -p 55432:5432 postgres:17
+   cd backend
+   $env:FE_PG_QA = '1'; $env:FE_PG_ADMIN_URL = 'postgres://postgres:qa@localhost:55432/postgres'
+   node --test test/tipo-estado-postgres.test.mjs   # o test/*-postgres.test.mjs
+   ```
+
+   | Subtarea | Prueba |
+   |---|---|
+   | FE-60 | `tipo-estado-postgres.test.mjs` |
+
+   `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
    ## Cómo ejecutarlo
    1. Supabase → SQL Editor → New query
