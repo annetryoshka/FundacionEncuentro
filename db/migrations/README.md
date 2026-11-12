@@ -15,6 +15,7 @@
    | `migrations/008_sesiones.sql` | FE-74: sesión = `fichas_seguimiento` con evolución, responsable y número automático |
    | `migrations/009_tareas_por_sesion.sql` | FE-79: cada tarea pertenece a una sesión del mismo caso; quién cambió el cumplimiento |
    | `migrations/010_pagos_por_sesion.sql` | FE-89: un pago por sesión del mismo caso; monto sin redondeo silencioso |
+   | `migrations/011_indicadores_operativos.sql` | FE-94: función `indicadores_operativos(desde, hasta)` para el dashboard de FE-6 |
 
    ## Modelo del Sprint 2
 
@@ -31,6 +32,7 @@
    - Constancia (FE-63) y diagnóstico (FE-68) guardan `actualizado_por` desde la API; en sesiones lo llena un trigger desde `app.usuario_id`. Todo cambio queda además en `auditoria`.
    - Errores que la API debe traducir: `23514` (check) y `23502` (falta un dato) → 400, `23505` (duplicado) → 409, `23503` (sesión de otro caso o inexistente) → 400 o 404.
    - Consultas del historial ya revisadas (FE-84): `backend/test/historial-postgres.test.mjs`. Cada sección va en su propia consulta; unir sesiones, tareas y pagos en una sola duplica filas.
+   - Dashboard (FE-94): `select * from indicadores_operativos('2026-10-12', '2026-10-19')`. Fechas inclusivas, solo casos y pacientes no eliminados, pagos en BOB.
 
    Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
 
@@ -54,6 +56,7 @@
    | FE-79 | `tareas-postgres.test.mjs` |
    | FE-89 | `pagos-integridad-postgres.test.mjs` |
    | FE-84 | `historial-postgres.test.mjs` |
+   | FE-94 | `indicadores-postgres.test.mjs` |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
