@@ -7,10 +7,13 @@
  * - FE-47: filtros de clasificación y estado en GET /carpetas y los guardados
  *   PATCH /carpetas/:id/clasificacion y PATCH /casos/:id/estado, como el backend de FE-48
  *   (docs/srs/sprint-2/FE-59-clasificacion-y-filtros.md).
+ * - Sprint 2: el expediente clínico (sesiones, tareas, diagnóstico, constancia, pagos, historial e
+ *   indicadores) vive en ./expediente.ts y sigue los PR #26–#33 del backend.
  * Nunca entra al build de producción.
  */
 import type { Rol } from '../../features/auth/tipos'
 import type { Clasificacion, EstadoCaso, TipoCaso } from '../../features/carpetas/tipos'
+import { atenderExpediente, expedienteInicial, type ExpedienteSim } from './expediente'
 
 export const CONTRASENA_DEMO = 'Encuentro2026'
 
@@ -47,10 +50,11 @@ interface DatosSim {
   accesos: Record<string, string>
   /** refreshToken → id de perfil */
   refrescos: Record<string, string>
+  expediente: ExpedienteSim
 }
 
-// v3: los casos guardados con v2 no tenían clasificación.
-const CLAVE_ALMACEN = 'fundacion-encuentro:api-simulada:v3'
+// v4: los datos guardados con v3 no tenían expediente (sesiones, tareas, pagos…).
+const CLAVE_ALMACEN = 'fundacion-encuentro:api-simulada:v4'
 const DURACION_TOKEN_S = 3600 // lo mismo que Supabase por defecto
 let retardoMs = 350
 // Se inicializa al final del módulo, cuando ya existen los datos ficticios.
@@ -145,6 +149,20 @@ export async function atenderSimulado(url: string, init: RequestInit = {}): Prom
     if (asignar && metodo === 'PUT') {
       return yo.rol === 'administrador' ? asignarTerapeuta(yo, asignar[1], cuerpo) : error(403, 'Solo administración')
     }
+
+    const expediente = atenderExpediente({
+      yo,
+      metodo,
+      ruta,
+      cuerpo,
+      params: searchParams,
+      casos: datos.casos,
+      perfiles: datos.perfiles,
+      expediente: datos.expediente,
+      json,
+      error,
+    })
+    if (expediente) return expediente
 
     // Igual que NestJS cuando la ruta no existe
     return error(404, `Cannot ${metodo} ${pathname}`)
@@ -578,6 +596,7 @@ function datosIniciales(): DatosSim {
     contadores,
     accesos: {},
     refrescos: {},
+    expediente: expedienteInicial({ caso1: casos[0].id, sofia: ID.sofia, direccion: ID.direccion }),
   }
 }
 

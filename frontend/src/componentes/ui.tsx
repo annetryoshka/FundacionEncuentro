@@ -3,7 +3,14 @@
  * Mantienen igual la accesibilidad en todas las pantallas: etiqueta, error asociado, foco visible.
  */
 import { claseCampo } from './estilos'
-import { forwardRef, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
+import {
+  forwardRef,
+  useId,
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type TextareaHTMLAttributes,
+} from 'react'
 
 // ---- Botones ---------------------------------------------------------------
 
@@ -101,6 +108,49 @@ export const CampoTexto = forwardRef<HTMLInputElement, PropsCampo>(function Camp
       )}
       {error && (
         <p id={idError} className="mt-1.5 text-sm text-error">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+})
+
+interface PropsAreaTexto extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  etiqueta: string
+  error?: string
+  ayuda?: ReactNode
+}
+
+/** Texto largo (evolución, diagnóstico). Misma accesibilidad que CampoTexto. */
+export const AreaTexto = forwardRef<HTMLTextAreaElement, PropsAreaTexto>(function AreaTexto(
+  { etiqueta, error, ayuda, id, className = '', rows = 5, ...resto },
+  ref,
+) {
+  const idGenerado = useId()
+  const idCampo = id ?? idGenerado
+  const describe = [ayuda && !error && `${idCampo}-ayuda`, error && `${idCampo}-error`].filter(Boolean).join(' ')
+
+  return (
+    <div className={className}>
+      <label htmlFor={idCampo} className="block text-sm font-semibold text-texto">
+        {etiqueta}
+      </label>
+      <textarea
+        ref={ref}
+        id={idCampo}
+        rows={rows}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describe || undefined}
+        className={`${claseCampo(Boolean(error))} resize-y leading-relaxed`}
+        {...resto}
+      />
+      {ayuda && !error && (
+        <p id={`${idCampo}-ayuda`} className="mt-1.5 text-sm text-suave">
+          {ayuda}
+        </p>
+      )}
+      {error && (
+        <p id={`${idCampo}-error`} className="mt-1.5 text-sm text-error">
           {error}
         </p>
       )}

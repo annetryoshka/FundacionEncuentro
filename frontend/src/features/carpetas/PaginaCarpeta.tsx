@@ -10,6 +10,7 @@ import { useSesion } from '../auth/sesion'
 import { AsignacionTerapeuta } from './AsignacionTerapeuta'
 import { ClasificacionYEstado } from './ClasificacionYEstado'
 import { FormularioEditarPaciente } from './FormularioEditarPaciente'
+import { APARTADOS } from '../expediente/apartados'
 import { obtenerCarpeta } from './carpetasApi'
 import { EtiquetaClasificacion, EtiquetaEstado } from './Etiquetas'
 import {
@@ -27,6 +28,7 @@ import {
  * FE-36: Asignación de terapeuta.
  * FE-47: Clasificación y estado del caso.
  * FE-52: Edición de datos básicos del paciente.
+ * Sprint 2: accesos al expediente clínico (historial, constancia, diagnóstico, sesiones y pagos).
  *
  * El administrador puede modificar nombre y fecha de ingreso.
  * El número de carpeta permanece inalterable.
@@ -319,16 +321,22 @@ export function PaginaCarpeta() {
             </div>
           </div>
 
-          {/* Próximas funcionalidades */}
-          <Tarjeta className="border-dashed">
-            <h2 className="text-lg font-semibold text-verde-oscuro">
-              Fichas y seguimiento
-            </h2>
-
-            <p className="mt-1 text-suave">
-              Las fichas de diagnóstico, de seguimiento y las
-              tareas terapéuticas estarán disponibles pronto.
-            </p>
+          {/* Sprint 2 · Expediente clínico */}
+          <Tarjeta>
+            <h2 className="text-lg font-semibold text-verde-oscuro">Expediente clínico</h2>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {APARTADOS.filter((a) => !a.soloAdministracion || esAdministrador).map((a) => (
+                <li key={a.ruta}>
+                  <Link
+                    to={`/carpetas/${carpeta.id}/${a.ruta}`}
+                    className="block h-full rounded-2xl border border-linea px-4 py-3 font-semibold text-verde-oscuro transition-colors hover:border-verde hover:bg-crema focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+                  >
+                    {a.nombre}
+                    <span className="mt-0.5 block text-sm font-normal text-suave">{a.descripcion}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </Tarjeta>
         </>
       )}
