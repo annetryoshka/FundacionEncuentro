@@ -63,6 +63,13 @@ const SESIONES = [
   [6, ['2026-10-12', '2026-10-19']],
   [14, ['2026-10-12']],
 ];
+// [FE-79] tareas [carpeta, nro de sesión, descripción, realizada].
+const TAREAS = [
+  [1, 1, 'Registrar tres momentos de diálogo en la semana.', true],
+  [1, 1, 'Cena familiar sin pantallas.', true],
+  [1, 17, 'Escribir una carta a la familia de origen.', false],
+  [6, 1, 'Diario de emociones durante 7 días.', false],
+];
 
 const idCaso = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const idPaciente = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -215,6 +222,22 @@ async function crearDatosSprint2(cuentas) {
         );
         resumen.sesiones += r.rowCount;
       }
+    }
+    // [FE-79] tareas
+    resumen.tareas = 0;
+    for (const [carpeta, nro, descripcion, realizada] of TAREAS) {
+      // Se crea Pendiente y, si corresponde, se marca Realizada: así queda quién registró el cumplimiento.
+      const r = await cliente.query(
+        `insert into tareas_terapeuticas (caso_id, sesion_id, descripcion, perfil_id)
+         select $1, $2, $3, $4
+          where not exists (select 1 from tareas_terapeuticas where sesion_id = $2 and descripcion = $3)
+         returning id`,
+        [idCaso(carpeta), idSesion(carpeta, nro), descripcion, terapeutaDe(carpeta)],
+      );
+      if (r.rowCount && realizada) {
+        await cliente.query('update tareas_terapeuticas set completada = true where id = $1', [r.rows[0].id]);
+      }
+      resumen.tareas += r.rowCount;
     }
     await cliente.query('commit');
   } catch (error) {
