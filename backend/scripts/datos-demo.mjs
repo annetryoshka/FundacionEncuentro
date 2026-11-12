@@ -42,6 +42,12 @@ const SEGUNDAS = [{ paciente: 1, tipo: 'voluntario', estado: 'iniciado', fecha: 
 // Sprint 2: requiere las migraciones de db/migrations desde la 005. Carpetas por número de la lista de arriba.
 // [FE-60] clasificación
 const CLASIFICACION = { 1: 'privado', 2: 'social', 3: 'privado', 5: 'social', 6: 'social', 7: 'social', 8: 'privado', 10: 'social', 11: 'privado', 14: 'social' };
+// [FE-64] procedencia y un ejemplo de cada estado de la constancia (tabla de FE-63).
+const CONSTANCIAS = [
+  { carpeta: 1, procedencia: 'Consulta espontánea', judicial: false, estado: 'registrado', fecha: '2026-03-12', referencia: 'EVIDENCIA-DEMO-001' },
+  { carpeta: 2, procedencia: 'Juzgado Público de Familia N.º 3 de La Paz', judicial: true, estado: 'pendiente' },
+  { carpeta: 6, procedencia: 'Consulta espontánea', judicial: false, estado: 'no_aplica', explicacion: 'Consulta individual de adulta; no requiere constancia adicional (dato ficticio).' },
+];
 
 const idCaso = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const idPaciente = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -160,6 +166,17 @@ async function crearDatosSprint2(cuentas) {
       const r = await cliente.query('update casos set clasificacion = $1 where id = $2 and clasificacion is null', [clasificacion, idCaso(carpeta)]);
       resumen.clasificaciones += r.rowCount;
     }
+    // [FE-64] procedencia y constancias
+    resumen.constancias = 0;
+    for (const c of CONSTANCIAS) {
+      const r = await cliente.query(
+        `insert into constancias_atencion (caso_id, procedencia, origen_judicial, estado,
+           fecha_consentimiento, referencia_evidencia, explicacion, creado_por, actualizado_por)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $8) on conflict (caso_id) do nothing`,
+        [idCaso(c.carpeta), c.procedencia, c.judicial, c.estado, c.fecha ?? null, c.referencia ?? null, c.explicacion ?? null, cuentas.direccion],
+      );
+      resumen.constancias += r.rowCount;
+    }
     await cliente.query('commit');
   } catch (error) {
     await cliente.query('rollback');
@@ -177,6 +194,8 @@ async function borrar() {
   try {
     await cliente.query('begin');
     const tablas = ['pagos', 'tareas_terapeuticas', 'fichas_seguimiento', 'fichas_diagnostico'];
+    // [FE-64] la tabla de constancias existe desde la migración 005
+    tablas.push('constancias_atencion');
     for (const tabla of tablas) {
       await cliente.query(`delete from ${tabla} where caso_id = any($1)`, [idsCasos]);
     }
