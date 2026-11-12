@@ -5,11 +5,25 @@ import { CasosController } from './casos.controller.js';
 import { CasosService } from './casos.service.js';
 import { EditarPacienteController } from './editar-paciente.controller.js';
 import { CarpetasController } from './carpetas.controller.js';
+import { SesionesController } from './sesiones.controller.js';
+import { SesionesService } from './sesiones.service.js';
 import { TareasController } from './tareas.controller.js';
 import { TareasService } from './tareas.service.js';
 
 @Module({
-  controllers: [CasosController, EditarPacienteController, AsignacionesController, CarpetasController, TareasController],
-  providers: [CasosService, AsignacionesService, TareasService],
+  controllers: [
+    CasosController,
+    EditarPacienteController,
+    AsignacionesController,
+    CarpetasController,
+    SesionesController,
+    TareasController,
+  ],
+  providers: [
+    CasosService,
+    AsignacionesService,
+    SesionesService,
+    TareasService,
+  ],
 })
 export class CasosModule {}
