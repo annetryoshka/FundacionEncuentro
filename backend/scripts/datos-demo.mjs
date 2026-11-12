@@ -53,9 +53,21 @@ const DIAGNOSTICOS = [
   { carpeta: 1, fecha: '2026-03-19', diagnosticoIngreso: 'Crisis vital familiar por conflictos de pareja y crianza.', hipotesisRelacional: 'Triangulación de la hija mayor.' },
   { carpeta: 2, fecha: '2026-04-09', diagnosticoIngreso: 'Derivación judicial por régimen de visitas.' },
 ];
+// [FE-74] [carpeta, fechas de sesión]. La carpeta 1 pasa de 16 sesiones; la 2 comparte fechas con la 1.
+const semanal = (desde, n) => Array.from({ length: n }, (_, i) => {
+  const d = new Date(`${desde}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 7 * i); return d.toISOString().slice(0, 10);
+});
+const SESIONES = [
+  [1, semanal('2026-03-19', 17)],
+  [2, semanal('2026-04-09', 3)],
+  [6, ['2026-10-12', '2026-10-19']],
+  [14, ['2026-10-12']],
+];
 
 const idCaso = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const idPaciente = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+// [FE-74] sesión n de la carpeta c: 30000000-0000-4000-8000-0000ccc00nnn
+const idSesion = (c, n) => `30000000-0000-4000-8000-0000${String(c).padStart(3, '0')}00${String(n).padStart(3, '0')}`;
 const casos = [
   ...PACIENTES.map(([, tipo, estado, fecha, terapeuta], i) => ({ id: idCaso(i + 1), paciente: idPaciente(i + 1), tipo, estado, fecha, terapeuta })),
   ...SEGUNDAS.map((s, i) => ({ id: idCaso(PACIENTES.length + i + 1), ...s, paciente: idPaciente(s.paciente) })),
@@ -191,6 +203,18 @@ async function crearDatosSprint2(cuentas) {
         [idCaso(d.carpeta), d.fecha, JSON.stringify({ diagnosticoIngreso: d.diagnosticoIngreso, hipotesisRelacional: d.hipotesisRelacional ?? null, comentariosClinicos: null }), terapeutaDe(d.carpeta)],
       );
       resumen.diagnosticos += r.rowCount;
+    }
+    // [FE-74] sesiones
+    resumen.sesiones = 0;
+    for (const [carpeta, fechas] of SESIONES) {
+      for (const [i, fecha] of fechas.entries()) {
+        const r = await cliente.query(
+          `insert into fichas_seguimiento (id, caso_id, nro_sesion, fecha, evolucion, responsable_id, creado_por)
+           values ($1, $2, $3, $4, $5, $6, $6) on conflict (id) do nothing`,
+          [idSesion(carpeta, i + 1), idCaso(carpeta), i + 1, fecha, `Sesión ${i + 1}: evolución de demostración.`, terapeutaDe(carpeta)],
+        );
+        resumen.sesiones += r.rowCount;
+      }
     }
     await cliente.query('commit');
   } catch (error) {
