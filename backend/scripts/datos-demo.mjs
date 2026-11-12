@@ -70,6 +70,14 @@ const TAREAS = [
   [1, 17, 'Escribir una carta a la familia de origen.', false],
   [6, 1, 'Diario de emociones durante 7 días.', false],
 ];
+// [FE-89] pagos [carpeta, nro de sesión, fecha, monto en Bs, método, referencia]. Uno por sesión.
+const PAGOS = [
+  [1, 1, '2026-03-19', '75.50', 'qr', null],
+  [1, 2, '2026-03-26', '75.50', 'qr', null],
+  [2, 1, '2026-04-09', '40.25', 'transferencia', 'TRF-DEMO-001'],
+  [6, 1, '2026-10-12', '125.00', 'qr', null],
+  [14, 1, '2026-10-15', '25.10', 'transferencia', 'TRF-DEMO-002'],
+];
 
 const idCaso = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const idPaciente = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -238,6 +246,16 @@ async function crearDatosSprint2(cuentas) {
         await cliente.query('update tareas_terapeuticas set completada = true where id = $1', [r.rows[0].id]);
       }
       resumen.tareas += r.rowCount;
+    }
+    // [FE-89] pagos
+    resumen.pagos = 0;
+    for (const [carpeta, nro, fecha, monto, metodo, referencia] of PAGOS) {
+      const r = await cliente.query(
+        `insert into pagos (caso_id, sesion_id, fecha, monto, metodo, referencia, registrado_por)
+         values ($1, $2, $3, $4, $5, $6, $7) on conflict (sesion_id) do nothing`,
+        [idCaso(carpeta), idSesion(carpeta, nro), fecha, monto, metodo, referencia, cuentas.direccion],
+      );
+      resumen.pagos += r.rowCount;
     }
     await cliente.query('commit');
   } catch (error) {
