@@ -34,25 +34,34 @@ export class DatabaseService implements OnModuleDestroy {
   }
 
   async transaction<T>(
-    usuarioId: string | null,
-    fn: (client: PoolClient) => Promise<T>,
-  ): Promise<T> {
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
-      await client.query(`select set_config('app.usuario_id', $1, true)`, [
-        usuarioId ?? '',
-      ]);
-      const resultado = await fn(client);
-      await client.query('COMMIT');
-      return resultado;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+  usuarioId: string | null,
+  fn: (client: PoolClient) => Promise<T>,
+  opciones: { aislamiento?: 'repeatable read' } = {},
+): Promise<T> {
+  const client = await this.pool.connect();
+
+  try {
+    await client.query(
+      opciones.aislamiento === 'repeatable read'
+        ? 'BEGIN ISOLATION LEVEL REPEATABLE READ'
+        : 'BEGIN',
+    );
+
+    await client.query(
+      `select set_config('app.usuario_id', $1, true)`,
+      [usuarioId ?? ''],
+    );
+
+    const resultado = await fn(client);
+    await client.query('COMMIT');
+    return resultado;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
+}
 
   async onModuleDestroy() {
     await this.pool.end();
