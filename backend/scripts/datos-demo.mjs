@@ -48,6 +48,11 @@ const CONSTANCIAS = [
   { carpeta: 2, procedencia: 'Juzgado Público de Familia N.º 3 de La Paz', judicial: true, estado: 'pendiente' },
   { carpeta: 6, procedencia: 'Consulta espontánea', judicial: false, estado: 'no_aplica', explicacion: 'Consulta individual de adulta; no requiere constancia adicional (dato ficticio).' },
 ];
+// [FE-69] fichas de diagnóstico (modelo de FE-68: los campos van en contenido).
+const DIAGNOSTICOS = [
+  { carpeta: 1, fecha: '2026-03-19', diagnosticoIngreso: 'Crisis vital familiar por conflictos de pareja y crianza.', hipotesisRelacional: 'Triangulación de la hija mayor.' },
+  { carpeta: 2, fecha: '2026-04-09', diagnosticoIngreso: 'Derivación judicial por régimen de visitas.' },
+];
 
 const idCaso = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const idPaciente = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -176,6 +181,16 @@ async function crearDatosSprint2(cuentas) {
         [idCaso(c.carpeta), c.procedencia, c.judicial, c.estado, c.fecha ?? null, c.referencia ?? null, c.explicacion ?? null, cuentas.direccion],
       );
       resumen.constancias += r.rowCount;
+    }
+    // [FE-69] fichas de diagnóstico
+    resumen.diagnosticos = 0;
+    for (const d of DIAGNOSTICOS) {
+      const r = await cliente.query(
+        `insert into fichas_diagnostico (caso_id, fecha, contenido, creado_por, actualizado_por)
+         values ($1, $2, $3, $4, $4) on conflict (caso_id) do nothing`,
+        [idCaso(d.carpeta), d.fecha, JSON.stringify({ diagnosticoIngreso: d.diagnosticoIngreso, hipotesisRelacional: d.hipotesisRelacional ?? null, comentariosClinicos: null }), terapeutaDe(d.carpeta)],
+      );
+      resumen.diagnosticos += r.rowCount;
     }
     await cliente.query('commit');
   } catch (error) {
