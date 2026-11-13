@@ -6,6 +6,7 @@ import { HealthController } from './health/health.controller.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { CasosModule } from './modules/casos/casos.module.js';
 import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
+import { IndicadoresModule } from './modules/indicadores/indicadores.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
     AuthModule,
     UsuariosModule,
     CasosModule,
+    IndicadoresModule,
   ],
   controllers: [HealthController],
 })
