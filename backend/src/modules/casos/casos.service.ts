@@ -650,8 +650,20 @@ async obtenerConstancia(id: string, usuario: Usuario) {
   await this.obtenerCarpetaAutorizada(id, usuario);
 
   const { rows } = await this.db.query(
-    `select ca.*
-       from constancias_atencion ca
+    `select ca.*,
+       to_char(ca.fecha_consentimiento, 'YYYY-MM-DD')
+         as fecha_consentimiento,
+       case when j.id is null then null
+         else json_build_object(
+           'juzgado', j.juzgado,
+           'nroExpediente', j.nro_expediente,
+           'fechaDerivacion',
+             to_char(j.fecha_derivacion, 'YYYY-MM-DD'),
+           'observaciones', j.observaciones
+         )
+       end as contexto_judicial
+      from constancias_atencion ca
+      left join contexto_judicial j on j.caso_id = ca.caso_id
        join casos c on c.id = ca.caso_id
        join pacientes p on p.id = c.paciente_id
       where ca.caso_id = $1
@@ -679,6 +691,18 @@ async actualizarConstancia(
   dto: ActualizarConstanciaDto,
   usuario: Usuario,
 ) {
+  const contexto = dto.contextoJudicial;
+    if (dto.origenJudicial && !contexto?.juzgado?.trim()) {
+      throw new BadRequestException(
+        'El contexto judicial y el juzgado son obligatorios',
+      );
+    }
+
+    if (!dto.origenJudicial && contexto != null) {
+      throw new BadRequestException(
+        'Un origen no judicial no admite contexto judicial',
+      );
+    }
   const fecha = dto.fechaConsentimiento ?? null;
   const evidencia = dto.referenciaEvidencia?.trim() || null;
   const explicacion = dto.explicacion?.trim() || null;
@@ -741,6 +765,33 @@ async actualizarConstancia(
       throw new NotFoundException('Caso no encontrado');
     }
 
+    if (dto.origenJudicial && contexto) {
+      await client.query(
+        `insert into contexto_judicial (
+          caso_id, juzgado, nro_expediente,
+          fecha_derivacion, observaciones
+        )
+        values ($1, $2, $3, $4::date, $5)
+        on conflict (caso_id) do update set
+          juzgado = excluded.juzgado,
+          nro_expediente = excluded.nro_expediente,
+          fecha_derivacion = excluded.fecha_derivacion,
+          observaciones = excluded.observaciones`,
+        [
+          id,
+          contexto.juzgado.trim(),
+          contexto.nroExpediente?.trim() || null,
+          contexto.fechaDerivacion ?? null,
+          contexto.observaciones?.trim() || null,
+        ],
+      );
+    } else {
+      await client.query(
+        'delete from contexto_judicial where caso_id = $1',
+        [id],
+      );
+    }
+
     const { rows } = await client.query(
       `insert into constancias_atencion (
          caso_id, procedencia, origen_judicial, estado,
@@ -771,13 +822,23 @@ async actualizarConstancia(
 
     //solicitamos el formato explícito.
     const consulta = await client.query(
-      `select ca.*,
-              to_char(fecha_consentimiento, 'YYYY-MM-DD')
-                as fecha_consentimiento
-         from constancias_atencion ca
-        where ca.id = $1`,
-      [rows[0].id],
-    );
+        `select ca.*,
+                to_char(ca.fecha_consentimiento, 'YYYY-MM-DD')
+                  as fecha_consentimiento,
+                case when j.id is null then null
+                  else json_build_object(
+                    'juzgado', j.juzgado,
+                    'nroExpediente', j.nro_expediente,
+                    'fechaDerivacion',
+                      to_char(j.fecha_derivacion, 'YYYY-MM-DD'),
+                    'observaciones', j.observaciones
+                  )
+                end as contexto_judicial
+          from constancias_atencion ca
+          left join contexto_judicial j on j.caso_id = ca.caso_id
+          where ca.id = $1`,
+        [rows[0].id],
+      );
 
     return { constancia: this.aConstancia(consulta.rows[0]) };
   });
@@ -797,6 +858,7 @@ private aConstancia(fila: Record<string, any>) {
     creadoEn: fila.creado_en,
     actualizadoPor: fila.actualizado_por,
     actualizadoEn: fila.actualizado_en,
+    contextoJudicial: fila.contexto_judicial ?? null,
   };
 }
 }

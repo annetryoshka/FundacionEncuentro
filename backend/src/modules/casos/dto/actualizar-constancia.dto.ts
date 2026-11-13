@@ -3,6 +3,9 @@ import {
   IsBoolean, IsIn, IsISO8601, IsString,
   Matches, MaxLength, ValidateIf,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsDefined, IsObject, ValidateNested } from 'class-validator';
+import { ContextoJudicialDto } from './contexto-judicial.dto.js';
 
 export const ESTADOS_CONSENTIMIENTO = [
   'pendiente', 'registrado', 'no_aplica',
@@ -72,4 +75,21 @@ export class ActualizarConstanciaDto {
   @Matches(/\S/, { message: 'La explicación es obligatoria' })
   @MaxLength(1000)
   explicacion?: string | null;
+
+  @ApiPropertyOptional({
+  type: () => ContextoJudicialDto,
+  nullable: true,
+  description: 'Obligatorio cuando origenJudicial es true',
+  })
+  @ValidateIf((obj, valor) =>
+    obj.origenJudicial === true ||
+    (valor !== undefined && valor !== null),
+  )
+  @IsDefined({
+    message: 'El contexto judicial es obligatorio para origen judicial',
+  })
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ContextoJudicialDto)
+  contextoJudicial?: ContextoJudicialDto | null;
 }
