@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Query,
-  ParseUUIDPipe, Put,
-  Patch,
-} from '@nestjs/common';
+import {Body, Controller, Get, Param, Query, ParseUUIDPipe, Put, Patch} from '@nestjs/common';
 import { CarpetaAutorizadaRespuestaDto } from './dto/carpeta-autorizada-respuesta.dto.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { UsuarioActual } from '../../common/decorators/usuario-actual.decorator.js';
@@ -22,6 +14,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ActualizarConstanciaDto } from './dto/actualizar-constancia.dto.js';
 import { ListarCarpetasQuery } from './dto/listar-carpetas.query.js';
 
 @ApiTags('Carpetas')
@@ -141,4 +134,36 @@ export class CarpetasController {
     return this.casos.actualizarClasificacion(id, dto, usuario);
   }
   
+  @Get(':id/constancia')
+@Roles('administrador', 'terapeuta')
+@ApiOperation({ summary: 'Consultar origen y constancia de consentimiento' })
+@ApiResponse({ status: 200, description: 'Constancia actual o null si no existe.' })
+@ApiResponse({ status: 401, description: 'No autenticado.' })
+@ApiResponse({ status: 403, description: 'Rol no permitido.' })
+@ApiResponse({ status: 404, description: 'Caso inexistente o no accesible.' })
+obtenerConstancia(
+  @Param('id', ParseUUIDPipe) id: string,
+  @UsuarioActual() usuario: Usuario,
+) {
+  return this.casos.obtenerConstancia(id, usuario);
+}
+
+@Put(':id/constancia')
+@Roles('administrador', 'terapeuta')
+@ApiOperation({
+  summary: 'Guardar origen y constancia de consentimiento',
+  description: 'Reemplaza la sección completa; no modifica tipo, clasificación ni correlativo.',
+})
+@ApiResponse({ status: 200, description: 'Constancia guardada.' })
+@ApiResponse({ status: 400, description: 'Datos inválidos o incompatibles con el estado.' })
+@ApiResponse({ status: 401, description: 'No autenticado.' })
+@ApiResponse({ status: 403, description: 'Rol no permitido.' })
+@ApiResponse({ status: 404, description: 'Caso inexistente o no accesible.' })
+actualizarConstancia(
+  @Param('id', ParseUUIDPipe) id: string,
+  @Body() dto: ActualizarConstanciaDto,
+  @UsuarioActual() usuario: Usuario,
+) {
+  return this.casos.actualizarConstancia(id, dto, usuario);
+}
 }
