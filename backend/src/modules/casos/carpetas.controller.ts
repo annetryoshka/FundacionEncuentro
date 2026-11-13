@@ -28,6 +28,15 @@ export class CarpetasController {
 
   @Get()
   @Roles('administrador', 'terapeuta')
+  @ApiOperation({
+    summary: 'Listar carpetas',
+    description:
+      'Lista paginada con búsqueda y filtros por tipo, estado y clasificación. La terapeuta solo ve sus carpetas asignadas.',
+  })
+  @ApiResponse({ status: 200, description: 'Página de carpetas visibles para el usuario.' })
+  @ApiResponse({ status: 400, description: 'Filtros o paginación inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  @ApiResponse({ status: 403, description: 'El usuario no tiene el rol permitido.' })
   listar(@Query() filtros: ListarCarpetasQuery, @UsuarioActual() usuario: Usuario) {
     return this.casos.listarCarpetas(filtros, usuario);
   }
