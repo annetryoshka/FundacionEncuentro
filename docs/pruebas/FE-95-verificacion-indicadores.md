@@ -44,7 +44,7 @@ node --test test/indicadores-api-postgres.test.mjs
 | --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
 | 1   | Conciliación FE-91      | 12–19 oct → 4 casos (2/1/1), 3 sesiones, Bs 225,60, moneda BOB                                                                                                                 | ✔             |
 | 2   | Período sin movimientos | 1–5 oct → 0 sesiones y 0 de pagos; los 4 casos actuales se conservan                                                                                                           | ✔             |
-| 3   | Formato del total vacío | El total sin pagos debería ser `"0.00"`                                                                                                                                        | ✖ `todo` (D1) |
+| 3   | Formato del total vacío | El total sin pagos debería ser `"0.00"`                                                                                                                                        | ✔ (D1 corregido) |
 | 4   | Extremos inclusivos     | 20–20: 1 sesión, 40,25 · 11–11: 1 sesión, 0 · 13–18: 0 sesiones, 25,10 · 11–20: 5 sesiones, 265,85                                                                             | ✔             |
 | 5   | Cambio de mes           | Sesión 31/10 con pago 01/11: octubre cuenta la sesión, noviembre el pago, 31/10–01/11 ambos                                                                                    | ✔             |
 | 6   | Tareas no multiplican   | Dos tareas en S-A1 → siguen 3 sesiones y Bs 225,60                                                                                                                             | ✔             |
@@ -56,12 +56,18 @@ node --test test/indicadores-api-postgres.test.mjs
 
 ## Resultado
 
-10 aprobadas, 0 fallidas y 1 `todo` (D1), en tres ejecuciones (≈ 10–18 s). Regresión: las 212 pruebas
-unitarias de `src` siguen aprobadas.
+Primera ejecución (`21fb593`): 10 aprobadas, 0 fallidas y 1 `todo` (D1), en tres ejecuciones (≈ 10–18 s).
+
+Reverificación (2026-11-13) sobre `7e2c490`, con el fix de D1 y sin el `todo`, contra un PostgreSQL 17
+recién creado: **11 aprobadas, 0 fallidas, 0 `todo`**, en dos ejecuciones consecutivas. Regresión: las 212
+pruebas unitarias de `src` siguen aprobadas.
 
 ## Defectos
 
-### FE-95-D1 · El total sin pagos llega como `"0"` en vez de `"0.00"`
+### FE-95-D1 · El total sin pagos llega como `"0"` en vez de `"0.00"` — **Corregido**
+
+- **Estado:** corregido por Adriana en `7e2c490` con `round(pagos_recibidos, 2)::text`, que también quitó
+  el `todo` de la prueba 3. Reverificado: la prueba 3 pasa y la suite completa da 11/11.
 
 - **Severidad:** baja. No altera los cálculos, pero rompe el formato de los montos.
 - **Pasos:** `GET /api/indicadores?desde=2026-10-01&hasta=2026-10-05` con los datos de FE-91.
@@ -84,5 +90,4 @@ unitarias de `src` siguen aprobadas.
 
 ## Pendiente
 
-- Repetir la prueba 3 cuando se corrija D1.
 - Probar la interfaz del dashboard (FE-92) y el selector de período cuando se integre con esta API.
