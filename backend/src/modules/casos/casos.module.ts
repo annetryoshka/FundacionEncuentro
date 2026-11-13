@@ -11,6 +11,8 @@ import { SesionesController } from './sesiones.controller.js';
 import { SesionesService } from './sesiones.service.js';
 import { TareasController } from './tareas.controller.js';
 import { TareasService } from './tareas.service.js';
+import { PagosController } from './pagos.controller.js';
+import { PagosService } from './pagos.service.js';
 
 @Module({
   controllers: [
@@ -21,6 +23,7 @@ import { TareasService } from './tareas.service.js';
     DiagnosticoController,
     SesionesController,
     TareasController,
+    PagosController,
   ],
   providers: [
     CasosService,
@@ -28,6 +31,7 @@ import { TareasService } from './tareas.service.js';
     DiagnosticoService,
     SesionesService,
     TareasService,
+    PagosService,
   ],
 })
 export class CasosModule {}
