@@ -13,6 +13,7 @@
    | `migrations/007_identidad_y_clasificacion_casos.sql` | FE-60: el origen y el número del caso no cambian; índice de clasificación |
    | `migrations/008_00_funcion_autor_sesiones.sql` | FE-73: función que llena `actualizado_por` desde `app.usuario_id` |
    | `migrations/008_sesiones.sql` | FE-74: sesión = `fichas_seguimiento` con evolución, responsable y número automático |
+   | `migrations/009_tareas_por_sesion.sql` | FE-79: cada tarea pertenece a una sesión del mismo caso; quién cambió el cumplimiento |
 
    Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
 
@@ -33,6 +34,7 @@
    | FE-64 | `contexto-constancia-postgres.test.mjs` |
    | FE-69 | `ficha-diagnostico-postgres.test.mjs` |
    | FE-74 | `sesiones-postgres.test.mjs` |
+   | FE-79 | `tareas-postgres.test.mjs` |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
