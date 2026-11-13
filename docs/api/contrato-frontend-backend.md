@@ -292,6 +292,66 @@ o para la terapeuta asignada. Caso ajeno/inexistente: 404; marketing: 403; sin s
 Una responsable por caso: borrar la asignación anterior e insertar la nueva en la misma transacción.
 La terapeuta anterior recibe 404 en su siguiente petición a ese caso.
 
+## ✅ Clasificación, estado y filtros (backend FE-48 · interfaz FE-47)
+
+Reglas completas en `docs/srs/sprint-2/FE-59-clasificacion-y-filtros.md`. Requiere aplicar
+`004_clasificacion_casos.sql` después de 001–003.
+
+- `GET /api/carpetas` acepta además `clasificacion=social|privado` y
+  `estado=iniciado|en_proceso|concluido`. Se combinan con `busqueda` y la paginación; un
+  valor desconocido es 400. Cada carpeta del resumen trae `clasificacion` (`null` = sin
+  clasificar). «Todos» significa no enviar el parámetro, así que incluye las sin clasificar.
+- `GET /api/carpetas/:id` incluye `clasificacion`, `actualizadoPor` y `actualizadoEn`.
+- `PATCH /api/carpetas/:id/clasificacion` `{ "clasificacion": "social" | "privado" }` →
+  200 `{ id, clasificacion, actualizadoPor, actualizadoEn }` (`actualizadoPor` es el UUID).
+- `PATCH /api/casos/:id/estado` `{ "estado": "iniciado" | "en_proceso" | "concluido" }` →
+  200 `{ id, estado, actualizadoPor, actualizadoEn }`.
+- Los dos PATCH: administración o la terapeuta asignada. Caso inexistente o no asignado: 404
+  "Caso no encontrado". Marketing: 403. Valor inválido o campos extra: 400. No cambian número,
+  origen, paciente ni terapeuta.
+
+Uso en el frontend (FE-47):
+
+- Listado: selectores «Clasificación» y «Estado» junto a la búsqueda. Se aplican al elegirlos,
+  viven en la URL (`?q=&clasificacion=&estado=&pagina=`) y cualquier cambio vuelve a la
+  página 1. Un valor desconocido en la URL se ignora (no se envía). Sin resultados, el mensaje
+  nombra el filtro y ofrece «Quitar filtros».
+- Carpeta: tarjeta «Clasificación y estado» con dos guardados independientes, cada uno con su
+  carga y su resultado. Como el PATCH solo devuelve el campo guardado y el UUID de quien
+  actualizó, después de guardar se vuelve a pedir `GET /api/carpetas/:id` para mostrar el
+  nombre en «Última actualización». Un 404 se explica como pérdida de acceso (reasignación).
+- No existe filtro «solo sin clasificar»: el backend no lo ofrece y FE-59 no lo pide.
+
+## ✅ Expediente clínico del Sprint 2 (backend PR #26–#33 · interfaz FE-62, 67, 72, 77, 82, 87, 92)
+
+Todas las rutas comprueban el acceso al caso: administración o la terapeuta asignada. Un caso ajeno o
+inexistente responde 404 "Caso no encontrado"; marketing, 403. Fechas sin hora en `AAAA-MM-DD`.
+
+| Interfaz | Endpoint | Notas para el frontend |
+| --- | --- | --- |
+| FE-72 | `GET /api/carpetas/:id/sesiones` → `{ sesiones }` | Orden por fecha y número. El listado **no** trae `evolucion`. |
+| FE-72 | `POST /api/carpetas/:id/sesiones` `{ fecha, evolucion }` → 201 `{ sesion }` | El número lo asigna el servidor. 400 si el caso no tiene terapeuta activa asignada. |
+| FE-72 | `GET /api/carpetas/:id/sesiones/:sesionId` → `{ sesion }` | `responsable` es `{ id, nombreCompleto }`. 404 "Sesión no encontrada". |
+| FE-77 | `GET /api/carpetas/:id/tareas` → `{ tareas }` | Todas las del caso; la interfaz filtra por `sesionId`. |
+| FE-77 | `POST /api/carpetas/:id/tareas` `{ sesionId, descripcion }` → 201 `{ tarea }` | Nace `pendiente`. 400 si la sesión es de otro caso. |
+| FE-77 | `PATCH /api/carpetas/:id/tareas/:tareaId/cumplimiento` `{ estado: 'pendiente' \| 'realizada' }` → `{ tarea }` | Si el estado no cambia, no registra otra actualización. |
+| FE-67 | `GET /api/carpetas/:id/diagnostico` → `{ diagnostico \| null }` | `null` = sin ficha (no es un error). |
+| FE-67 | `PUT /api/carpetas/:id/diagnostico` `{ fecha, diagnosticoIngreso, hipotesisRelacional?, comentariosClinicos? }` | Crea o reemplaza la ficha única; conserva `id`, `creadoPor` y `creadoEn`. |
+| FE-62 | `GET /api/carpetas/:id/constancia` → `{ constancia \| null }` | Incluye `contextoJudicial` (o `null`). Fechas en `AAAA-MM-DD` desde el commit 8c77aa3. |
+| FE-62 | `PUT /api/carpetas/:id/constancia` `{ procedencia?, origenJudicial, estado, fechaConsentimiento?, referenciaEvidencia?, explicacion?, contextoJudicial? }` | `pendiente`: sin fecha, evidencia ni explicación. `registrado`: fecha y evidencia. `no_aplica`: explicación. `origenJudicial: true` exige `contextoJudicial` con `juzgado` (`nroExpediente`, `fechaDerivacion` y `observaciones` opcionales); `false` lo rechaza y borra el guardado. |
+| FE-87 | `GET /api/carpetas/:id/pagos` → `{ pagos }` | Solo administración (403 para terapeutas). `monto` es texto decimal con punto. |
+| FE-87 | `POST /api/carpetas/:id/pagos` `{ sesionId, monto, fecha, metodo: 'qr' \| 'transferencia', referencia? }` → 200 `{ pago, reutilizado }` | Un pago por sesión. Repetir los mismos datos devuelve el mismo pago con `reutilizado: true`; otros datos, 409. |
+| FE-82 | `GET /api/carpetas/:id/historial` → `{ carpeta, contexto, constancia, diagnostico, sesiones[{ …, tareas }] }` | Sin montos. Los pagos se piden aparte (solo administración). |
+| FE-92 | `GET /api/indicadores?desde&hasta` → `{ periodo, casosActuales, casosPorEstado, sesiones, pagosRecibidos }` | Solo administración. 400 si `desde > hasta`. |
+
+Pendientes detectados al integrar (para backend):
+
+1. ✅ Resuelto en 8c77aa3: `GET /constancia` devolvía `fechaConsentimiento` como timestamp.
+2. Sesiones, tareas, diagnóstico, constancia y pagos devuelven solo el UUID de quien registró o actualizó. La interfaz
+   muestra el nombre cuando lo conoce (la propia cuenta, la terapeuta asignada, quien creó la carpeta) y, si no,
+   "otra cuenta del personal". Devolver `{ id, nombreCompleto }`, como en `GET /carpetas/:id`, lo resolvería.
+3. ✅ Resuelto en 8c77aa3: el contexto judicial de FE-61 se guarda con la constancia y la interfaz ya lo registra.
+
 ## ⚠️ Edición `PATCH /api/carpetas/:id` (FE-52)
 
 La ruta está implementada y recibe `nombreCompleto` y `fechaIngreso`, pero su

@@ -16,6 +16,7 @@ const carpeta: CarpetaDetalle = {
   numero: 9,
   tipo: 'voluntario',
   estado: 'iniciado',
+  clasificacion: null,
   fechaIngreso: '2026-09-15',
   paciente: {
     id: '20000000-0000-4000-8000-000000000001',

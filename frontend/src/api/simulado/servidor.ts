@@ -4,10 +4,16 @@
  *   mismos códigos y mensajes de error.
  * - /usuarios y /carpetas imitan docs/api/contrato-frontend-backend.md (endpoints que el
  *   backend todavía no tiene), con las reglas de permisos por rol y por caso.
+ * - FE-47: filtros de clasificación y estado en GET /carpetas y los guardados
+ *   PATCH /carpetas/:id/clasificacion y PATCH /casos/:id/estado, como el backend de FE-48
+ *   (docs/srs/sprint-2/FE-59-clasificacion-y-filtros.md).
+ * - Sprint 2: el expediente clínico (sesiones, tareas, diagnóstico, constancia, pagos, historial e
+ *   indicadores) vive en ./expediente.ts y sigue los PR #26–#33 del backend.
  * Nunca entra al build de producción.
  */
 import type { Rol } from '../../features/auth/tipos'
-import type { EstadoCaso, TipoCaso } from '../../features/carpetas/tipos'
+import type { Clasificacion, EstadoCaso, TipoCaso } from '../../features/carpetas/tipos'
+import { atenderExpediente, expedienteInicial, type ExpedienteSim } from './expediente'
 
 export const CONTRASENA_DEMO = 'Encuentro2026'
 
@@ -26,6 +32,8 @@ interface CasoSim {
   numero: number
   tipo: TipoCaso
   estado: EstadoCaso
+  /** null = sin clasificar (así nace toda carpeta nueva). */
+  clasificacion: Clasificacion | null
   fechaIngreso: string
   paciente: { id: string; nombreCompleto: string }
   creadoPor: string | null
@@ -42,9 +50,11 @@ interface DatosSim {
   accesos: Record<string, string>
   /** refreshToken → id de perfil */
   refrescos: Record<string, string>
+  expediente: ExpedienteSim
 }
 
-const CLAVE_ALMACEN = 'fundacion-encuentro:api-simulada:v2'
+// v4: los datos guardados con v3 no tenían expediente (sesiones, tareas, pagos…).
+const CLAVE_ALMACEN = 'fundacion-encuentro:api-simulada:v4'
 const DURACION_TOKEN_S = 3600 // lo mismo que Supabase por defecto
 let retardoMs = 350
 // Se inicializa al final del módulo, cuando ya existen los datos ficticios.
@@ -125,10 +135,34 @@ export async function atenderSimulado(url: string, init: RequestInit = {}): Prom
     : error(403, 'Solo administración')
 }
 
+    // FE-47 · Administración o la terapeuta asignada; marketing queda fuera por rol.
+    const clasificar = ruta.match(/^\/carpetas\/([^/]+)\/clasificacion$/)
+    if (clasificar && metodo === 'PATCH') {
+      return yo.rol === 'marketing' ? error(403, SIN_PERMISO) : cambiarClasificacion(yo, clasificar[1], cuerpo)
+    }
+    const cambiarEstadoRuta = ruta.match(/^\/casos\/([^/]+)\/estado$/)
+    if (cambiarEstadoRuta && metodo === 'PATCH') {
+      return yo.rol === 'marketing' ? error(403, SIN_PERMISO) : cambiarEstado(yo, cambiarEstadoRuta[1], cuerpo)
+    }
+
     const asignar = ruta.match(/^\/carpetas\/([^/]+)\/terapeuta$/)
     if (asignar && metodo === 'PUT') {
       return yo.rol === 'administrador' ? asignarTerapeuta(yo, asignar[1], cuerpo) : error(403, 'Solo administración')
     }
+
+    const expediente = atenderExpediente({
+      yo,
+      metodo,
+      ruta,
+      cuerpo,
+      params: searchParams,
+      casos: datos.casos,
+      perfiles: datos.perfiles,
+      expediente: datos.expediente,
+      json,
+      error,
+    })
+    if (expediente) return expediente
 
     // Igual que NestJS cuando la ruta no existe
     return error(404, `Cannot ${metodo} ${pathname}`)
@@ -238,6 +272,7 @@ function resumen(caso: CasoSim) {
     numero: caso.numero,
     tipo: caso.tipo,
     estado: caso.estado,
+    clasificacion: caso.clasificacion,
     fechaIngreso: caso.fechaIngreso,
     paciente: caso.paciente,
     terapeuta: persona(caso.asignacion?.perfilId),
@@ -262,8 +297,19 @@ function listarCarpetas(yo: PerfilSim, params: URLSearchParams) {
   const busqueda = normalizar(params.get('busqueda') ?? '')
   const pagina = Math.max(1, Number(params.get('pagina')) || 1)
   const tamano = Math.min(50, Math.max(1, Number(params.get('tamano')) || 10))
+  // Igual que ListarCarpetasQuery: un valor desconocido es un 400, no un filtro vacío.
+  const clasificacion = params.get('clasificacion')
+  const estado = params.get('estado')
+  if (clasificacion !== null && !CLASIFICACIONES.includes(clasificacion as Clasificacion)) {
+    return error(400, ['clasificacion must be one of the following values: social, privado'])
+  }
+  if (estado !== null && !ESTADOS.includes(estado as EstadoCaso)) {
+    return error(400, ['estado must be one of the following values: iniciado, en_proceso, concluido'])
+  }
 
   let lista = datos.casos.filter((c) => puedeVer(yo, c))
+  if (clasificacion) lista = lista.filter((c) => c.clasificacion === clasificacion)
+  if (estado) lista = lista.filter((c) => c.estado === estado)
   if (/^\d+$/.test(busqueda)) {
     lista = lista.filter((c) => c.numero === Number(busqueda))
   } else if (busqueda) {
@@ -309,6 +355,7 @@ function crearCarpeta(yo: PerfilSim, cuerpo: Record<string, unknown>) {
     numero: datos.contadores[tipo],
     tipo,
     estado: 'iniciado',
+    clasificacion: null,
     fechaIngreso,
     paciente: { id: crypto.randomUUID(), nombreCompleto },
     creadoPor: yo.id,
@@ -397,6 +444,45 @@ function editarDatosPaciente(
   return json(200, detalle(caso))
 }
 
+// ---- FE-47 · Clasificación y estado (igual que CasosService de FE-48) -------
+
+const SIN_PERMISO = 'No tienes permiso para realizar esta acción'
+const CLASIFICACIONES: Clasificacion[] = ['social', 'privado']
+const ESTADOS: EstadoCaso[] = ['iniciado', 'en_proceso', 'concluido']
+
+/** Inexistente o no asignado a la terapeuta: el backend responde lo mismo para no revelar el caso. */
+function casoEditable(yo: PerfilSim, id: string) {
+  const caso = datos.casos.find((c) => c.id === id)
+  return caso && puedeVer(yo, caso) ? caso : null
+}
+
+function cambiarClasificacion(yo: PerfilSim, id: string, cuerpo: Record<string, unknown>) {
+  if (Object.keys(cuerpo).some((campo) => campo !== 'clasificacion')) {
+    return error(400, ['Se enviaron campos no permitidos'])
+  }
+  if (!CLASIFICACIONES.includes(cuerpo.clasificacion as Clasificacion)) {
+    return error(400, ['clasificacion must be one of the following values: social, privado'])
+  }
+  const caso = casoEditable(yo, id)
+  if (!caso) return error(404, 'Caso no encontrado')
+  caso.clasificacion = cuerpo.clasificacion as Clasificacion
+  caso.actualizacion = { perfilId: yo.id, actualizadoEn: new Date().toISOString() }
+  return json(200, { id: caso.id, clasificacion: caso.clasificacion, actualizadoPor: yo.id, actualizadoEn: caso.actualizacion.actualizadoEn })
+}
+
+function cambiarEstado(yo: PerfilSim, id: string, cuerpo: Record<string, unknown>) {
+  if (Object.keys(cuerpo).some((campo) => campo !== 'estado')) {
+    return error(400, ['Se enviaron campos no permitidos'])
+  }
+  if (!ESTADOS.includes(cuerpo.estado as EstadoCaso)) {
+    return error(400, ['El estado debe ser iniciado, en_proceso o concluido'])
+  }
+  const caso = casoEditable(yo, id)
+  if (!caso) return error(404, 'Caso no encontrado')
+  caso.estado = cuerpo.estado as EstadoCaso
+  caso.actualizacion = { perfilId: yo.id, actualizadoEn: new Date().toISOString() }
+  return json(200, { id: caso.id, estado: caso.estado, actualizadoPor: yo.id, actualizadoEn: caso.actualizacion.actualizadoEn })
+}
 
 function asignarTerapeuta(yo: PerfilSim, id: string, cuerpo: Record<string, unknown>) {
   const caso = datos.casos.find((c) => c.id === id)
@@ -464,29 +550,31 @@ function datosIniciales(): DatosSim {
     creadoEn: creado,
   })
 
-  const pacientes: [string, TipoCaso, EstadoCaso, string, string | null][] = [
-    ['Mariana Gutiérrez Paz', 'voluntario', 'en_proceso', '2026-03-12', ID.sofia],
-    ['Familia Condori Apaza', 'derivado', 'en_proceso', '2026-04-02', ID.sofia],
-    ['Javier Tórrez Villca', 'voluntario', 'concluido', '2026-04-20', ID.carla],
-    ['Lucía Fernández Roca', 'voluntario', 'iniciado', '2026-05-08', null],
-    ['Andrés Mamani Quispe', 'derivado', 'en_proceso', '2026-05-15', ID.carla],
-    ['Valeria Ríos Céspedes', 'voluntario', 'en_proceso', '2026-06-01', ID.sofia],
-    ['Familia Huanca Limachi', 'derivado', 'iniciado', '2026-06-19', ID.carla],
-    ['Gabriel Ortiz Salazar', 'voluntario', 'concluido', '2026-07-03', ID.sofia],
-    ['Camila Vargas Aliaga', 'voluntario', 'en_proceso', '2026-07-22', null],
-    ['Mateo Chávez Ticona', 'derivado', 'iniciado', '2026-08-10', ID.sofia],
-    ['Daniela Rojas Paredes', 'voluntario', 'iniciado', '2026-08-28', ID.carla],
-    ['Familia Nina Calle', 'voluntario', 'en_proceso', '2026-09-09', null],
-    ['Sebastián López Arce', 'derivado', 'iniciado', '2026-09-25', null],
-    ['Paola Gutiérrez Mendoza', 'voluntario', 'iniciado', '2026-10-05', ID.carla],
+  // Clasificación (FE-47): 5 social, 5 privado y 4 sin clasificar.
+  const pacientes: [string, TipoCaso, EstadoCaso, string, string | null, Clasificacion | null][] = [
+    ['Mariana Gutiérrez Paz', 'voluntario', 'en_proceso', '2026-03-12', ID.sofia, 'privado'],
+    ['Familia Condori Apaza', 'derivado', 'en_proceso', '2026-04-02', ID.sofia, 'social'],
+    ['Javier Tórrez Villca', 'voluntario', 'concluido', '2026-04-20', ID.carla, 'privado'],
+    ['Lucía Fernández Roca', 'voluntario', 'iniciado', '2026-05-08', null, null],
+    ['Andrés Mamani Quispe', 'derivado', 'en_proceso', '2026-05-15', ID.carla, 'social'],
+    ['Valeria Ríos Céspedes', 'voluntario', 'en_proceso', '2026-06-01', ID.sofia, 'privado'],
+    ['Familia Huanca Limachi', 'derivado', 'iniciado', '2026-06-19', ID.carla, 'social'],
+    ['Gabriel Ortiz Salazar', 'voluntario', 'concluido', '2026-07-03', ID.sofia, 'social'],
+    ['Camila Vargas Aliaga', 'voluntario', 'en_proceso', '2026-07-22', null, 'privado'],
+    ['Mateo Chávez Ticona', 'derivado', 'iniciado', '2026-08-10', ID.sofia, null],
+    ['Daniela Rojas Paredes', 'voluntario', 'iniciado', '2026-08-28', ID.carla, 'privado'],
+    ['Familia Nina Calle', 'voluntario', 'en_proceso', '2026-09-09', null, 'social'],
+    ['Sebastián López Arce', 'derivado', 'iniciado', '2026-09-25', null, null],
+    ['Paola Gutiérrez Mendoza', 'voluntario', 'iniciado', '2026-10-05', ID.carla, null],
   ]
 
   const contadores: Record<TipoCaso, number> = { voluntario: 0, derivado: 0 }
-  const casos: CasoSim[] = pacientes.map(([nombre, tipo, estado, fechaIngreso, terapeuta], i) => ({
+  const casos: CasoSim[] = pacientes.map(([nombre, tipo, estado, fechaIngreso, terapeuta, clasificacion], i) => ({
     id: `10000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`,
     numero: (contadores[tipo] += 1),
     tipo,
     estado,
+    clasificacion,
     fechaIngreso,
     paciente: { id: `20000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`, nombreCompleto: nombre },
     creadoPor: ID.direccion,
@@ -508,6 +596,7 @@ function datosIniciales(): DatosSim {
     contadores,
     accesos: {},
     refrescos: {},
+    expediente: expedienteInicial({ caso1: casos[0].id, sofia: ID.sofia, direccion: ID.direccion }),
   }
 }
 

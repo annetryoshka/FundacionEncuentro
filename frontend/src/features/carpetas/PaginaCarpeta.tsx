@@ -8,16 +8,27 @@ import { Aviso, Boton, Cargando, Tarjeta } from '../../componentes/ui'
 import { fechaLarga } from '../../utilidades/fechas'
 import { useSesion } from '../auth/sesion'
 import { AsignacionTerapeuta } from './AsignacionTerapeuta'
+import { ClasificacionYEstado } from './ClasificacionYEstado'
 import { FormularioEditarPaciente } from './FormularioEditarPaciente'
+import { APARTADOS } from '../expediente/apartados'
 import { obtenerCarpeta } from './carpetasApi'
-import { EtiquetaEstado } from './Etiquetas'
-import { NOMBRE_TIPO, numeroCarpeta, type AltaCarpeta, type CarpetaDetalle } from './tipos'
+import { EtiquetaClasificacion, EtiquetaEstado } from './Etiquetas'
+import {
+  NOMBRE_TIPO,
+  numeroCarpeta,
+  type AltaCarpeta,
+  type CarpetaDetalle,
+  type Clasificacion,
+  type EstadoCaso,
+} from './tipos'
 
 /**
  * Resumen de la carpeta del paciente.
  * FE-31: Consulta de carpeta.
  * FE-36: Asignación de terapeuta.
+ * FE-47: Clasificación y estado del caso.
  * FE-52: Edición de datos básicos del paciente.
+ * Sprint 2: accesos al expediente clínico (historial, constancia, diagnóstico, sesiones y pagos).
  *
  * El administrador puede modificar nombre y fecha de ingreso.
  * El número de carpeta permanece inalterable.
@@ -55,6 +66,10 @@ export function PaginaCarpeta() {
       : datos
 
   const esAdministrador = tieneRol('administrador')
+  // FE-47: administración o la terapeuta asignada. Si una terapeuta ve la carpeta es porque
+  // se la asignaron; el backend lo vuelve a comprobar en cada guardado.
+  const puedeClasificar = tieneRol('administrador', 'terapeuta')
+  const cambioVigente = useRef(0)
 
   const refExito = useRef<HTMLDivElement>(null)
   const refEdicionExitosa = useRef<HTMLDivElement>(null)
@@ -93,6 +108,22 @@ export function PaginaCarpeta() {
   // FE-36: Actualizar la asignación del terapeuta.
   function actualizarAsignacion(carpetaActualizada: CarpetaDetalle) {
     setActualizada(carpetaActualizada)
+  }
+
+  // FE-47: el PATCH solo devuelve el campo guardado. Se refleja al instante y luego se pide
+  // la carpeta para mostrar quién y cuándo la actualizó. Si esa consulta falla, el cambio
+  // ya confirmado se queda en pantalla.
+  function aplicarClasificacionOEstado(cambio: { clasificacion: Clasificacion } | { estado: EstadoCaso }) {
+    if (!carpeta) return
+    const esteCambio = ++cambioVigente.current
+    setActualizada({ ...carpeta, ...cambio })
+    obtenerCarpeta(carpeta.id).then(
+      (reciente) => {
+        // Solo vale la respuesta del último guardado: una anterior traería un dato viejo.
+        if (cambioVigente.current === esteCambio) setActualizada(reciente)
+      },
+      () => undefined,
+    )
   }
 
   return (
@@ -205,6 +236,7 @@ export function PaginaCarpeta() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              <EtiquetaClasificacion clasificacion={carpeta.clasificacion} />
               <EtiquetaEstado estado={carpeta.estado} />
 
               {/* Solo administración puede editar */}
@@ -250,6 +282,10 @@ export function PaginaCarpeta() {
                   {fechaLarga(carpeta.fechaIngreso)}
                 </Dato>
 
+                <Dato titulo="Clasificación">
+                  <EtiquetaClasificacion clasificacion={carpeta.clasificacion} />
+                </Dato>
+
                 <Dato titulo="Estado">
                   <EtiquetaEstado estado={carpeta.estado} />
                 </Dato>
@@ -270,23 +306,37 @@ export function PaginaCarpeta() {
               </dl>
             </Tarjeta>
 
-            <AsignacionTerapeuta
-              carpeta={carpeta}
-              puedeAsignar={esAdministrador}
-              alActualizar={actualizarAsignacion}
-            />
+            <div className="space-y-6">
+              <ClasificacionYEstado
+                carpeta={carpeta}
+                puedeEditar={puedeClasificar}
+                alGuardar={aplicarClasificacionOEstado}
+              />
+
+              <AsignacionTerapeuta
+                carpeta={carpeta}
+                puedeAsignar={esAdministrador}
+                alActualizar={actualizarAsignacion}
+              />
+            </div>
           </div>
 
-          {/* Próximas funcionalidades */}
-          <Tarjeta className="border-dashed">
-            <h2 className="text-lg font-semibold text-verde-oscuro">
-              Fichas y seguimiento
-            </h2>
-
-            <p className="mt-1 text-suave">
-              Las fichas de diagnóstico, de seguimiento y las
-              tareas terapéuticas estarán disponibles pronto.
-            </p>
+          {/* Sprint 2 · Expediente clínico */}
+          <Tarjeta>
+            <h2 className="text-lg font-semibold text-verde-oscuro">Expediente clínico</h2>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {APARTADOS.filter((a) => !a.soloAdministracion || esAdministrador).map((a) => (
+                <li key={a.ruta}>
+                  <Link
+                    to={`/carpetas/${carpeta.id}/${a.ruta}`}
+                    className="block h-full rounded-2xl border border-linea px-4 py-3 font-semibold text-verde-oscuro transition-colors hover:border-verde hover:bg-crema focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+                  >
+                    {a.nombre}
+                    <span className="mt-0.5 block text-sm font-normal text-suave">{a.descripcion}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </Tarjeta>
         </>
       )}

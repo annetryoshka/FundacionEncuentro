@@ -5,6 +5,14 @@ import { RutaProtegida } from './features/auth/RutaProtegida'
 import { PaginaCarpeta } from './features/carpetas/PaginaCarpeta'
 import { PaginaCarpetas } from './features/carpetas/PaginaCarpetas'
 import { PaginaNuevaCarpeta } from './features/carpetas/PaginaNuevaCarpeta'
+import { PaginaConstancia } from './features/expediente/PaginaConstancia'
+import { PaginaDiagnostico } from './features/expediente/PaginaDiagnostico'
+import { PaginaHistorial } from './features/expediente/PaginaHistorial'
+import { PaginaNuevaSesion } from './features/expediente/PaginaNuevaSesion'
+import { PaginaPagos } from './features/expediente/PaginaPagos'
+import { PaginaSesion } from './features/expediente/PaginaSesion'
+import { PaginaSesiones } from './features/expediente/PaginaSesiones'
+import { PaginaIndicadores } from './features/indicadores/PaginaIndicadores'
 import { PaginaUsuarios } from './features/usuarios/PaginaUsuarios'
 import { PaginaInicio } from './paginas/PaginaInicio'
 import { PaginaNoEncontrada } from './paginas/PaginaNoEncontrada'
@@ -48,6 +56,71 @@ export default function App() {
           element={
             <RutaProtegida roles={['administrador', 'terapeuta']}>
               <PaginaCarpeta />
+            </RutaProtegida>
+          }
+        />
+        {/* Sprint 2 · Expediente clínico de la carpeta */}
+        <Route
+          path="carpetas/:id/historial"
+          element={
+            <RutaProtegida roles={['administrador', 'terapeuta']}>
+              <PaginaHistorial />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="carpetas/:id/constancia"
+          element={
+            <RutaProtegida roles={['administrador', 'terapeuta']}>
+              <PaginaConstancia />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="carpetas/:id/diagnostico"
+          element={
+            <RutaProtegida roles={['administrador', 'terapeuta']}>
+              <PaginaDiagnostico />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="carpetas/:id/sesiones"
+          element={
+            <RutaProtegida roles={['administrador', 'terapeuta']}>
+              <PaginaSesiones />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="carpetas/:id/sesiones/nueva"
+          element={
+            <RutaProtegida roles={['administrador', 'terapeuta']}>
+              <PaginaNuevaSesion />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="carpetas/:id/sesiones/:sesionId"
+          element={
+            <RutaProtegida roles={['administrador', 'terapeuta']}>
+              <PaginaSesion />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="carpetas/:id/pagos"
+          element={
+            <RutaProtegida roles={['administrador']}>
+              <PaginaPagos />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="indicadores"
+          element={
+            <RutaProtegida roles={['administrador']}>
+              <PaginaIndicadores />
             </RutaProtegida>
           }
         />

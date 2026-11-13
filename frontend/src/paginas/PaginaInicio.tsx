@@ -30,6 +30,11 @@ export function PaginaInicio() {
         titulo: 'Registrar paciente',
         texto: 'Abre una carpeta digital con número correlativo.',
       },
+      {
+        ruta: '/indicadores',
+        titulo: 'Indicadores',
+        texto: 'Casos por estado, sesiones y pagos recibidos en un período.',
+      },
       { ruta: '/usuarios', titulo: 'Cuentas del personal', texto: 'Crea cuentas para terapeutas y personal de apoyo.' },
     )
   }

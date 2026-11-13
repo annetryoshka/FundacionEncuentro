@@ -20,6 +20,37 @@ export const CUENTAS = {
 /** IDs fijos de los datos ficticios. */
 export const CARPETA_DE_SOFIA = '10000000-0000-4000-8000-000000000001' // Nº 1 voluntario, Mariana Gutiérrez Paz
 export const CARPETA_SIN_ASIGNAR = '10000000-0000-4000-8000-000000000004' // Nº 3 voluntario, Lucía Fernández Roca
+/** Sprint 2: carpeta de Sofía sin sesiones, diagnóstico, constancia ni pagos. */
+export const CARPETA_VACIA_DE_SOFIA = '10000000-0000-4000-8000-000000000002' // Nº 1 derivado, Familia Condori Apaza
+/** Sesiones ficticias de la carpeta de Sofía (src/api/simulado/expediente.ts). */
+export const SESION_1 = '30000000-0000-4000-8000-000000000001' // 12/10/2026, con tarea realizada y pago
+export const SESION_2 = '30000000-0000-4000-8000-000000000002' // 19/10/2026, con tarea pendiente
+
+/**
+ * La siguiente petición a `ruta` (sin query) con `metodo` falla: 'red' sin respuesta o un código HTTP.
+ * Las demás siguen yendo a la API simulada.
+ */
+export function fallarUnaVez(
+  fetchEspia: ReturnType<typeof usarApiSimulada>,
+  metodo: string,
+  ruta: string,
+  fallo: 'red' | number = 'red',
+) {
+  const simulado = fetchEspia.getMockImplementation()!
+  let pendiente = true
+  fetchEspia.mockImplementation((entrada, init) => {
+    const coincide =
+      new URL(String(entrada), 'http://x').pathname === ruta &&
+      ((init as RequestInit | undefined)?.method ?? 'GET') === metodo
+    if (coincide && pendiente) {
+      pendiente = false
+      return fallo === 'red'
+        ? Promise.reject(new TypeError('Fallo ficticio QA'))
+        : Promise.resolve(Response.json({ message: 'Fallo ficticio QA' }, { status: fallo }))
+    }
+    return simulado(entrada, init)
+  })
+}
 
 /** Redirige fetch a la API simulada. Devuelve el espía para revisar las llamadas. */
 export function usarApiSimulada() {
