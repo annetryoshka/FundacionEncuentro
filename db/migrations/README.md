@@ -11,6 +11,10 @@
    | `migrations/005_constancia_atencion.sql` | FE-63: procedencia y constancia (pendiente / registrado / no aplica), una por caso |
    | `migrations/006_diagnostico_unico_por_caso.sql` | FE-68: una ficha de diagnóstico por caso y quién la actualizó |
    | `migrations/007_identidad_y_clasificacion_casos.sql` | FE-60: el origen y el número del caso no cambian; índice de clasificación |
+   | `migrations/008_00_funcion_autor_sesiones.sql` | FE-73: función que llena `actualizado_por` desde `app.usuario_id` |
+   | `migrations/008_sesiones.sql` | FE-74: sesión = `fichas_seguimiento` con evolución, responsable y número automático |
+
+   Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
 
    ## Pruebas de las migraciones con PostgreSQL local
 
@@ -28,6 +32,7 @@
    | FE-60 | `tipo-estado-postgres.test.mjs` |
    | FE-64 | `contexto-constancia-postgres.test.mjs` |
    | FE-69 | `ficha-diagnostico-postgres.test.mjs` |
+   | FE-74 | `sesiones-postgres.test.mjs` |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
