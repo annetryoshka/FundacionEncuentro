@@ -14,6 +14,22 @@
    | `migrations/008_00_funcion_autor_sesiones.sql` | FE-73: función que llena `actualizado_por` desde `app.usuario_id` |
    | `migrations/008_sesiones.sql` | FE-74: sesión = `fichas_seguimiento` con evolución, responsable y número automático |
    | `migrations/009_tareas_por_sesion.sql` | FE-79: cada tarea pertenece a una sesión del mismo caso; quién cambió el cumplimiento |
+   | `migrations/010_pagos_por_sesion.sql` | FE-89: un pago por sesión del mismo caso; monto sin redondeo silencioso |
+
+   ## Modelo del Sprint 2
+
+   ```
+   casos 1 ─ 0..1 contexto_judicial      (datos judiciales del alta)
+         1 ─ 0..1 constancias_atencion   (procedencia y constancia)
+         1 ─ 0..1 fichas_diagnostico     (campos en contenido jsonb)
+         1 ─ n    fichas_seguimiento     (= sesiones; nro_sesion único en el caso)
+                    1 ─ n tareas_terapeuticas
+                    1 ─ 0..1 pagos
+   ```
+
+   - Tareas y pagos guardan `caso_id` y `sesion_id`. La FK compuesta `(sesion_id, caso_id)` impide asociar una sesión de otro caso.
+   - Constancia (FE-63) y diagnóstico (FE-68) guardan `actualizado_por` desde la API; en sesiones lo llena un trigger desde `app.usuario_id`. Todo cambio queda además en `auditoria`.
+   - Errores que la API debe traducir: `23514` (check) y `23502` (falta un dato) → 400, `23505` (duplicado) → 409, `23503` (sesión de otro caso o inexistente) → 400 o 404.
 
    Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
 
@@ -35,6 +51,7 @@
    | FE-69 | `ficha-diagnostico-postgres.test.mjs` |
    | FE-74 | `sesiones-postgres.test.mjs` |
    | FE-79 | `tareas-postgres.test.mjs` |
+   | FE-89 | `pagos-integridad-postgres.test.mjs` |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 

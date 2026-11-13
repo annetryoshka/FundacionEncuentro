@@ -34,6 +34,8 @@ Las lecturas usan `this.db.query(...)`. Siempre con parámetros (`$1`, `$2`), nu
 
 `npm run datos:demo` carga en la base del `.env` las mismas cuentas y carpetas que el modo simulado del
 frontend: 5 cuentas (contraseña `Encuentro2026`), 14 pacientes y 15 carpetas con asignaciones y contexto judicial.
+Desde el Sprint 2 (requiere las migraciones desde la 005) agrega clasificación, constancias en sus tres estados,
+2 fichas de diagnóstico, 23 sesiones (una carpeta con 17), 4 tareas y 5 pagos.
 
 | Correo | Rol |
 |---|---|
