@@ -53,6 +53,12 @@ export interface ConstanciaSim {
   fechaConsentimiento: string | null
   referenciaEvidencia: string | null
   explicacion: string | null
+  contextoJudicial: {
+    juzgado: string
+    nroExpediente: string | null
+    fechaDerivacion: string | null
+    observaciones: string | null
+  } | null
   creadoPor: string
   creadoEn: string
   actualizadoPor: string
@@ -358,6 +364,24 @@ function guardarConstancia(ctx: Contexto, caso: CasoVisible) {
   if (estado === 'no_aplica' && (!explicacion || fecha || evidencia)) {
     return ctx.error(400, 'No aplica exige explicación y no admite fecha ni evidencia')
   }
+  // Contexto judicial (corrección de FE-63): obligatorio con juzgado si el origen es judicial.
+  const contexto = ctx.cuerpo.contextoJudicial as Record<string, unknown> | null | undefined
+  if (origenJudicial && (!contexto || typeof contexto !== 'object')) {
+    return ctx.error(400, ['El contexto judicial es obligatorio para origen judicial'])
+  }
+  if (!origenJudicial && contexto != null) {
+    return ctx.error(400, 'Un origen no judicial no admite contexto judicial')
+  }
+  const textoOpcional = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+  if (contexto) {
+    const errores: string[] = []
+    if (!conTexto(contexto.juzgado)) errores.push('El juzgado es obligatorio')
+    else if (contexto.juzgado.length > 200) errores.push('juzgado must be shorter than or equal to 200 characters')
+    if (contexto.fechaDerivacion != null && !fechaValida(contexto.fechaDerivacion)) {
+      errores.push('fechaDerivacion must match /^\\d{4}-\\d{2}-\\d{2}$/ regular expression')
+    }
+    if (errores.length) return ctx.error(400, errores)
+  }
   const previa = constanciaDe(ctx, caso.id)
   const constancia: ConstanciaSim = {
     id: previa?.id ?? crypto.randomUUID(),
@@ -368,6 +392,14 @@ function guardarConstancia(ctx: Contexto, caso: CasoVisible) {
     fechaConsentimiento: fecha as string | null,
     referenciaEvidencia: evidencia,
     explicacion,
+    contextoJudicial: contexto
+      ? {
+          juzgado: (contexto.juzgado as string).trim(),
+          nroExpediente: textoOpcional(contexto.nroExpediente),
+          fechaDerivacion: (contexto.fechaDerivacion as string | null | undefined) ?? null,
+          observaciones: textoOpcional(contexto.observaciones),
+        }
+      : null,
     creadoPor: previa?.creadoPor ?? ctx.yo.id,
     creadoEn: previa?.creadoEn ?? ahora(),
     actualizadoPor: ctx.yo.id,
@@ -452,8 +484,8 @@ function historial(ctx: Contexto, caso: CasoVisible) {
       creadoEn: caso.creadoEn,
       actualizadoEn: caso.creadoEn,
     },
-    contexto: null,
-    constancia: constancia ? (({ casoId: _c, ...resto }) => resto)(constancia) : null,
+    contexto: constancia?.contextoJudicial ?? null,
+    constancia: constancia ? (({ casoId: _c, contextoJudicial: _j, ...resto }) => resto)(constancia) : null,
     diagnostico: diagnostico ? (({ casoId: _c, ...resto }) => resto)(diagnostico) : null,
     sesiones: ctx.expediente.sesiones
       .filter((s) => s.casoId === caso.id)
@@ -570,6 +602,7 @@ export function expedienteInicial(ids: { caso1: string; sofia: string; direccion
         fechaConsentimiento: '2026-10-12',
         referenciaEvidencia: 'EVIDENCIA-DEMO',
         explicacion: null,
+        contextoJudicial: null,
         creadoPor: ids.direccion,
         creadoEn: '2026-10-12T14:00:00.000Z',
         actualizadoPor: ids.direccion,

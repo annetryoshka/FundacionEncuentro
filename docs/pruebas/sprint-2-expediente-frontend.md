@@ -12,7 +12,7 @@ consentimiento), **FE-87** (pagos), **FE-82** (historial) y **FE-92** (indicador
 | Registrar sesión (fecha y evolución) | `/carpetas/:id/sesiones/nueva` | Administración y terapeuta asignada |
 | Detalle de sesión + tareas (agregar, marcar realizada o pendiente) | `/carpetas/:id/sesiones/:sesionId` | Administración y terapeuta asignada |
 | Ficha de diagnóstico (crear, editar, cancelar) | `/carpetas/:id/diagnostico` | Administración y terapeuta asignada |
-| Origen y constancia de consentimiento | `/carpetas/:id/constancia` | Administración y terapeuta asignada |
+| Origen, contexto judicial y constancia de consentimiento | `/carpetas/:id/constancia` | Administración y terapeuta asignada |
 | Pagos por sesión (listado, total y registro) | `/carpetas/:id/pagos` | Solo administración |
 | Historial clínico consolidado | `/carpetas/:id/historial` | Administración (con pagos) y terapeuta asignada (sin pagos) |
 | Indicadores con selector de período | `/indicadores` | Solo administración |
@@ -23,8 +23,8 @@ en la carpeta Nº 1 voluntario (Mariana, de Sofía).
 
 ## Verificación con el backend real
 
-Frontend real (`npm run dev`) contra el backend de los PR #26, #32 y #33 (que incluyen #27–#30), sobre la rama de
-FE-47, con PostgreSQL 16 y las migraciones 001–011 en una base nueva. Supabase Auth de prueba local. Datos
+Frontend real (`npm run dev`) contra el backend de los PR #26 (con la corrección 8c77aa3 del contexto judicial),
+#32 y #33 (que incluyen #27–#30) al 13/11, sobre la rama de FE-47, con PostgreSQL 16 y las migraciones 001–011 en una base nueva. Supabase Auth de prueba local. Datos
 ficticios: casos A y B de Sofía, C y D de Carla, como en los ejemplos de FE-91.
 
 | # | Ejemplo de aceptación | Resultado |
@@ -51,6 +51,12 @@ ficticios: casos A y B de Sofía, C y D de Carla, como en los ejemplos de FE-91.
 | 62.4 | Justificación vacía no permite guardar No aplica | ✅ |
 | 62.5 | El caso B conserva su número y tipo | ✅ |
 | 62.6 | La API protege la escritura de un caso ajeno | ✅ 404 |
+| 62.7 | Origen judicial sin juzgado → error en el campo, no se envía (hallazgo de QA en #35) | ✅ |
+| 62.8 | Origen judicial con juzgado → se guarda | ✅ |
+| 62.9 | Tras recargar: juzgado, expediente, fecha de derivación y constancia intactos | ✅ |
+| 62.10 | La API devuelve las fechas en AAAA-MM-DD y el contexto judicial completo | ✅ |
+| 62.11 | Judicial sin contexto enviado directo a la API | ✅ 400 |
+| 62.12 | El historial muestra el contexto judicial | ✅ |
 | 87.1 | Sin pagos → mensaje | ✅ |
 | 87.2 | Monto 0, con tres decimales o negativo → rechazado en el formulario | ✅ |
 | 87.3 | Bs 75,50 para S-A1 por QR | ✅ |
@@ -72,9 +78,9 @@ ficticios: casos A y B de Sofía, C y D de Carla, como en los ejemplos de FE-91.
 | M | Las 9 pantallas a 390 px sin scroll horizontal | ✅ |
 | Z | Sin errores de JavaScript en la página | ✅ |
 
-52/52 comprobaciones en el navegador (Chromium, 1366×900 y 390×844).
+58/58 comprobaciones en el navegador (Chromium, 1366×900 y 390×844).
 
-Pruebas automatizadas: Vitest **153/153** (41 nuevas en `src/features/expediente/*.test.tsx` y
+Pruebas automatizadas: Vitest **156/156** (44 nuevas en `src/features/expediente/*.test.tsx` y
 `src/features/indicadores/Indicadores.test.tsx`), `tsc -b` sin errores, oxlint sin avisos, `npm run build` correcto.
 
 ## Pendientes
@@ -83,6 +89,6 @@ Pruebas automatizadas: Vitest **153/153** (41 nuevas en `src/features/expediente
   "Esta función todavía no está disponible en el servidor".
 - Aplicar en Supabase las migraciones 004 a 011 en orden. Ojo: las ramas de BD de Alejandro (FE-60 a FE-94)
   usan otros nombres para 005–008; hay que acordar cuáles quedan antes de aplicarlas.
-- Para backend: ver «Pendientes detectados al integrar» en el contrato (fecha de la constancia, nombres de autoría
-  y contexto judicial).
+- Para backend: ver «Pendientes detectados al integrar» en el contrato (queda solo la sugerencia de devolver
+  nombres en la autoría; la fecha de la constancia y el contexto judicial ya se resolvieron en 8c77aa3).
 - Repetir los pasos 72.3, 62.3, 87.3 y 92.1 con Supabase Auth real.

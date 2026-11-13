@@ -95,6 +95,8 @@ export interface Constancia {
   fechaConsentimiento: string | null
   referenciaEvidencia: string | null
   explicacion: string | null
+  /** Solo cuando origenJudicial es true (corrección de FE-63, commit 8c77aa3). */
+  contextoJudicial: ContextoJudicial | null
   creadoPor: string | null
   creadoEn: string
   actualizadoPor: string | null
@@ -108,6 +110,23 @@ export interface ConstanciaAGuardar {
   fechaConsentimiento: string | null
   referenciaEvidencia: string | null
   explicacion: string | null
+  /** Obligatorio (con juzgado) si origenJudicial es true; null si es false. */
+  contextoJudicial: ContextoJudicialAGuardar | null
+}
+
+/** Contexto judicial del caso (tabla contexto_judicial). También llega en el historial como `contexto`. */
+export interface ContextoJudicial {
+  juzgado: string | null
+  nroExpediente: string | null
+  fechaDerivacion: string | null
+  observaciones: string | null
+}
+
+export interface ContextoJudicialAGuardar {
+  juzgado: string
+  nroExpediente: string | null
+  fechaDerivacion: string | null
+  observaciones: string | null
 }
 
 // ---- FE-87 · Pagos ----------------------------------------------------------
@@ -148,13 +167,6 @@ export interface PagoRegistrado {
 }
 
 // ---- FE-82 · Historial ------------------------------------------------------
-
-export interface ContextoJudicial {
-  juzgado: string | null
-  nroExpediente: string | null
-  fechaDerivacion: string | null
-  observaciones: string | null
-}
 
 export interface SesionHistorial extends Sesion {
   tareas: Tarea[]

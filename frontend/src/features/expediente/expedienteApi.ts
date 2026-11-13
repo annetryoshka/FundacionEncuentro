@@ -77,9 +77,8 @@ export const consultarIndicadores = (desde: string, hasta: string) =>
   peticion<Indicadores>('/indicadores', { consulta: { desde, hasta } })
 
 /**
- * GET /constancia devuelve la fecha como timestamp (p. ej. "2026-11-10T04:00:00.000Z") porque lee la columna
- * date sin formatear; PUT la devuelve como "2026-11-10". El timestamp es la medianoche del servidor, así que su
- * fecha UTC es la fecha guardada si el servidor está en UTC o en Bolivia (no se convierte a la hora local).
+ * Antes del commit 8c77aa3, GET /constancia devolvía la fecha como timestamp ("2026-11-10T04:00:00.000Z").
+ * Ahora llega como "2026-11-10"; se sigue tomando solo la fecha por si algún entorno aún tiene la versión anterior.
  */
 function soloFecha(valor: string | null): string | null {
   return valor && /^\d{4}-\d{2}-\d{2}/.test(valor) ? valor.slice(0, 10) : valor

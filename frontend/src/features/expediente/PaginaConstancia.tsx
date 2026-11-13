@@ -14,7 +14,9 @@ import { NOMBRE_ESTADO_CONSTANCIA, type Constancia, type EstadoConstancia } from
 /**
  * FE-62 · Origen del caso y constancia de consentimiento (reglas FE-61). El origen técnico (voluntario o
  * derivado) es de solo lectura. Pendiente no lleva datos; Registrada exige fecha y referencia de evidencia;
- * No aplica exige una explicación. Guardar no cambia número, tipo ni clasificación de la carpeta.
+ * No aplica exige una explicación. Si el origen es judicial, se guarda también el contexto judicial
+ * (juzgado obligatorio; expediente, fecha de derivación y observaciones opcionales) en el mismo PUT.
+ * Guardar no cambia número, tipo ni clasificación de la carpeta.
  */
 export function PaginaConstancia() {
   return (
@@ -80,6 +82,19 @@ function VistaConstancia({ carpeta }: { carpeta: CarpetaDetalle }) {
           <Dato titulo="Tipo de ingreso">{NOMBRE_TIPO[carpeta.tipo]}</Dato>
           <Dato titulo="Procedencia">{constancia?.procedencia}</Dato>
           <Dato titulo="Origen judicial">{constancia ? (constancia.origenJudicial ? 'Sí' : 'No') : null}</Dato>
+          {constancia?.origenJudicial && (
+            <>
+              <Dato titulo="Juzgado">{constancia.contextoJudicial?.juzgado}</Dato>
+              <Dato titulo="Nº de expediente">{constancia.contextoJudicial?.nroExpediente}</Dato>
+              <Dato titulo="Fecha de derivación">
+                {constancia.contextoJudicial?.fechaDerivacion &&
+                  fechaLarga(constancia.contextoJudicial.fechaDerivacion)}
+              </Dato>
+              <Dato titulo="Observaciones judiciales" ancho>
+                {constancia.contextoJudicial?.observaciones}
+              </Dato>
+            </>
+          )}
         </dl>
 
         <h2 className="mt-7 text-lg font-semibold text-verde-oscuro">Constancia de consentimiento</h2>
@@ -125,7 +140,7 @@ function Dato({ titulo, children, ancho = false }: { titulo: string; children: R
     <div className={ancho ? 'sm:col-span-2' : undefined}>
       <dt className="text-sm text-suave">{titulo}</dt>
       <dd className="mt-0.5 font-medium whitespace-pre-wrap text-texto">
-        {children ?? <span className="font-normal text-suave italic">Sin registro</span>}
+        {children || <span className="font-normal text-suave italic">Sin registro</span>}
       </dd>
     </div>
   )
@@ -133,6 +148,10 @@ function Dato({ titulo, children, ancho = false }: { titulo: string; children: R
 
 interface Errores {
   procedencia?: string
+  juzgado?: string
+  nroExpediente?: string
+  fechaDerivacion?: string
+  observaciones?: string
   estado?: string
   fechaConsentimiento?: string
   referenciaEvidencia?: string
@@ -156,6 +175,11 @@ function FormularioConstancia({
   const [fechaConsentimiento, setFecha] = useState(actual?.fechaConsentimiento ?? '')
   const [referenciaEvidencia, setReferencia] = useState(actual?.referenciaEvidencia ?? '')
   const [explicacion, setExplicacion] = useState(actual?.explicacion ?? '')
+  const judicialPrevio = actual?.contextoJudicial
+  const [juzgado, setJuzgado] = useState(judicialPrevio?.juzgado ?? '')
+  const [nroExpediente, setNroExpediente] = useState(judicialPrevio?.nroExpediente ?? '')
+  const [fechaDerivacion, setFechaDerivacion] = useState(judicialPrevio?.fechaDerivacion ?? '')
+  const [observaciones, setObservaciones] = useState(judicialPrevio?.observaciones ?? '')
   const [errores, setErrores] = useState<Errores>({})
   const [guardando, setGuardando] = useState(false)
   const [fallo, setFallo] = useState<string | null>(null)
@@ -165,6 +189,13 @@ function FormularioConstancia({
   function validar(): Errores {
     const e: Errores = {}
     if (procedencia.length > 500) e.procedencia = 'La procedencia supera los 500 caracteres.'
+    if (origenJudicial) {
+      if (!tieneTexto(juzgado)) e.juzgado = 'Indica el juzgado que derivó el caso.'
+      else if (juzgado.length > 200) e.juzgado = 'El juzgado supera los 200 caracteres.'
+      if (nroExpediente.length > 100) e.nroExpediente = 'El número de expediente supera los 100 caracteres.'
+      if (fechaDerivacion && !esFechaValida(fechaDerivacion)) e.fechaDerivacion = 'La fecha no es válida.'
+      if (observaciones.length > 1000) e.observaciones = 'Las observaciones superan los 1000 caracteres.'
+    }
     if (estado === 'registrado') {
       if (!fechaConsentimiento) e.fechaConsentimiento = 'Indica la fecha del consentimiento.'
       else if (!esFechaValida(fechaConsentimiento)) e.fechaConsentimiento = 'La fecha no es válida.'
@@ -199,6 +230,15 @@ function FormularioConstancia({
           fechaConsentimiento: estado === 'registrado' ? fechaConsentimiento : null,
           referenciaEvidencia: estado === 'registrado' ? referenciaEvidencia.trim() : null,
           explicacion: estado === 'no_aplica' ? explicacion.trim() : null,
+          // Origen no judicial: el backend rechaza el contexto y borra el que hubiera.
+          contextoJudicial: origenJudicial
+            ? {
+                juzgado: juzgado.trim(),
+                nroExpediente: nroExpediente.trim() || null,
+                fechaDerivacion: fechaDerivacion || null,
+                observaciones: observaciones.trim() || null,
+              }
+            : null,
         }),
       )
     } catch (error) {
@@ -232,6 +272,48 @@ function FormularioConstancia({
           />
           <span className="font-medium text-texto">El caso proviene de un juzgado</span>
         </label>
+
+        {origenJudicial && (
+          <fieldset className="space-y-5 rounded-2xl border border-linea p-4 sm:p-5">
+            <legend className="px-1 text-sm font-semibold text-texto">Contexto judicial</legend>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <CampoTexto
+                etiqueta="Juzgado"
+                value={juzgado}
+                maxLength={200}
+                onChange={(e) => setJuzgado(e.target.value)}
+                error={errores.juzgado}
+              />
+              <CampoTexto
+                etiqueta="Nº de expediente (opcional)"
+                value={nroExpediente}
+                maxLength={100}
+                onChange={(e) => setNroExpediente(e.target.value)}
+                error={errores.nroExpediente}
+              />
+              <CampoTexto
+                etiqueta="Fecha de derivación (opcional)"
+                type="date"
+                max="9999-12-31"
+                value={fechaDerivacion}
+                onChange={(e) => setFechaDerivacion(e.target.value)}
+                error={errores.fechaDerivacion}
+              />
+            </div>
+            <AreaTexto
+              etiqueta="Observaciones judiciales (opcional)"
+              rows={3}
+              value={observaciones}
+              maxLength={1000}
+              onChange={(e) => setObservaciones(e.target.value)}
+              error={errores.observaciones}
+              ayuda="Por ejemplo, qué corresponde a la atención clínica y qué a la intervención judicial."
+            />
+          </fieldset>
+        )}
+        {!origenJudicial && judicialPrevio && (
+          <Aviso tipo="info">Al guardar como no judicial se borrará el contexto judicial registrado.</Aviso>
+        )}
 
         <GrupoOpciones<EstadoConstancia>
           leyenda="Constancia de consentimiento"

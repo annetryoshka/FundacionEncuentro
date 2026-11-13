@@ -90,6 +90,11 @@ function VistaHistorial({ carpeta }: { carpeta: CarpetaDetalle }) {
                 <Dato titulo="Fecha de derivación">
                   {contexto.fechaDerivacion ? fechaLarga(contexto.fechaDerivacion) : 'Sin registro'}
                 </Dato>
+                {contexto.observaciones && (
+                  <Dato titulo="Observaciones judiciales" ancho>
+                    {contexto.observaciones}
+                  </Dato>
+                )}
               </>
             )}
           </dl>

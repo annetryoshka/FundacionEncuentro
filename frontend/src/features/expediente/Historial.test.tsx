@@ -54,6 +54,23 @@ describe('Historial clínico', () => {
     expect(await seccion('Pagos').findByText('Bs 75,50')).toBeInTheDocument()
   })
 
+  it('muestra el contexto judicial guardado con la constancia', async () => {
+    const { usuario } = await montarApp(`/carpetas/${CARPETA_VACIA_DE_SOFIA}/constancia`, 'sofia')
+    await usuario.click(await screen.findByRole('button', { name: 'Registrar origen y constancia' }))
+    await usuario.click(screen.getByLabelText('El caso proviene de un juzgado'))
+    await usuario.type(screen.getByLabelText('Juzgado'), 'Juzgado 2º de Familia')
+    await usuario.type(screen.getByLabelText('Observaciones judiciales (opcional)'), 'Intervención judicial en curso')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+    await screen.findByText('Origen y constancia guardados.')
+
+    await usuario.click(screen.getByRole('link', { name: 'Historial' }))
+    await screen.findByRole('heading', { name: /Identificación/ })
+    const contexto = seccion('Contexto y constancia')
+    expect(contexto.getByText('Juzgado 2º de Familia')).toBeInTheDocument()
+    expect(contexto.getByText('Intervención judicial en curso')).toBeInTheDocument()
+    expect(contexto.getByText('Sí')).toBeInTheDocument()
+  })
+
   it('otra terapeuta no obtiene datos del caso', async () => {
     await montarApp(`/carpetas/${CARPETA_DE_SOFIA}/historial`, 'carla')
     expect(await screen.findByRole('heading', { name: 'No encontramos esta carpeta' })).toBeInTheDocument()

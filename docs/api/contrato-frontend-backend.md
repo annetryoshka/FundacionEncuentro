@@ -337,8 +337,8 @@ inexistente responde 404 "Caso no encontrado"; marketing, 403. Fechas sin hora e
 | FE-77 | `PATCH /api/carpetas/:id/tareas/:tareaId/cumplimiento` `{ estado: 'pendiente' \| 'realizada' }` → `{ tarea }` | Si el estado no cambia, no registra otra actualización. |
 | FE-67 | `GET /api/carpetas/:id/diagnostico` → `{ diagnostico \| null }` | `null` = sin ficha (no es un error). |
 | FE-67 | `PUT /api/carpetas/:id/diagnostico` `{ fecha, diagnosticoIngreso, hipotesisRelacional?, comentariosClinicos? }` | Crea o reemplaza la ficha única; conserva `id`, `creadoPor` y `creadoEn`. |
-| FE-62 | `GET /api/carpetas/:id/constancia` → `{ constancia \| null }` | ⚠️ `fechaConsentimiento` llega como timestamp (`2026-11-10T04:00:00.000Z`); la interfaz toma la fecha calendario. |
-| FE-62 | `PUT /api/carpetas/:id/constancia` `{ procedencia?, origenJudicial, estado, fechaConsentimiento?, referenciaEvidencia?, explicacion? }` | `pendiente`: sin fecha, evidencia ni explicación. `registrado`: fecha y evidencia. `no_aplica`: explicación. |
+| FE-62 | `GET /api/carpetas/:id/constancia` → `{ constancia \| null }` | Incluye `contextoJudicial` (o `null`). Fechas en `AAAA-MM-DD` desde el commit 8c77aa3. |
+| FE-62 | `PUT /api/carpetas/:id/constancia` `{ procedencia?, origenJudicial, estado, fechaConsentimiento?, referenciaEvidencia?, explicacion?, contextoJudicial? }` | `pendiente`: sin fecha, evidencia ni explicación. `registrado`: fecha y evidencia. `no_aplica`: explicación. `origenJudicial: true` exige `contextoJudicial` con `juzgado` (`nroExpediente`, `fechaDerivacion` y `observaciones` opcionales); `false` lo rechaza y borra el guardado. |
 | FE-87 | `GET /api/carpetas/:id/pagos` → `{ pagos }` | Solo administración (403 para terapeutas). `monto` es texto decimal con punto. |
 | FE-87 | `POST /api/carpetas/:id/pagos` `{ sesionId, monto, fecha, metodo: 'qr' \| 'transferencia', referencia? }` → 200 `{ pago, reutilizado }` | Un pago por sesión. Repetir los mismos datos devuelve el mismo pago con `reutilizado: true`; otros datos, 409. |
 | FE-82 | `GET /api/carpetas/:id/historial` → `{ carpeta, contexto, constancia, diagnostico, sesiones[{ …, tareas }] }` | Sin montos. Los pagos se piden aparte (solo administración). |
@@ -346,13 +346,11 @@ inexistente responde 404 "Caso no encontrado"; marketing, 403. Fechas sin hora e
 
 Pendientes detectados al integrar (para backend):
 
-1. `GET /constancia` devuelve `fechaConsentimiento` sin formatear (timestamp); `PUT` e historial la devuelven bien.
-   Conviene usar `to_char(fecha_consentimiento, 'YYYY-MM-DD')` también en la consulta.
+1. ✅ Resuelto en 8c77aa3: `GET /constancia` devolvía `fechaConsentimiento` como timestamp.
 2. Sesiones, tareas, diagnóstico, constancia y pagos devuelven solo el UUID de quien registró o actualizó. La interfaz
    muestra el nombre cuando lo conoce (la propia cuenta, la terapeuta asignada, quien creó la carpeta) y, si no,
    "otra cuenta del personal". Devolver `{ id, nombreCompleto }`, como en `GET /carpetas/:id`, lo resolvería.
-3. FE-61 pide juzgado y detalles judiciales, pero no hay endpoint para escribir `contexto_judicial`. El historial
-   lo muestra si existe; la interfaz todavía no lo puede registrar.
+3. ✅ Resuelto en 8c77aa3: el contexto judicial de FE-61 se guarda con la constancia y la interfaz ya lo registra.
 
 ## ⚠️ Edición `PATCH /api/carpetas/:id` (FE-52)
 
