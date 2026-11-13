@@ -94,7 +94,7 @@ describe('FE-93: servicio de indicadores', () => {
         casos_en_proceso: 1,
         casos_concluidos: 1,
         sesiones: 0,
-        pagos_recibidos: '0',
+        pagos_recibidos: '0.00',
       }],
     });
 
@@ -102,7 +102,7 @@ describe('FE-93: servicio de indicadores', () => {
 
     expect(resultado.casosActuales).toBe(4);
     expect(resultado.sesiones).toBe(0);
-    expect(resultado.pagosRecibidos.monto).toBe('0');
+    expect(resultado.pagosRecibidos.monto).toBe('0.00');
   });
 
   it('propaga errores sin mostrarlos como indicadores en cero', async () => {

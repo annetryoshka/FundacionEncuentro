@@ -29,7 +29,7 @@ export class IndicadoresService {
     const { rows } = await this.db.query<FilaIndicadores>(
       `select casos_actuales, casos_iniciados,
               casos_en_proceso, casos_concluidos, sesiones,
-              pagos_recibidos::text as pagos_recibidos
+              round(pagos_recibidos, 2)::text as pagos_recibidos
          from public.indicadores_operativos($1::date, $2::date)`,
       [desde, hasta],
     );

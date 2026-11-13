@@ -311,7 +311,7 @@ test(
 
 test(
   "FE-95: el total sin pagos se informa como 0.00, con el mismo formato que los demás montos",
-  { ...opciones, todo: opciones.skip ? undefined : "Defecto FE-95-D1: el total vacío llega como \"0\"" },
+  opciones,
   async () => {
     const r = await indicadores("2026-10-01", "2026-10-05");
     assert.equal(r.pagosRecibidos.monto, "0.00");
