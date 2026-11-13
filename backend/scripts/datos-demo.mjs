@@ -39,8 +39,50 @@ const PACIENTES = [
 // Segunda carpeta de un paciente que ya existe (FE-33): Mariana vuelve al centro.
 const SEGUNDAS = [{ paciente: 1, tipo: 'voluntario', estado: 'iniciado', fecha: '2026-10-15', terapeuta: 'sofia' }];
 
+// Sprint 2: requiere las migraciones de db/migrations desde la 005. Carpetas por número de la lista de arriba.
+// [FE-60] clasificación
+const CLASIFICACION = { 1: 'privado', 2: 'social', 3: 'privado', 5: 'social', 6: 'social', 7: 'social', 8: 'privado', 10: 'social', 11: 'privado', 14: 'social' };
+// [FE-64] procedencia y un ejemplo de cada estado de la constancia (tabla de FE-63).
+const CONSTANCIAS = [
+  { carpeta: 1, procedencia: 'Consulta espontánea', judicial: false, estado: 'registrado', fecha: '2026-03-12', referencia: 'EVIDENCIA-DEMO-001' },
+  { carpeta: 2, procedencia: 'Juzgado Público de Familia N.º 3 de La Paz', judicial: true, estado: 'pendiente' },
+  { carpeta: 6, procedencia: 'Consulta espontánea', judicial: false, estado: 'no_aplica', explicacion: 'Consulta individual de adulta; no requiere constancia adicional (dato ficticio).' },
+];
+// [FE-69] fichas de diagnóstico (modelo de FE-68: los campos van en contenido).
+const DIAGNOSTICOS = [
+  { carpeta: 1, fecha: '2026-03-19', diagnosticoIngreso: 'Crisis vital familiar por conflictos de pareja y crianza.', hipotesisRelacional: 'Triangulación de la hija mayor.' },
+  { carpeta: 2, fecha: '2026-04-09', diagnosticoIngreso: 'Derivación judicial por régimen de visitas.' },
+];
+// [FE-74] [carpeta, fechas de sesión]. La carpeta 1 pasa de 16 sesiones; la 2 comparte fechas con la 1.
+const semanal = (desde, n) => Array.from({ length: n }, (_, i) => {
+  const d = new Date(`${desde}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 7 * i); return d.toISOString().slice(0, 10);
+});
+const SESIONES = [
+  [1, semanal('2026-03-19', 17)],
+  [2, semanal('2026-04-09', 3)],
+  [6, ['2026-10-12', '2026-10-19']],
+  [14, ['2026-10-12']],
+];
+// [FE-79] tareas [carpeta, nro de sesión, descripción, realizada].
+const TAREAS = [
+  [1, 1, 'Registrar tres momentos de diálogo en la semana.', true],
+  [1, 1, 'Cena familiar sin pantallas.', true],
+  [1, 17, 'Escribir una carta a la familia de origen.', false],
+  [6, 1, 'Diario de emociones durante 7 días.', false],
+];
+// [FE-89] pagos [carpeta, nro de sesión, fecha, monto en Bs, método, referencia]. Uno por sesión.
+const PAGOS = [
+  [1, 1, '2026-03-19', '75.50', 'qr', null],
+  [1, 2, '2026-03-26', '75.50', 'qr', null],
+  [2, 1, '2026-04-09', '40.25', 'transferencia', 'TRF-DEMO-001'],
+  [6, 1, '2026-10-12', '125.00', 'qr', null],
+  [14, 1, '2026-10-15', '25.10', 'transferencia', 'TRF-DEMO-002'],
+];
+
 const idCaso = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const idPaciente = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+// [FE-74] sesión n de la carpeta c: 30000000-0000-4000-8000-0000ccc00nnn
+const idSesion = (c, n) => `30000000-0000-4000-8000-0000${String(c).padStart(3, '0')}00${String(n).padStart(3, '0')}`;
 const casos = [
   ...PACIENTES.map(([, tipo, estado, fecha, terapeuta], i) => ({ id: idCaso(i + 1), paciente: idPaciente(i + 1), tipo, estado, fecha, terapeuta })),
   ...SEGUNDAS.map((s, i) => ({ id: idCaso(PACIENTES.length + i + 1), ...s, paciente: idPaciente(s.paciente) })),
@@ -142,12 +184,101 @@ async function crearCarpetas(cuentas) {
   return resumen;
 }
 
+// Datos del Sprint 2 sobre las carpetas de demostración. Se puede repetir: no duplica nada.
+async function crearDatosSprint2(cuentas) {
+  const cliente = await pool.connect();
+  const resumen = {};
+  const terapeutaDe = (carpeta) => cuentas[casos[carpeta - 1].terapeuta];
+  try {
+    await cliente.query('begin');
+    await cliente.query(`select set_config('app.usuario_id', $1, true)`, [cuentas.direccion]);
+    // [FE-60] clasificación
+    resumen.clasificaciones = 0;
+    for (const [carpeta, clasificacion] of Object.entries(CLASIFICACION)) {
+      const r = await cliente.query('update casos set clasificacion = $1 where id = $2 and clasificacion is null', [clasificacion, idCaso(carpeta)]);
+      resumen.clasificaciones += r.rowCount;
+    }
+    // [FE-64] procedencia y constancias
+    resumen.constancias = 0;
+    for (const c of CONSTANCIAS) {
+      const r = await cliente.query(
+        `insert into constancias_atencion (caso_id, procedencia, origen_judicial, estado,
+           fecha_consentimiento, referencia_evidencia, explicacion, creado_por, actualizado_por)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $8) on conflict (caso_id) do nothing`,
+        [idCaso(c.carpeta), c.procedencia, c.judicial, c.estado, c.fecha ?? null, c.referencia ?? null, c.explicacion ?? null, cuentas.direccion],
+      );
+      resumen.constancias += r.rowCount;
+    }
+    // [FE-69] fichas de diagnóstico
+    resumen.diagnosticos = 0;
+    for (const d of DIAGNOSTICOS) {
+      const r = await cliente.query(
+        `insert into fichas_diagnostico (caso_id, fecha, contenido, creado_por, actualizado_por)
+         values ($1, $2, $3, $4, $4) on conflict (caso_id) do nothing`,
+        [idCaso(d.carpeta), d.fecha, JSON.stringify({ diagnosticoIngreso: d.diagnosticoIngreso, hipotesisRelacional: d.hipotesisRelacional ?? null, comentariosClinicos: null }), terapeutaDe(d.carpeta)],
+      );
+      resumen.diagnosticos += r.rowCount;
+    }
+    // [FE-74] sesiones
+    resumen.sesiones = 0;
+    for (const [carpeta, fechas] of SESIONES) {
+      for (const [i, fecha] of fechas.entries()) {
+        const r = await cliente.query(
+          `insert into fichas_seguimiento (id, caso_id, nro_sesion, fecha, evolucion, responsable_id, creado_por)
+           values ($1, $2, $3, $4, $5, $6, $6) on conflict (id) do nothing`,
+          [idSesion(carpeta, i + 1), idCaso(carpeta), i + 1, fecha, `Sesión ${i + 1}: evolución de demostración.`, terapeutaDe(carpeta)],
+        );
+        resumen.sesiones += r.rowCount;
+      }
+    }
+    // [FE-79] tareas
+    resumen.tareas = 0;
+    for (const [carpeta, nro, descripcion, realizada] of TAREAS) {
+      // Se crea Pendiente y, si corresponde, se marca Realizada: así queda quién registró el cumplimiento.
+      const r = await cliente.query(
+        `insert into tareas_terapeuticas (caso_id, sesion_id, descripcion, perfil_id)
+         select $1, $2, $3, $4
+          where not exists (select 1 from tareas_terapeuticas where sesion_id = $2 and descripcion = $3)
+         returning id`,
+        [idCaso(carpeta), idSesion(carpeta, nro), descripcion, terapeutaDe(carpeta)],
+      );
+      if (r.rowCount && realizada) {
+        await cliente.query('update tareas_terapeuticas set completada = true where id = $1', [r.rows[0].id]);
+      }
+      resumen.tareas += r.rowCount;
+    }
+    // [FE-89] pagos
+    resumen.pagos = 0;
+    for (const [carpeta, nro, fecha, monto, metodo, referencia] of PAGOS) {
+      const r = await cliente.query(
+        `insert into pagos (caso_id, sesion_id, fecha, monto, metodo, referencia, registrado_por)
+         values ($1, $2, $3, $4, $5, $6, $7) on conflict (sesion_id) do nothing`,
+        [idCaso(carpeta), idSesion(carpeta, nro), fecha, monto, metodo, referencia, cuentas.direccion],
+      );
+      resumen.pagos += r.rowCount;
+    }
+    await cliente.query('commit');
+  } catch (error) {
+    await cliente.query('rollback');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+  return resumen;
+}
+
 async function borrar() {
   const idsCasos = casos.map((c) => c.id);
   const idsPacientes = PACIENTES.map((_, i) => idPaciente(i + 1));
   const cliente = await pool.connect();
   try {
     await cliente.query('begin');
+    const tablas = ['pagos', 'tareas_terapeuticas', 'fichas_seguimiento', 'fichas_diagnostico'];
+    // [FE-64] la tabla de constancias existe desde la migración 005
+    tablas.push('constancias_atencion');
+    for (const tabla of tablas) {
+      await cliente.query(`delete from ${tabla} where caso_id = any($1)`, [idsCasos]);
+    }
     await cliente.query('delete from asignaciones_caso where caso_id = any($1)', [idsCasos]);
     await cliente.query('delete from contexto_judicial where caso_id = any($1)', [idsCasos]);
     const c = await cliente.query('delete from casos where id = any($1)', [idsCasos]);
@@ -185,8 +316,10 @@ try {
   } else {
     const cuentas = await crearCuentas();
     const r = await crearCarpetas(cuentas);
+    const s = await crearDatosSprint2(cuentas);
     console.log(`Cuentas listas (contraseña ${CONTRASENA}): ${CUENTAS.map((c) => c.email).join(', ')}`);
     console.log(`Nuevos: ${r.pacientes} pacientes, ${r.carpetas} carpetas, ${r.asignaciones} asignaciones.`);
+    console.log(`Sprint 2, nuevos: ${Object.entries(s).map(([dato, n]) => `${n} ${dato}`).join(', ')}.`);
   }
 } finally {
   await pool.end();
