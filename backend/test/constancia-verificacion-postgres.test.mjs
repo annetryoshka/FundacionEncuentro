@@ -68,6 +68,7 @@ const PENDIENTE = { origenJudicial: false, estado: 'pendiente' };
 const REGISTRADA = {
   procedencia: 'Juzgado Público de Familia N.º 1', origenJudicial: true,
   estado: 'registrado', fechaConsentimiento: '2026-10-09', referenciaEvidencia: 'EVIDENCIA-DEMO',
+  contextoJudicial: { juzgado: 'Juzgado Público de Familia N.º 1', nroExpediente: 'EXP-QA-1' },
 };
 const NO_APLICA = { origenJudicial: false, estado: 'no_aplica', explicacion: 'Caso ficticio sin intervención con menores' };
 
@@ -90,6 +91,8 @@ test('FE-65: campos exigidos por estado responden 400 y la constancia sigue Pend
     'pendiente con fecha': { ...PENDIENTE, fechaConsentimiento: '2026-10-09' },
     'estado fuera de catálogo': { ...PENDIENTE, estado: 'firmado' },
     'sin origen judicial': { estado: 'pendiente' },
+    'origen judicial sin contexto': { ...REGISTRADA, contextoJudicial: undefined },
+    'contexto judicial sin juzgado': { ...REGISTRADA, contextoJudicial: { nroExpediente: 'EXP-QA-1' } },
     'intenta cambiar el número': { ...PENDIENTE, numeroCorrelativo: 999 },
     'intenta cambiar el origen': { ...PENDIENTE, tipo: 'derivado' },
   };
@@ -115,9 +118,7 @@ test('FE-65: recorre Pendiente → Registrada → No aplica → Pendiente y limp
   assert.equal(await auditoria(), 4);
 });
 
-const DEFECTO_D1 = 'Defecto FE-65-D1: GET devuelve la fecha como timestamp ISO; ver docs/pruebas/FE-65-verificacion-constancia.md';
-
-test('FE-65: al recargar, la consulta devuelve lo mismo que respondió el guardado', { ...opciones, todo: opciones.skip ? undefined : DEFECTO_D1 }, async () => {
+test('FE-65: al recargar, la consulta devuelve lo mismo que respondió el guardado (FE-65-D1 corregido en 8c77aa3)', opciones, async () => {
   const res = await guardar(casoA.id, REGISTRADA);
   assert.equal(res.status, 200);
   const { constancia: guardada } = await res.json();

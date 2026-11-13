@@ -5,9 +5,13 @@ Implementación FE-63 (API, PR #26) y FE-64 (base de datos) · Responsable: Emil
 
 ## Base y alcance
 
-Rama `feature/FE-65-verificacion-constancia`: `origin/main` (`4c50218`) más
-`feature/FE-63-constancia-consentimiento` (`abaafdf`) y `feature/FE-64-contexto-constancia`
-(`434194f`, incluye FE-60). Ninguna de las dos estaba fusionada en `main` al momento de la prueba.
+Primera ejecución (2026-11-12): rama `feature/FE-65-verificacion-constancia` sobre `origin/main`
+(`4c50218`) más `feature/FE-63-constancia-consentimiento` (`abaafdf`) y
+`feature/FE-64-contexto-constancia` (`434194f`, incluye FE-60).
+
+Repetición (2026-11-13): directamente sobre la rama de la HU `feature/FE-63-constancia-consentimiento`
+(`8c77aa3`), que ya trae su propia migración `005_constancia_atencion.sql`. De la cadena de base de datos
+solo se incorporó el helper de pruebas `test/helpers/pg-qa.mjs` (FE-60, copiado sin cambios).
 
 Se verifican `GET` y `PUT /api/carpetas/:id/constancia` por HTTP real contra los ejemplos de FE-61:
 campos exigidos, cambios de estado, recarga, correlativo inalterado y acceso a caso ajeno.
@@ -38,7 +42,7 @@ Sin esas variables las 9 pruebas se omiten (`skipped`), igual que el resto de su
 |---|---|
 | Caso A | Ana Ficticia QA, voluntario, asignado a T1 |
 | Caso B | Beto Ficticio QA, derivado, asignado a T2 |
-| Registrada | Fecha `2026-10-09`, referencia `EVIDENCIA-DEMO`, Juzgado Público de Familia N.º 1 |
+| Registrada | Fecha `2026-10-09`, referencia `EVIDENCIA-DEMO`, Juzgado Público de Familia N.º 1, contexto judicial con expediente `EXP-QA-1` |
 | No aplica | Explicación «Caso ficticio sin intervención con menores» |
 | Usuarios | Administración, T1, T2, marketing, sin token y token falso |
 
@@ -49,10 +53,11 @@ Sin esas variables las 9 pruebas se omiten (`skipped`), igual que el resto de su
 | 1 | Consulta sin constancia | Admin consulta A | 200 `{ constancia: null }` | Pasa |
 | 2 | Campos exigidos | Registrada sin referencia, con referencia en blanco, sin fecha, fecha `2026-02-30`, fecha `09/10/2026`, con explicación | 400 | Pasa |
 | 2 | Campos exigidos | No aplica sin explicación, en blanco o con referencia; Pendiente con fecha; estado `firmado`; sin `origenJudicial` | 400 | Pasa |
+| 2 | Contexto judicial (desde `8c77aa3`) | Origen judicial sin `contextoJudicial`; contexto sin juzgado | 400 | Pasa |
 | 2 | Campos protegidos | Cuerpo con `numeroCorrelativo` o `tipo` | 400 | Pasa |
-| 2 | Sin cambios tras error | Tras los 14 rechazos | Sigue Pendiente, 1 sola fila de auditoría | Pasa |
+| 2 | Sin cambios tras error | Tras los 16 rechazos | Sigue Pendiente, 1 sola fila de auditoría | Pasa |
 | 3 | Cambios de estado | Pendiente → Registrada → No aplica → Pendiente | 200; cada estado limpia los campos que no le corresponden; 1 fila, 4 auditorías | Pasa |
-| 4 | Recarga | Guardar Registrada y volver a consultar | La consulta devuelve lo mismo que el guardado | **Falla (D1)** |
+| 4 | Recarga | Guardar Registrada y volver a consultar | La consulta devuelve lo mismo que el guardado | Pasa (D1 corregido) |
 | 5 | Correlativo inalterado | T2 guarda los tres estados en B | Número, origen, estado, clasificación y paciente sin cambio; sin filas nuevas | Pasa |
 | 6 | Autoría | Admin crea, T1 actualiza | `creadoPor` admin, `actualizadoPor` T1; fecha de evidencia separada de `actualizadoEn` | Pasa |
 | 7 | Caso ajeno | T1 consulta / guarda B | 404 sin datos | Pasa |
@@ -63,11 +68,17 @@ Sin esas variables las 9 pruebas se omiten (`skipped`), igual que el resto de su
 | 8 | Caso eliminado | `deleted_at` en A | 404 en consulta y guardado | Pasa |
 | 9 | Reasignación | A pasa de T1 a T2 | T1 recibe 404; T2 ve el caso | Pasa |
 
-Resumen: 8 pasan, 1 falla por el defecto D1 (marcada `todo` para que la suite no falle mientras siga abierto).
+Primera ejecución: 8 pasan y 1 falla por el defecto D1 (marcada `todo`).
+Repetición sobre `8c77aa3`: **9 pasan, 0 fallan, 0 `todo`**, en dos ejecuciones consecutivas.
+Se quitó el `todo` de la prueba 4 y se actualizó el cuerpo «Registrada» con `contextoJudicial`, que la API
+exige desde `8c77aa3` cuando `origenJudicial` es verdadero.
 
 ## Defectos
 
-### FE-65-D1 · La consulta devuelve la fecha de consentimiento con hora y zona
+### FE-65-D1 · La consulta devuelve la fecha de consentimiento con hora y zona — **Corregido**
+
+- **Estado:** corregido por Adriana en `8c77aa3` («normalizar fechas de constancia»). La prueba 4
+  pasa sin `todo` en la repetición del 2026-11-13.
 
 - **Severidad:** media. Afecta la recarga, que es uno de los ejemplos de aceptación de FE-61.
 - **Pasos:** `PUT /api/carpetas/{A}/constancia` con estado `registrado` y `fechaConsentimiento: "2026-10-09"`;
@@ -93,4 +104,3 @@ Resumen: 8 pasan, 1 falla por el defecto D1 (marcada `todo` para que la suite no
 ## Pendiente
 
 - Prueba de interfaz de la sección cuando exista el frontend de constancia.
-- Repetir la prueba 4 cuando se corrija D1.
