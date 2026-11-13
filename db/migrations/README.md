@@ -9,6 +9,7 @@
    | `migrations/003_busqueda_carpetas_unaccent.sql` | Extensión unaccent en extensions para búsqueda FE-40 sin tildes |
    | `migrations/004_clasificacion_casos.sql` | Clasificación social/privado del caso (FE-14) |
    | `migrations/005_constancia_atencion.sql` | FE-63: procedencia y constancia (pendiente / registrado / no aplica), una por caso |
+   | `migrations/006_diagnostico_unico_por_caso.sql` | FE-68: una ficha de diagnóstico por caso y quién la actualizó |
    | `migrations/007_identidad_y_clasificacion_casos.sql` | FE-60: el origen y el número del caso no cambian; índice de clasificación |
 
    ## Pruebas de las migraciones con PostgreSQL local
@@ -26,6 +27,7 @@
    |---|---|
    | FE-60 | `tipo-estado-postgres.test.mjs` |
    | FE-64 | `contexto-constancia-postgres.test.mjs` |
+   | FE-69 | `ficha-diagnostico-postgres.test.mjs` |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
