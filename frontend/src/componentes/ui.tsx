@@ -75,31 +75,46 @@ export function Indicador({ className = 'size-4' }: { className?: string }) {
   )
 }
 
-/** Acceso a otra pantalla en forma de tarjeta: ícono, título, descripción y flecha. */
+/**
+ * Acceso a otra pantalla en forma de tarjeta: ícono, título, descripción y flecha.
+ * `apilado`: en pantallas anchas queda compacto y centrado (ícono sobre el título, sin descripción
+ * ni flecha), para poner varios en una fila.
+ */
 export function EnlaceAcceso({
   a,
   icono,
   titulo,
   descripcion,
+  apilado = false,
 }: {
   a: string
   icono: NombreIcono
   titulo: string
   descripcion: string
+  apilado?: boolean
 }) {
   return (
     <Link
       to={a}
-      className="group flex h-full items-center gap-4 rounded-2xl border border-linea bg-white px-4 py-3.5 transition-colors hover:border-verde hover:bg-crema focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+      className={`group flex h-full items-center gap-4 rounded-2xl border border-linea bg-white px-4 py-3.5 transition-colors hover:border-verde hover:bg-crema focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja ${apilado ? 'relative lg:flex-col lg:justify-center lg:gap-1.5 lg:px-3 lg:py-3 lg:text-center' : ''}`}
     >
-      <Icono nombre={icono} className="size-6 text-verde" />
-      <span className="min-w-0 flex-1">
+      <Icono nombre={icono} className={`size-6 text-verde ${apilado ? 'lg:size-5' : ''}`} />
+      <span className={`min-w-0 flex-1 ${apilado ? 'lg:flex-none' : ''}`}>
         <span className="block font-semibold text-verde-oscuro">{titulo}</span>
-        <span className="mt-0.5 block text-sm text-suave">{descripcion}</span>
+        <span className={`mt-0.5 block text-sm text-suave ${apilado ? 'lg:sr-only' : ''}`}>{descripcion}</span>
       </span>
+      {apilado && (
+        // Solo visual: la descripción ya está arriba para lectores de pantalla.
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute top-full left-1/2 z-10 mt-2 hidden w-max max-w-56 -translate-x-1/2 translate-y-1 rounded-xl bg-verde-oscuro px-3 py-2 text-sm text-white opacity-0 shadow-lg transition duration-200 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 motion-reduce:translate-y-0 motion-reduce:transition-none lg:block"
+        >
+          {descripcion}
+        </span>
+      )}
       <Icono
         nombre="siguiente"
-        className="size-4 text-suave transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+        className={`size-4 text-suave transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none ${apilado ? 'lg:hidden' : ''}`}
       />
     </Link>
   )

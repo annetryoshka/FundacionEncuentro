@@ -119,7 +119,7 @@ function FormularioAsignacion({ carpeta, alActualizar }: Omit<Props, 'puedeAsign
       <label htmlFor={`${id}-terapeuta`} className="block text-sm font-semibold text-texto">
         {actualId ? 'Cambiar responsable' : 'Asignar a'}
       </label>
-      <div className="mt-1.5 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-1.5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <select
           id={`${id}-terapeuta`}
           value={elegida}
@@ -128,7 +128,7 @@ function FormularioAsignacion({ carpeta, alActualizar }: Omit<Props, 'puedeAsign
             setResultado(null)
           }}
           disabled={guardando}
-          className={`${claseCampo(false)} mt-0 sm:flex-1`}
+          className={`${claseCampo(false)} mt-0 sm:flex-[1_1_13.5rem]`}
         >
           {!actualId && <option value="">Elige una terapeuta</option>}
           {lista.map((t) => (

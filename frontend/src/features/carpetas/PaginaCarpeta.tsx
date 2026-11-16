@@ -70,6 +70,7 @@ export function PaginaCarpeta() {
   // se la asignaron; el backend lo vuelve a comprobar en cada guardado.
   const puedeClasificar = tieneRol('administrador', 'terapeuta')
   const cambioVigente = useRef(0)
+  const apartados = APARTADOS.filter((ap) => !ap.soloAdministracion || esAdministrador)
 
   const refExito = useRef<HTMLDivElement>(null)
   const refEdicionExitosa = useRef<HTMLDivElement>(null)
@@ -258,6 +259,28 @@ export function PaginaCarpeta() {
             />
           )}
 
+          {/* Sprint 2 · Expediente clínico: lo más usado, justo bajo el encabezado */}
+          <Tarjeta>
+            <h2 className="text-lg font-semibold text-verde-oscuro">Expediente clínico</h2>
+            <ul
+              className={`mt-4 grid gap-3 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2 lg:[&>li:last-child:nth-child(odd)]:col-span-1 ${
+                apartados.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+              }`}
+            >
+              {apartados.map((a) => (
+                <li key={a.ruta}>
+                  <EnlaceAcceso
+                    a={`/carpetas/${carpeta.id}/${a.ruta}`}
+                    icono={a.icono}
+                    titulo={a.nombre}
+                    descripcion={a.descripcion}
+                    apilado
+                  />
+                </li>
+              ))}
+            </ul>
+          </Tarjeta>
+
           {/* Resumen y asignación */}
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
             <Tarjeta>
@@ -317,22 +340,6 @@ export function PaginaCarpeta() {
             </div>
           </div>
 
-          {/* Sprint 2 · Expediente clínico */}
-          <Tarjeta>
-            <h2 className="text-lg font-semibold text-verde-oscuro">Expediente clínico</h2>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2">
-              {APARTADOS.filter((a) => !a.soloAdministracion || esAdministrador).map((a) => (
-                <li key={a.ruta}>
-                  <EnlaceAcceso
-                    a={`/carpetas/${carpeta.id}/${a.ruta}`}
-                    icono={a.icono}
-                    titulo={a.nombre}
-                    descripcion={a.descripcion}
-                  />
-                </li>
-              ))}
-            </ul>
-          </Tarjeta>
         </>
       )}
     </div>
