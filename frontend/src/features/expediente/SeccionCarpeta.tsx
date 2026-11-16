@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
-import { Link, NavLink, useParams } from 'react-router'
+import { NavLink, useParams } from 'react-router'
 import { ErrorApi } from '../../api/cliente'
 import { useCarga } from '../../api/useCarga'
 import { ErrorDeCarga } from '../../componentes/ErrorDeCarga'
-import { Cargando } from '../../componentes/ui'
+import { Icono } from '../../componentes/iconos'
+import { Cargando, EnlaceVolver } from '../../componentes/ui'
 import { useSesion } from '../auth/sesion'
 import { obtenerCarpeta } from '../carpetas/carpetasApi'
 import { NOMBRE_TIPO, numeroCarpeta, type CarpetaDetalle } from '../carpetas/tipos'
@@ -27,9 +28,7 @@ export function SeccionCarpeta({ titulo, children }: Props) {
     if (error instanceof ErrorApi && (error.estado === 404 || error.estado === 403)) {
       return (
         <div className="max-w-prose space-y-4">
-          <Link to="/carpetas" className="text-sm font-semibold text-naranja-texto underline-offset-4 hover:underline">
-            Volver a carpetas
-          </Link>
+          <EnlaceVolver a="/carpetas">Volver a carpetas</EnlaceVolver>
           <h1 className="text-2xl font-semibold text-verde-oscuro">No encontramos esta carpeta</h1>
           <p className="text-suave">
             Puede que el enlace no sea correcto o que la carpeta no esté asignada a tu cuenta.
@@ -46,12 +45,7 @@ export function SeccionCarpeta({ titulo, children }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          to={`/carpetas/${carpeta.id}`}
-          className="text-sm font-semibold text-naranja-texto underline-offset-4 hover:underline"
-        >
-          Volver a la carpeta {numeroCarpeta(carpeta.numero)}
-        </Link>
+        <EnlaceVolver a={`/carpetas/${carpeta.id}`}>Volver a la carpeta {numeroCarpeta(carpeta.numero)}</EnlaceVolver>
         <p className="mt-3 text-sm text-suave">
           Carpeta {numeroCarpeta(carpeta.numero)} ({NOMBRE_TIPO[carpeta.tipo]}) ·{' '}
           <span className="font-semibold text-texto">{carpeta.paciente.nombreCompleto}</span>
@@ -66,11 +60,12 @@ export function SeccionCarpeta({ titulo, children }: Props) {
               <NavLink
                 to={`/carpetas/${carpeta.id}/${a.ruta}`}
                 className={({ isActive }) =>
-                  `-mb-px inline-block border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-3 focus-visible:outline-naranja ${
+                  `-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-3 focus-visible:outline-naranja ${
                     isActive ? 'border-verde text-verde-oscuro' : 'border-transparent text-suave hover:text-texto'
                   }`
                 }
               >
+                <Icono nombre={a.icono} className="size-4" />
                 {a.nombre}
               </NavLink>
             </li>

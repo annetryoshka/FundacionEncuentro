@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { ErrorApi } from '../../api/cliente'
 import { useCarga } from '../../api/useCarga'
-import { Aviso, Boton, Cargando, Tarjeta } from '../../componentes/ui'
+import { Aviso, Boton, Cargando, EnlaceAcceso, EnlaceVolver, Tarjeta } from '../../componentes/ui'
 import { fechaLarga } from '../../utilidades/fechas'
 import { useSesion } from '../auth/sesion'
 import { AsignacionTerapeuta } from './AsignacionTerapeuta'
@@ -128,12 +128,7 @@ export function PaginaCarpeta() {
 
   return (
     <div className="space-y-6">
-      <Link
-        to="/carpetas"
-        className="text-sm font-semibold text-naranja-texto underline-offset-4 hover:underline"
-      >
-        Volver a carpetas
-      </Link>
+      <EnlaceVolver a="/carpetas">Volver a carpetas</EnlaceVolver>
 
       {recienCreada && error !== undefined && (
         <Aviso tipo="info">
@@ -244,6 +239,7 @@ export function PaginaCarpeta() {
                 <Boton
                   type="button"
                   variante="secundario"
+                  icono="editar"
                   onClick={iniciarEdicion}
                 >
                   Editar datos
@@ -324,16 +320,15 @@ export function PaginaCarpeta() {
           {/* Sprint 2 · Expediente clínico */}
           <Tarjeta>
             <h2 className="text-lg font-semibold text-verde-oscuro">Expediente clínico</h2>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2">
               {APARTADOS.filter((a) => !a.soloAdministracion || esAdministrador).map((a) => (
                 <li key={a.ruta}>
-                  <Link
-                    to={`/carpetas/${carpeta.id}/${a.ruta}`}
-                    className="block h-full rounded-2xl border border-linea px-4 py-3 font-semibold text-verde-oscuro transition-colors hover:border-verde hover:bg-crema focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
-                  >
-                    {a.nombre}
-                    <span className="mt-0.5 block text-sm font-normal text-suave">{a.descripcion}</span>
-                  </Link>
+                  <EnlaceAcceso
+                    a={`/carpetas/${carpeta.id}/${a.ruta}`}
+                    icono={a.icono}
+                    titulo={a.nombre}
+                    descripcion={a.descripcion}
+                  />
                 </li>
               ))}
             </ul>

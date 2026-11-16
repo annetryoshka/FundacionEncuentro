@@ -140,6 +140,7 @@ function FormularioAsignacion({ carpeta, alActualizar }: Omit<Props, 'puedeAsign
         </select>
         <Boton
           onClick={asignar}
+          icono="asignar"
           disabled={!elegida || elegida === actualId}
           cargando={guardando}
           textoCargando="Guardando…"

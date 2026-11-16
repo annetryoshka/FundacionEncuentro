@@ -2,7 +2,8 @@ import { ErrorDeCarga } from '../../componentes/ErrorDeCarga'
 import { useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useCarga } from '../../api/useCarga'
-import { claseCampo } from '../../componentes/estilos'
+import { claseBoton, claseCampo } from '../../componentes/estilos'
+import { Icono } from '../../componentes/iconos'
 import { Boton, Cargando, EncabezadoPagina } from '../../componentes/ui'
 import { fechaCorta } from '../../utilidades/fechas'
 import { useSesion } from '../auth/sesion'
@@ -70,10 +71,8 @@ export function PaginaCarpetas() {
         descripcion={esAdmin ? 'Todas las carpetas del centro.' : 'Solo ves las carpetas que la dirección te asignó.'}
         accion={
           esAdmin && (
-            <Link
-              to="/carpetas/nueva"
-              className="inline-flex items-center justify-center rounded-full bg-verde px-5 py-3 font-semibold text-white hover:bg-verde-oscuro focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
-            >
+            <Link to="/carpetas/nueva" className={claseBoton()}>
+              <Icono nombre="pacienteNuevo" className="size-[1.125rem]" />
               Registrar paciente
             </Link>
           )
@@ -178,11 +177,11 @@ function FormularioBusqueda({
         </select>
       </div>
       <div className="col-span-2 flex gap-2 lg:col-span-1">
-        <Boton type="submit" className="flex-1 lg:flex-none">
+        <Boton type="submit" icono="buscar" className="flex-1 lg:flex-none">
           Buscar
         </Boton>
         {hayAlgo && (
-          <Boton variante="secundario" onClick={alLimpiar}>
+          <Boton variante="secundario" icono="cerrar" onClick={alLimpiar}>
             Limpiar
           </Boton>
         )}
@@ -241,7 +240,7 @@ function Resultados({
                 : `No hay carpetas con el filtro ${filtros}`}
             </p>
             <p className="mt-1 text-suave">Prueba con otra combinación o quita los filtros.</p>
-            <Boton variante="texto" className="mt-2" onClick={alQuitarFiltros}>
+            <Boton variante="texto" icono="cerrar" className="mt-2" onClick={alQuitarFiltros}>
               Quitar filtros
             </Boton>
           </>
@@ -306,7 +305,12 @@ function Resultados({
 
       {totalPaginas > 1 && (
         <nav aria-label="Paginación" className="mt-5 flex items-center justify-between gap-3">
-          <Boton variante="secundario" disabled={datos.pagina <= 1} onClick={() => alCambiarPagina(datos.pagina - 1)}>
+          <Boton
+            variante="secundario"
+            icono="anterior"
+            disabled={datos.pagina <= 1}
+            onClick={() => alCambiarPagina(datos.pagina - 1)}
+          >
             Anterior
           </Boton>
           <p className="text-sm text-suave">
@@ -318,6 +322,7 @@ function Resultados({
             onClick={() => alCambiarPagina(datos.pagina + 1)}
           >
             Siguiente
+            <Icono nombre="siguiente" className="size-[1.125rem]" />
           </Boton>
         </nav>
       )}

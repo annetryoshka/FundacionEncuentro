@@ -2,7 +2,9 @@
  * Piezas de interfaz reutilizables con la identidad de Fundación Encuentro.
  * Mantienen igual la accesibilidad en todas las pantallas: etiqueta, error asociado, foco visible.
  */
-import { claseCampo } from './estilos'
+import { claseBoton, claseCampo, type VarianteBoton } from './estilos'
+import { Icono, type NombreIcono } from './iconos'
+import { Link } from 'react-router'
 import {
   forwardRef,
   useId,
@@ -14,24 +16,19 @@ import {
 
 // ---- Botones ---------------------------------------------------------------
 
-type VarianteBoton = 'primario' | 'secundario' | 'texto'
-
-const ESTILO_BOTON: Record<VarianteBoton, string> = {
-  primario: 'bg-verde text-white hover:bg-verde-oscuro px-5 py-3',
-  secundario: 'border border-verde bg-white text-verde hover:bg-verde hover:text-white px-5 py-2.5',
-  texto: 'text-naranja-texto hover:text-naranja px-2 py-1.5 underline-offset-4 hover:underline',
-}
-
 interface PropsBoton extends ButtonHTMLAttributes<HTMLButtonElement> {
   variante?: VarianteBoton
   cargando?: boolean
   textoCargando?: string
+  /** Ícono a la izquierda del texto. Mientras carga, lo reemplaza el indicador. */
+  icono?: NombreIcono
 }
 
 export function Boton({
   variante = 'primario',
   cargando = false,
   textoCargando,
+  icono,
   className = '',
   children,
   disabled,
@@ -43,11 +40,24 @@ export function Boton({
       {...resto}
       disabled={disabled || cargando}
       aria-busy={cargando || undefined}
-      className={`inline-flex items-center justify-center gap-2 rounded-full text-base font-semibold transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja disabled:cursor-not-allowed disabled:opacity-70 ${ESTILO_BOTON[variante]} ${className}`}
+      className={`${claseBoton(variante)} ${className}`}
     >
-      {cargando && <Indicador />}
+      {cargando ? <Indicador /> : icono && <Icono nombre={icono} className="size-[1.125rem]" />}
       {cargando && textoCargando ? textoCargando : children}
     </button>
+  )
+}
+
+/** Enlace «Volver a …» al principio de una pantalla. */
+export function EnlaceVolver({ a, children }: { a: string; children: ReactNode }) {
+  return (
+    <Link
+      to={a}
+      className="inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-naranja-texto underline-offset-4 hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+    >
+      <Icono nombre="atras" className="size-4" />
+      {children}
+    </Link>
   )
 }
 
@@ -62,6 +72,36 @@ export function Indicador({ className = 'size-4' }: { className?: string }) {
       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" />
       <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
+  )
+}
+
+/** Acceso a otra pantalla en forma de tarjeta: ícono, título, descripción y flecha. */
+export function EnlaceAcceso({
+  a,
+  icono,
+  titulo,
+  descripcion,
+}: {
+  a: string
+  icono: NombreIcono
+  titulo: string
+  descripcion: string
+}) {
+  return (
+    <Link
+      to={a}
+      className="group flex h-full items-center gap-4 rounded-2xl border border-linea bg-white px-4 py-3.5 transition-colors hover:border-verde hover:bg-crema focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+    >
+      <Icono nombre={icono} className="size-6 text-verde" />
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-verde-oscuro">{titulo}</span>
+        <span className="mt-0.5 block text-sm text-suave">{descripcion}</span>
+      </span>
+      <Icono
+        nombre="siguiente"
+        className="size-4 text-suave transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+      />
+    </Link>
   )
 }
 

@@ -147,6 +147,7 @@ export function FormularioEditarPaciente({
             <Boton
               type="button"
               variante="secundario"
+              icono="cerrar"
               onClick={alCancelar}
               disabled={guardando}
             >
@@ -155,6 +156,7 @@ export function FormularioEditarPaciente({
 
             <Boton
               type="submit"
+              icono="guardar"
               cargando={guardando}
               textoCargando="Guardando..."
             >

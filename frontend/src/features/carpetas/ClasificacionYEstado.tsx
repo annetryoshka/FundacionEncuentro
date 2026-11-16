@@ -156,7 +156,7 @@ function ControlGuardado<T extends string>({
             </option>
           ))}
         </select>
-        <Boton onClick={enviar} disabled={sinCambios} cargando={guardando} textoCargando="Guardando…">
+        <Boton onClick={enviar} icono="guardar" disabled={sinCambios} cargando={guardando} textoCargando="Guardando…">
           {textoBoton}
         </Boton>
       </div>
