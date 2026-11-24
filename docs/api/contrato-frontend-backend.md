@@ -81,8 +81,7 @@ abajo se aplican en backend, independientemente del frontend.
 
 `POST /api/auth/refresh` · `@Public()` → `{ "refreshToken": "…" }` → misma respuesta que el login; 401 si ya no sirve.
 
-`POST /api/auth/logout` → 204 cuando el servicio termina sin error. La revocación del
-refresh token en Supabase real no está comprobada por FE-34; corresponde a FE-26/FE-27.
+`POST /api/auth/logout` → devuelve 204 cuando Supabase confirma el cierre de la sesión actual (scope=local) y el backend registra la auditoría. Si Supabase devuelve una respuesta inesperada, falla la comunicación o vence el plazo, la API responde 502, 503 o 504, respectivamente. En esos casos el frontend conserva el cierre local y avisa que la revocación remota quedó sin confirmar. La vigencia del access token y el comportamiento del refresh token se comprueban por separado en Supabase de QA.
 
 `GET /api/auth/me` → `{ id, nombreCompleto, rol }`.
 
