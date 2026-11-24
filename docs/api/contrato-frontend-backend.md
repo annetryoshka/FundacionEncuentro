@@ -444,3 +444,26 @@ Demostración integrada en navegador con frontend real, backend de `main` y Post
 25 comprobaciones aprobadas (cuentas, alta, duplicados, asignación, búsqueda y permisos por rol).
 Auth fue un Supabase de prueba local. Detalle, incidencias corregidas y guion en
 `docs/pruebas/FE-46-demostracion-integrada.md`.
+
+## Genograma del caso (FE-131)
+
+Las operaciones requieren una sesión autenticada. El servidor comprueba
+que la persona sea administradora o la terapeuta asignada al caso.
+
+| Método y ruta | Solicitud | Respuesta exitosa |
+| --- | --- | --- |
+| `PUT /api/carpetas/:id/genograma` | Formulario `multipart/form-data` con el campo `archivo`. | `204` sin cuerpo. |
+| `GET /api/carpetas/:id/genograma` | Sin cuerpo. | `200` con `nombre`, `tipo`, `tamanio` en bytes, `autorId` y `actualizadoEn` en formato ISO 8601. |
+| `GET /api/carpetas/:id/genograma/archivo` | Sin cuerpo. | `200` con el archivo como adjunto. |
+
+La carga admite PDF, PNG y JPEG. El límite actual es de 5 MiB, pendiente
+de confirmación. Una carga sin archivo devuelve `400`. Si supera el
+límite devuelve `413`. Si el formato no coincide con los bytes iniciales
+o no está admitido, devuelve `415`.
+
+El servidor devuelve `404` si el caso no existe o la terapeuta no tiene
+acceso. La consulta y la descarga también devuelven `404` si el caso
+accesible todavía no tiene genograma.
+
+Un reemplazo inválido conserva el archivo vigente. Tras un `204`, el
+frontend puede consultar de nuevo los metadatos para refrescar la ficha.
