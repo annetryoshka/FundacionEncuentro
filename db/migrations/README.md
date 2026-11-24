@@ -16,6 +16,7 @@
    | `migrations/009_tareas_por_sesion.sql` | FE-79: cada tarea pertenece a una sesión del mismo caso; quién cambió el cumplimiento |
    | `migrations/010_pagos_por_sesion.sql` | FE-89: un pago por sesión del mismo caso; monto sin redondeo silencioso |
    | `migrations/011_indicadores_operativos.sql` | FE-94: función `indicadores_operativos(desde, hasta)` para el dashboard de FE-6 |
+   | `migrations/014_difusion_publicaciones.sql` | FE-142: publicaciones de difusión, imágenes y vista pública `v_publicaciones_publicas` |
 
    ## Modelo del Sprint 2
 
@@ -33,6 +34,26 @@
    - Errores que la API debe traducir: `23514` (check) y `23502` (falta un dato) → 400, `23505` (duplicado) → 409, `23503` (sesión de otro caso o inexistente) → 400 o 404.
    - Consultas del historial ya revisadas (FE-84): `backend/test/historial-postgres.test.mjs`. Cada sección va en su propia consulta; unir sesiones, tareas y pagos en una sola duplica filas.
    - Dashboard (FE-94): `select * from indicadores_operativos('2026-10-12', '2026-10-19')`. Fechas inclusivas, solo casos y pacientes no eliminados, pagos en BOB.
+
+   ## Difusión (FE-142)
+
+   Contrato de FE-140. Separado de lo clínico: sus FK solo apuntan a `perfiles`.
+
+   ```
+   publicaciones_difusion 1 ─ n recursos_difusion   (metadatos de imágenes; una sola principal)
+   v_publicaciones_publicas                          (solo publicadas, solo campos públicos)
+   ```
+
+   - Estados: se crea en `borrador`; `borrador → publicado → retirado → borrador`. Otra transición → `23514`.
+     `creado_por`, `publicado_en/por` y `retirado_en/por` los pone la base desde `app.usuario_id`; lo que envíe el cliente se ignora.
+   - Para publicar hace falta `resumen`. Los mínimos por tipo (fechas, modalidad, lugar) los valida la API (FE-143) hasta que FE-141 los ratifique.
+   - Límites: título 1–150, resumen ≤ 500, contenido ≤ 10 000, lugar ≤ 200, `contacto_url` http/https ≤ 500, fin ≥ inicio.
+     El contenido se guarda como texto: la API y la interfaz no lo interpretan como HTML.
+   - Imágenes: el archivo va en el bucket `difusion-publica` (nunca en el almacenamiento clínico); aquí se guardan ruta relativa,
+     tipo (`image/jpeg`, `image/png`, `image/webp`), tamaño ≤ 5 MB, dimensiones, `sha256` y texto alternativo obligatorio.
+     Ruta repetida o segunda imagen principal → `23505`.
+   - La API pública lee solo de `v_publicaciones_publicas`: publicada o no existe (retirada o borrador → 404).
+   - RLS activo y sin acceso para `anon`/`authenticated`: todo pasa por el backend.
 
    Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
 
@@ -57,6 +78,7 @@
    | FE-89 | `pagos-integridad-postgres.test.mjs` |
    | FE-84 | `historial-postgres.test.mjs` |
    | FE-94 | `indicadores-postgres.test.mjs` |
+   | FE-142 | `difusion-postgres.test.mjs` |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
