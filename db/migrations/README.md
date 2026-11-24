@@ -18,6 +18,7 @@
    | `migrations/011_indicadores_operativos.sql` | FE-94: función `indicadores_operativos(desde, hasta)` para el dashboard de FE-6 |
    | `migrations/013_residencia_pacientes.sql` | FE-135: ciudad de residencia del paciente y `indicadores_por_residencia(desde, hasta)` |
    | `migrations/014_difusion_publicaciones.sql` | FE-142: publicaciones de difusión, imágenes y vista pública `v_publicaciones_publicas` |
+   | `migrations/015_familiares_caso.sql` | FE-125: composición familiar por caso y vista `v_fuente_clinica_vigente` |
 
    ## Modelo del Sprint 2
 
@@ -76,6 +77,31 @@
 
    Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
 
+   ## Composición familiar (FE-125)
+
+   Contrato de FE-123. La familia va en tablas propias, fuera del JSON de `fichas_diagnostico`: guardar el diagnóstico no la borra.
+
+   ```
+   casos 1 ─ 0..1 fichas_familiares   (sin fila = sin registrar; versión para ediciones concurrentes)
+                    1 ─ n familiares   (parentesco respecto del paciente; deleted_at = eliminado)
+   ```
+
+   | Columna de `familiares` | Regla |
+   |---|---|
+   | `parentesco` | `madre`, `padre`, `hermano`, `hermana`, `hijo`, `hija`, `abuelo_materno`, `abuela_materna`, `abuelo_paterno`, `abuela_paterna`, `tio`, `tia`, `pareja`, `tutor`, `tutora`, `otro`. Se puede repetir. |
+   | `parentesco_detalle` | Obligatorio (hasta 100) si el parentesco es `otro`; NULL en los demás. |
+   | `nombre_completo`, `lugar_trabajo_estudio` (150), `ocupacion` (200), `observaciones` (2000) | Opcionales. NULL = desconocido; no se aceptan textos vacíos. |
+   | `fecha_nacimiento` o `edad_referida` + `fecha_referencia` | Una de las dos formas, o ninguna (edad desconocida). Edad 0–130. Fechas desde 1900 y no futuras (hora de Bolivia). |
+   | `convive_con_paciente` | true, false o NULL = desconocido. |
+   | `orden_registro` | Orden en que se registraron; usar para listar. |
+   | `creado_por`, `actualizado_por` | Los llena un trigger desde `app.usuario_id`. |
+
+   - La edad referida no se actualiza sola. Edad cumplida desde el nacimiento: `edad_en(fecha_nacimiento, fecha)`.
+   - Un familiar no cambia de caso ni se edita después de eliminado (`23514`). Sin cabecera no hay familiares (`23503`); la cabecera es única por caso (`23505`).
+   - `fichas_familiares.version` sube una vez por transacción que cambia familiares. Para guardar: `select version ... for update`, comparar con la versión que envió el cliente (distinta → 409) y aplicar los cambios en la misma transacción.
+   - No enlaza familiares con `pacientes` ni crea carpetas para ellos.
+   - `v_fuente_clinica_vigente`: por caso, el diagnóstico de la ficha (`origen = 'ficha'`) o, si no hay ficha, el del alta (`'alta'`), o `'sin_datos'`. Un NULL de la ficha no se completa con el alta. Las columnas `alta_*` conservan siempre lo registrado en el alta.
+
    ## Pruebas de las migraciones con PostgreSQL local
 
    Cada archivo `backend/test/*-postgres.test.mjs` del Sprint 2 crea una base desechable, aplica todas las migraciones, carga datos ficticios y la borra al terminar. Nunca usa Supabase.
@@ -99,6 +125,7 @@
    | FE-94 | `indicadores-postgres.test.mjs` |
    | FE-135 | `residencia-postgres.test.mjs` |
    | FE-142 | `difusion-postgres.test.mjs` |
+   | FE-125 | `familiares-postgres.test.mjs` (aplica la 015 sobre una base con datos existentes) |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
