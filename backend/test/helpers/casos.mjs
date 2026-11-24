@@ -40,6 +40,7 @@ export async function servidor(db, usuariosPorToken = { fixture: actor }) {
     await app.listen(0, '127.0.0.1');
     const base = await app.getUrl();
     return {
+      base,
       solicitar: (ruta, { token = 'fixture', metodo = 'GET', cuerpo } = {}) => fetch(`${base}/api${ruta}`, {
         method: metodo,
         headers: { ...(token === null ? {} : { Authorization: `Bearer ${token}` }), ...(cuerpo === undefined ? {} : { 'Content-Type': 'application/json' }) },

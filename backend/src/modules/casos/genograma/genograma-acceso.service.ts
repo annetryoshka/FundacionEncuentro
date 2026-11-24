@@ -1,12 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { PoolClient } from 'pg';
 import type { Usuario } from '../../../common/types/usuario.js';
 import { DatabaseService } from '../../../database/database.service.js';
 @Injectable()
 export class GenogramaAccesoService {
   constructor(private readonly db: DatabaseService) {}
 
-  async verificar(casoId: string, usuario: Usuario): Promise<void> {
-    const resultado = await this.db.query<{ id: string }>(
+  /** Con `client`, la comprobación corre dentro de esa transacción. */
+  async verificar(
+    casoId: string,
+    usuario: Usuario,
+    client?: Pick<PoolClient, 'query'>,
+  ): Promise<void> {
+    const consultar = client
+      ? client.query.bind(client)
+      : this.db.query.bind(this.db);
+    const resultado = await consultar<{ id: string }>(
       `select c.id
          from casos c
          join pacientes p on p.id = c.paciente_id
