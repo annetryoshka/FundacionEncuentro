@@ -84,6 +84,15 @@ const PAGOS = [
   [14, 1, '2026-10-15', '25.10', 'transferencia', 'TRF-DEMO-002'],
 ];
 
+// [FE-142] publicaciones de difusión ficticias (requiere la migración 014), una por estado. Sin imágenes:
+// las autorizadas llegan con FE-141. [id, tipo, estado final, datos]
+const PUBLICACIONES = [
+  [1, 'campana', 'publicado', { titulo: 'Campaña de demostración: familias que se escuchan', resumen: 'Publicación ficticia para revisar el portal.', contenido: 'Texto de demostración sin datos de pacientes.', fecha_inicio: '2026-12-01', fecha_fin: '2026-12-31', modalidad: 'mixta', lugar: 'Lugar ficticio de demostración' }],
+  [2, 'actividad', 'borrador', { titulo: 'Actividad de demostración: taller para madres y padres', resumen: 'Borrador ficticio; no debe verse en el portal.', contenido: 'Texto de demostración sin datos de pacientes.', fecha_inicio: '2026-12-13', fecha_fin: '2026-12-13', modalidad: 'presencial', lugar: 'Lugar ficticio de demostración' }],
+  [3, 'curso', 'retirado', { titulo: 'Curso de demostración: comunicación en pareja', resumen: 'Publicación ficticia retirada; no debe verse en el portal.', contenido: 'Texto de demostración sin datos de pacientes.', fecha_inicio: '2026-11-02', fecha_fin: '2026-11-30', modalidad: 'virtual' }],
+];
+const idPublicacion = (n) => `40000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
 const idCaso = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const idPaciente = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 // [FE-74] sesión n de la carpeta c: 30000000-0000-4000-8000-0000ccc00nnn
@@ -281,6 +290,35 @@ async function crearDatosSprint2(cuentas) {
   return resumen;
 }
 
+// [FE-142] crea cada publicación en borrador y la lleva a su estado con las transiciones de la base.
+async function crearDatosDifusion(cuentas) {
+  const cliente = await pool.connect();
+  let nuevas = 0;
+  try {
+    await cliente.query('begin');
+    await cliente.query(`select set_config('app.usuario_id', $1, true)`, [cuentas.diego]);
+    for (const [n, tipo, estado, datos] of PUBLICACIONES) {
+      const r = await cliente.query(
+        `insert into publicaciones_difusion (id, tipo, titulo, resumen, contenido, fecha_inicio, fecha_fin, modalidad, lugar)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9) on conflict (id) do nothing`,
+        [idPublicacion(n), tipo, datos.titulo, datos.resumen, datos.contenido, datos.fecha_inicio, datos.fecha_fin, datos.modalidad, datos.lugar ?? null],
+      );
+      if (!r.rowCount) continue;
+      nuevas += 1;
+      for (const paso of { borrador: [], publicado: ['publicado'], retirado: ['publicado', 'retirado'] }[estado]) {
+        await cliente.query('update publicaciones_difusion set estado = $1 where id = $2', [paso, idPublicacion(n)]);
+      }
+    }
+    await cliente.query('commit');
+  } catch (error) {
+    await cliente.query('rollback');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+  return nuevas;
+}
+
 async function borrar() {
   const idsCasos = casos.map((c) => c.id);
   const idsPacientes = PACIENTES.map((_, i) => idPaciente(i + 1));
@@ -295,6 +333,8 @@ async function borrar() {
     }
     await cliente.query('delete from asignaciones_caso where caso_id = any($1)', [idsCasos]);
     await cliente.query('delete from contexto_judicial where caso_id = any($1)', [idsCasos]);
+    // [FE-142] antes de las cuentas: las publicaciones guardan quién las creó
+    await cliente.query('delete from publicaciones_difusion where id = any($1)', [PUBLICACIONES.map(([n]) => idPublicacion(n))]);
     const c = await cliente.query('delete from casos where id = any($1)', [idsCasos]);
     const p = await cliente.query('delete from pacientes where id = any($1)', [idsPacientes]);
     // El contador queda en el número más alto que sigue en uso.
@@ -331,9 +371,11 @@ try {
     const cuentas = await crearCuentas();
     const r = await crearCarpetas(cuentas);
     const s = await crearDatosSprint2(cuentas);
+    const d = await crearDatosDifusion(cuentas);
     console.log(`Cuentas listas (contraseña ${CONTRASENA}): ${CUENTAS.map((c) => c.email).join(', ')}`);
     console.log(`Nuevos: ${r.pacientes} pacientes, ${r.carpetas} carpetas, ${r.asignaciones} asignaciones, ${r.residencias} residencias.`);
     console.log(`Sprint 2, nuevos: ${Object.entries(s).map(([dato, n]) => `${n} ${dato}`).join(', ')}.`);
+    console.log(`Difusión, nuevas: ${d} publicaciones.`);
   }
 } finally {
   await pool.end();
