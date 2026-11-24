@@ -16,6 +16,7 @@
    | `migrations/009_tareas_por_sesion.sql` | FE-79: cada tarea pertenece a una sesión del mismo caso; quién cambió el cumplimiento |
    | `migrations/010_pagos_por_sesion.sql` | FE-89: un pago por sesión del mismo caso; monto sin redondeo silencioso |
    | `migrations/011_indicadores_operativos.sql` | FE-94: función `indicadores_operativos(desde, hasta)` para el dashboard de FE-6 |
+   | `migrations/013_residencia_pacientes.sql` | FE-135: ciudad de residencia del paciente y `indicadores_por_residencia(desde, hasta)` |
 
    ## Modelo del Sprint 2
 
@@ -33,6 +34,24 @@
    - Errores que la API debe traducir: `23514` (check) y `23502` (falta un dato) → 400, `23505` (duplicado) → 409, `23503` (sesión de otro caso o inexistente) → 400 o 404.
    - Consultas del historial ya revisadas (FE-84): `backend/test/historial-postgres.test.mjs`. Cada sección va en su propia consulta; unir sesiones, tareas y pagos en una sola duplica filas.
    - Dashboard (FE-94): `select * from indicadores_operativos('2026-10-12', '2026-10-19')`. Fechas inclusivas, solo casos y pacientes no eliminados, pagos en BOB.
+
+   ## Residencia del paciente (FE-135)
+
+   Catálogo de FE-134. Columnas nuevas en `pacientes`:
+
+   | Columna | Regla |
+   |---|---|
+   | `ciudad_residencia` | `la_paz`, `el_alto`, `otra` o NULL (= sin registrar). Los pacientes existentes quedan en NULL. |
+   | `otra_localidad` | Obligatoria (hasta 100 caracteres, no solo espacios) si la ciudad es `otra`; NULL en los demás casos. |
+   | `residencia_actualizada_en`, `residencia_actualizada_por` | Las llena un trigger desde `app.usuario_id` cuando cambia la residencia. |
+
+   - Es la residencia **actual**: la comparten todas las carpetas del paciente y cambiarla no toca número, origen, fecha de ingreso ni asignación.
+   - Filtro del listado (FE-136), dentro de las mismas condiciones de `listarCarpetas`, antes del total y la paginación:
+     `residencia=sin_registrar` → `p.ciudad_residencia is null`; otro valor → `p.ciudad_residencia = $n`.
+   - Indicadores: `select * from indicadores_por_residencia('2026-11-20', '2026-11-21')` devuelve siempre 4 filas
+     (`la_paz`, `el_alto`, `otra`, `sin_registrar`) con las mismas columnas que `indicadores_operativos`; su suma es igual a esa función.
+     Las sesiones y pagos se agrupan por la residencia actual del paciente.
+   - Errores: ciudad fuera del catálogo u `otra` sin localidad → `23514` (400).
 
    Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
 
@@ -57,6 +76,7 @@
    | FE-89 | `pagos-integridad-postgres.test.mjs` |
    | FE-84 | `historial-postgres.test.mjs` |
    | FE-94 | `indicadores-postgres.test.mjs` |
+   | FE-135 | `residencia-postgres.test.mjs` |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 

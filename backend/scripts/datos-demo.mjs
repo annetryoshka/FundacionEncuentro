@@ -36,6 +36,11 @@ const PACIENTES = [
   ['Sebastián López Arce', 'derivado', 'iniciado', '2026-09-25', null, '2010-01-19', '63456789'],
   ['Paola Gutiérrez Mendoza', 'voluntario', 'iniciado', '2026-10-05', 'carla', '1985-10-28', '64567890'],
 ];
+// [FE-135] ciudad de residencia por paciente (requiere la migración 013). 12 y 13 quedan sin registrar.
+const RESIDENCIA = {
+  1: 'la_paz', 2: 'el_alto', 3: 'la_paz', 4: 'el_alto', 5: 'el_alto', 6: 'la_paz', 7: 'el_alto',
+  8: ['otra', 'Viacha (dato ficticio)'], 9: 'la_paz', 10: 'el_alto', 11: 'la_paz', 14: 'el_alto',
+};
 // Segunda carpeta de un paciente que ya existe (FE-33): Mariana vuelve al centro.
 const SEGUNDAS = [{ paciente: 1, tipo: 'voluntario', estado: 'iniciado', fecha: '2026-10-15', terapeuta: 'sofia' }];
 
@@ -134,7 +139,7 @@ async function crearCuentas() {
 
 async function crearCarpetas(cuentas) {
   const cliente = await pool.connect();
-  const resumen = { pacientes: 0, carpetas: 0, asignaciones: 0 };
+  const resumen = { pacientes: 0, carpetas: 0, asignaciones: 0, residencias: 0 };
   try {
     await cliente.query('begin');
     await cliente.query(`select set_config('app.usuario_id', $1, true)`, [cuentas.direccion]);
@@ -146,6 +151,15 @@ async function crearCarpetas(cuentas) {
         [idPaciente(i + 1), nombre, nacimiento, fecha, telefono, cuentas.direccion],
       );
       resumen.pacientes += r.rowCount;
+    }
+    // [FE-135] solo si aún no tiene residencia: no pisa cambios hechos durante la demo.
+    for (const [n, valor] of Object.entries(RESIDENCIA)) {
+      const [ciudad, localidad = null] = [].concat(valor);
+      const r = await cliente.query(
+        'update pacientes set ciudad_residencia = $1, otra_localidad = $2 where id = $3 and ciudad_residencia is null',
+        [ciudad, localidad, idPaciente(n)],
+      );
+      resumen.residencias += r.rowCount;
     }
     for (const c of casos) {
       // El número correlativo lo pone el trigger de la base; se inserta solo si no existe para no gastar números.
@@ -318,7 +332,7 @@ try {
     const r = await crearCarpetas(cuentas);
     const s = await crearDatosSprint2(cuentas);
     console.log(`Cuentas listas (contraseña ${CONTRASENA}): ${CUENTAS.map((c) => c.email).join(', ')}`);
-    console.log(`Nuevos: ${r.pacientes} pacientes, ${r.carpetas} carpetas, ${r.asignaciones} asignaciones.`);
+    console.log(`Nuevos: ${r.pacientes} pacientes, ${r.carpetas} carpetas, ${r.asignaciones} asignaciones, ${r.residencias} residencias.`);
     console.log(`Sprint 2, nuevos: ${Object.entries(s).map(([dato, n]) => `${n} ${dato}`).join(', ')}.`);
   }
 } finally {
