@@ -19,6 +19,7 @@
    | `migrations/013_residencia_pacientes.sql` | FE-135: ciudad de residencia del paciente y `indicadores_por_residencia(desde, hasta)` |
    | `migrations/014_difusion_publicaciones.sql` | FE-142: publicaciones de difusión, imágenes y vista pública `v_publicaciones_publicas` |
    | `migrations/015_familiares_caso.sql` | FE-125: composición familiar por caso y vista `v_fuente_clinica_vigente` |
+   | `migrations/016_fotografia_informes.sql` | FE-152: versiones de informes con la fotografía de los datos usados y `fotografia_informe(...)` |
 
    ## Modelo del Sprint 2
 
@@ -102,6 +103,31 @@
    - No enlaza familiares con `pacientes` ni crea carpetas para ellos.
    - `v_fuente_clinica_vigente`: por caso, el diagnóstico de la ficha (`origen = 'ficha'`) o, si no hay ficha, el del alta (`'alta'`), o `'sin_datos'`. Un NULL de la ficha no se completa con el alta. Las columnas `alta_*` conservan siempre lo registrado en el alta.
 
+   ## Informes (FE-152)
+
+   Plantillas de FE-151. Cada generación guarda una copia de los datos usados; un cambio posterior del expediente no la altera.
+
+   ```
+   informes 1 ─ n informe_versiones           (borrador → revisado; datos_origen = fotografía)
+                    1 ─ n informe_version_sesiones   (sesiones citadas, mismo caso, en orden)
+   ```
+
+   - `fotografia_informe(caso, sesiones[], incluirFamilia, incluirGenograma)` devuelve en un jsonb: caso, paciente, responsable actual,
+     diagnóstico vigente (`v_fuente_clinica_vigente`: `origen` ficha / alta / sin_datos), contexto judicial, `seleccion`,
+     sesiones elegidas (sin repetir, por fecha y número) con sus tareas, y familia y genograma si se piden (null = no incluido).
+     Sesión de otro caso o inexistente → `23514`; caso inexistente o eliminado → `P0002`. El genograma requiere la 012 (si falta, `0A000`).
+   - Guardar (FE-153), en una transacción con `app.usuario_id`: `insert into informes (caso_id, tipo)` y
+     `insert into informe_versiones (informe_id, caso_id, version_plantilla, datos_origen, secciones)` con `datos_origen` =
+     el resultado de `fotografia_informe`. La base comprueba que la fotografía es igual a los datos actuales del caso:
+     alterada, de otro caso o desactualizada → `23514` (volver a leerla y regenerar). Informe de otro caso → `23503`.
+   - La base pone `nro_version`, `creado_por`, `generado_por`, `revisado_por/en` y llena `informe_version_sesiones`.
+     `ficha_diagnostico_id` y `genograma_clave` salen de la fotografía.
+   - `secciones` (`[{ titulo, contenido }]`) se edita solo en borrador; cada cambio queda en `auditoria` con su autor.
+     `estado = 'revisado'` es definitivo: después no se edita ni se elimina (`23514`). Un borrador se puede eliminar.
+     Un solo borrador abierto por informe (`23505`).
+   - `informe_version_al_dia(version)` → false si el expediente cambió desde la fotografía (para avisar y ofrecer otra versión).
+   - El caso, el tipo y el autor de un informe no cambian. `informes.formato` y `archivo_path` quedan para la exportación (FE-158).
+
    ## Pruebas de las migraciones con PostgreSQL local
 
    Cada archivo `backend/test/*-postgres.test.mjs` del Sprint 2 crea una base desechable, aplica todas las migraciones, carga datos ficticios y la borra al terminar. Nunca usa Supabase.
@@ -126,6 +152,7 @@
    | FE-135 | `residencia-postgres.test.mjs` |
    | FE-142 | `difusion-postgres.test.mjs` |
    | FE-125 | `familiares-postgres.test.mjs` (aplica la 015 sobre una base con datos existentes) |
+   | FE-152 | `informes-postgres.test.mjs` (aplica la 016 sobre una base con datos existentes) |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
