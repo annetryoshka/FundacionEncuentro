@@ -83,6 +83,24 @@ const PAGOS = [
   [6, 1, '2026-10-12', '125.00', 'qr', null],
   [14, 1, '2026-10-15', '25.10', 'transferencia', 'TRF-DEMO-002'],
 ];
+// [FE-125] composición familiar (requiere la migración 015). Fichas de aceptación de FE-123:
+// carpeta 10 = ficha A (paciente de 12 años), carpeta 1 = ficha B (adulta). La 6 queda registrada
+// sin integrantes; las demás, sin registrar. Campos omitidos = desconocido.
+const FAMILIAS = [
+  [10, [
+    { parentesco: 'padre', nombre: 'Rubén Chávez (ficticio)', edad: 44, referencia: '2026-08-10', ocupacion: 'Conductor', lugar: 'Línea de minibús ficticia', convive: true },
+    { parentesco: 'madre', nombre: 'Elsa Ticona (ficticio)', edad: 41, referencia: '2026-08-10', ocupacion: 'Comerciante', convive: true },
+    { parentesco: 'hermana', nombre: 'Abril Chávez (ficticio)', edad: 8, referencia: '2026-08-10', ocupacion: 'Estudiante', lugar: 'Unidad educativa ficticia', convive: true },
+    { parentesco: 'abuela_materna', nombre: 'Rosa Mamani (ficticio)', edad: 68, referencia: '2026-08-10', convive: false },
+  ]],
+  [1, [
+    { parentesco: 'hija', nombre: 'Sofía Gutiérrez (ficticio)', nacimiento: '2012-02-14', ocupacion: 'Estudiante', lugar: 'Colegio ficticio', convive: true },
+    { parentesco: 'tio', nombre: 'Hugo Paz (ficticio)' },
+    { parentesco: 'tio', nombre: 'Néstor Paz (ficticio)', convive: false },
+    { parentesco: 'abuelo_paterno' },
+  ]],
+  [6, []],
+];
 
 // [FE-142] publicaciones de difusión ficticias (requiere la migración 014), una por estado. Sin imágenes:
 // las autorizadas llegan con FE-141. [id, tipo, estado final, datos]
@@ -280,6 +298,22 @@ async function crearDatosSprint2(cuentas) {
       );
       resumen.pagos += r.rowCount;
     }
+    // [FE-125] familias: los integrantes se cargan solo si la cabecera es nueva, así no se duplican.
+    resumen.familiares = 0;
+    for (const [carpeta, integrantes] of FAMILIAS) {
+      const r = await cliente.query('insert into fichas_familiares (caso_id) values ($1) on conflict (caso_id) do nothing', [idCaso(carpeta)]);
+      if (!r.rowCount) continue;
+      for (const f of integrantes) {
+        await cliente.query(
+          `insert into familiares (caso_id, parentesco, nombre_completo, fecha_nacimiento, edad_referida, fecha_referencia,
+             ocupacion, lugar_trabajo_estudio, convive_con_paciente)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [idCaso(carpeta), f.parentesco, f.nombre ?? null, f.nacimiento ?? null, f.edad ?? null, f.referencia ?? null,
+            f.ocupacion ?? null, f.lugar ?? null, f.convive ?? null],
+        );
+        resumen.familiares += 1;
+      }
+    }
     await cliente.query('commit');
   } catch (error) {
     await cliente.query('rollback');
@@ -328,6 +362,8 @@ async function borrar() {
     const tablas = ['pagos', 'tareas_terapeuticas', 'fichas_seguimiento', 'fichas_diagnostico'];
     // [FE-64] la tabla de constancias existe desde la migración 005
     tablas.push('constancias_atencion');
+    // [FE-125] familiares antes que su cabecera
+    tablas.push('familiares', 'fichas_familiares');
     for (const tabla of tablas) {
       await cliente.query(`delete from ${tabla} where caso_id = any($1)`, [idsCasos]);
     }
