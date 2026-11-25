@@ -37,5 +37,8 @@ import { HistorialService } from './historial.service.js';
     PagosService,
     HistorialService,
   ],
+  exports: [
+    CasosService
+  ],
 })
 export class CasosModule {}

@@ -13,7 +13,10 @@ it('rechaza el caso ajeno antes de seleccionar datos del informe', async () => {
     new NotFoundException('Caso no encontrado'),
   );
   const seleccionar = vi.fn();
-  const servicio = new InformesService({ obtenerCarpetaAutorizada });
+  const servicio = new InformesService(
+  { obtenerCarpetaAutorizada },
+  { transaction: vi.fn() },
+);
 
   await expect(
     servicio.preparar('caso-ficticio', usuario, seleccionar),
@@ -33,7 +36,7 @@ it.each(['intervencion_sistemica', 'judicial'] as const)(
     };
     const carpeta = { id: casoId };
     const obtenerCarpetaAutorizada = vi.fn().mockResolvedValue(carpeta);
-    const servicio = new InformesService({ obtenerCarpetaAutorizada });
+    const servicio = new InformesService({ obtenerCarpetaAutorizada },{ transaction: vi.fn() },);
 
     const seleccionar = vi.fn(() => ({
       tipo,

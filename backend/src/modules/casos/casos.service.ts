@@ -13,6 +13,7 @@ import type { ListarCarpetasQuery } from './dto/listar-carpetas.query.js';
 import type { ActualizarEstadoCasoDto } from './dto/actualizar-estado-caso.dto.js';
 import type { ActualizarClasificacionDto } from './dto/actualizar-clasificacion.dto.js';
 import type { ActualizarConstanciaDto } from './dto/actualizar-constancia.dto.js';
+import { PoolClient } from "pg";
 
 const SELECT_CARPETA = `
   select c.id, c.tipo, c.numero_correlativo, c.estado,
@@ -229,8 +230,8 @@ export class CasosService {
     return this.aCarpeta(rows[0]);
   }
 
-  async obtenerCarpetaAutorizada(id: string, usuario: Usuario) {
-    const { rows } = await this.db.query(
+  async obtenerCarpetaAutorizada(id: string, usuario: Usuario, client?: PoolClient) {
+    const sql =
       `select c.id, c.tipo, c.numero_correlativo, c.estado, c.clasificacion,
           to_char(c.fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
           c.diagnostico_ingreso, c.hipotesis_relacional,
@@ -293,9 +294,12 @@ export class CasosService {
           $2 = 'terapeuta'
           and a.perfil_id = $3
         )
-      )`,
-      [id, usuario.rol, usuario.id],
-    );
+            )`;
+
+    const parametros = [id, usuario.rol, usuario.id];
+    const { rows } = client
+      ? await client.query(sql, parametros)
+      : await this.db.query(sql, parametros);
 
     if (!rows[0]) {
       throw new NotFoundException("Caso no encontrado");

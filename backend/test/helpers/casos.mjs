@@ -10,7 +10,8 @@ export const actor = '00000000-0000-4000-8000-000000000001';
 export const datos = (nombre = 'Paciente ficticio QA', tipo = 'voluntario') => ({
   paciente: { nombreCompleto: nombre }, caso: { tipo, fechaIngreso: '2020-01-01' },
 });
-export async function servidor(db, usuariosPorToken = { fixture: actor }) {
+export async function servidor(db, usuariosPorToken = { fixture: actor }, modulos = [],
+) {
   const original = globalThis.fetch;
   globalThis.fetch = async (url, init) => {
     const destino = new URL(url);
@@ -31,7 +32,7 @@ export async function servidor(db, usuariosPorToken = { fixture: actor }) {
     })[key] } },
   ], exports: [DatabaseService, ConfigService] })(Infraestructura);
   class Aplicacion {}
-  Module({ imports: [Infraestructura, AuthModule, CasosModule] })(Aplicacion);
+  Module({ imports: [Infraestructura, AuthModule, CasosModule, ...modulos] })(Aplicacion);
   let app;
   try {
     app = await NestFactory.create(Aplicacion, { logger: false });

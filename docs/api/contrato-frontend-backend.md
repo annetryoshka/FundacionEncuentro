@@ -444,3 +444,21 @@ Demostración integrada en navegador con frontend real, backend de `main` y Post
 25 comprobaciones aprobadas (cuentas, alta, duplicados, asignación, búsqueda y permisos por rol).
 Auth fue un Supabase de prueba local. Detalle, incidencias corregidas y guion en
 `docs/pruebas/FE-46-demostracion-integrada.md`.
+
+## Borradores de informes (FE-153)
+
+Las tres rutas requieren una terapeuta autenticada y asignada al caso.
+`versionId` es el `id` de la versión devuelta por el POST.
+
+| Método y ruta | Cuerpo | Respuesta |
+| --- | --- | --- |
+| `POST /api/carpetas/:id/informes` | `tipo` (`intervencion_sistemica` o `judicial`). Opcionales: `sesionesIds`, `incluirFamilia`, `incluirGenograma` y `objeto`. | `201` con `id`, `informeId`, `nroVersion`, `estado` y `creadoPor`. |
+| `GET /api/carpetas/:id/informes/:versionId` | Sin cuerpo. | `200` con las secciones, el estado y la autoría de la versión. |
+| `PATCH /api/carpetas/:id/informes/:versionId/revision` | `secciones`, una lista de objetos con `titulo` y `contenido`. | `200` con `id`, `estado`, `revisadoPor` y `revisadoEn`. |
+
+El POST devuelve `422` con `camposFaltantes` si faltan los mínimos.
+Para un informe judicial, se requiere un juzgado registrado y un `objeto`.
+El servidor devuelve `404` si el caso o la versión no están disponibles
+para la solicitante. Una segunda revisión de la misma versión devuelve `409`.
+
+Al revisar, se conserva la copia original de los datos del expediente.
