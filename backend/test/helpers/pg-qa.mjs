@@ -22,8 +22,8 @@ export const PERFILES = {
   marketing: '00000000-0000-4000-8000-000000000004',
 };
 
-/** Crea la base, aplica las migraciones y los perfiles. Devuelve { cliente, conectar, cerrar }. */
-export async function crearBase(prefijo) {
+/** Crea la base, aplica las migraciones (hasta la indicada, si se pasa) y los perfiles. Devuelve { cliente, conectar, cerrar, migrar }. */
+export async function crearBase(prefijo, { hasta } = {}) {
   const url = new URL(process.env.FE_PG_ADMIN_URL);
   assert.ok(['localhost', '127.0.0.1'].includes(url.hostname), 'Solo se admite PostgreSQL local');
   const nombre = `${prefijo}_${randomUUID().replaceAll('-', '')}`;
@@ -42,7 +42,13 @@ export async function crearBase(prefijo) {
   await cliente.query('create schema auth; create table auth.users (id uuid primary key); create schema extensions');
   const carpeta = new URL('../../../db/migrations/', import.meta.url);
   const archivos = (await readdir(carpeta)).filter((a) => /^\d+.*\.sql$/.test(a)).sort();
-  for (const archivo of archivos) await cliente.query(await readFile(new URL(archivo, carpeta), 'utf8'));
+  const aplicar = async (lista) => {
+    for (const archivo of lista) await cliente.query(await readFile(new URL(archivo, carpeta), 'utf8'));
+  };
+  const enBase = hasta ? archivos.filter((a) => a.slice(0, 3) <= hasta) : archivos;
+  await aplicar(enBase);
+  // Aplica las migraciones restantes sobre los datos ya cargados.
+  const migrar = () => aplicar(archivos.filter((a) => !enBase.includes(a)));
   for (const [clave, id] of Object.entries(PERFILES)) {
     const rol = clave === 'admin' ? 'administrador' : clave === 'marketing' ? 'marketing' : 'terapeuta';
     await cliente.query('insert into auth.users (id) values ($1)', [id]);
@@ -54,7 +60,7 @@ export async function crearBase(prefijo) {
     await admin.query(`drop database "${nombre}" with (force)`);
     await admin.end();
   };
-  return { cliente, conectar, cerrar };
+  return { cliente, conectar, cerrar, migrar };
 }
 
 /** Ejecuta fn dentro de una transacción con app.usuario_id, como hace el backend. */

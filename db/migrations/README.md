@@ -16,6 +16,10 @@
    | `migrations/009_tareas_por_sesion.sql` | FE-79: cada tarea pertenece a una sesión del mismo caso; quién cambió el cumplimiento |
    | `migrations/010_pagos_por_sesion.sql` | FE-89: un pago por sesión del mismo caso; monto sin redondeo silencioso |
    | `migrations/011_indicadores_operativos.sql` | FE-94: función `indicadores_operativos(desde, hasta)` para el dashboard de FE-6 |
+   | `migrations/013_residencia_pacientes.sql` | FE-135: ciudad de residencia del paciente y `indicadores_por_residencia(desde, hasta)` |
+   | `migrations/014_difusion_publicaciones.sql` | FE-142: publicaciones de difusión, imágenes y vista pública `v_publicaciones_publicas` |
+   | `migrations/015_familiares_caso.sql` | FE-125: composición familiar por caso y vista `v_fuente_clinica_vigente` |
+   | `migrations/016_fotografia_informes.sql` | FE-152: versiones de informes con la fotografía de los datos usados y `fotografia_informe(...)` |
 
    ## Modelo del Sprint 2
 
@@ -34,7 +38,95 @@
    - Consultas del historial ya revisadas (FE-84): `backend/test/historial-postgres.test.mjs`. Cada sección va en su propia consulta; unir sesiones, tareas y pagos en una sola duplica filas.
    - Dashboard (FE-94): `select * from indicadores_operativos('2026-10-12', '2026-10-19')`. Fechas inclusivas, solo casos y pacientes no eliminados, pagos en BOB.
 
+   ## Residencia del paciente (FE-135)
+
+   Catálogo de FE-134. Columnas nuevas en `pacientes`:
+
+   | Columna | Regla |
+   |---|---|
+   | `ciudad_residencia` | `la_paz`, `el_alto`, `otra` o NULL (= sin registrar). Los pacientes existentes quedan en NULL. |
+   | `otra_localidad` | Obligatoria (hasta 100 caracteres, no solo espacios) si la ciudad es `otra`; NULL en los demás casos. |
+   | `residencia_actualizada_en`, `residencia_actualizada_por` | Las llena un trigger desde `app.usuario_id` cuando cambia la residencia. |
+
+   - Es la residencia **actual**: la comparten todas las carpetas del paciente y cambiarla no toca número, origen, fecha de ingreso ni asignación.
+   - Filtro del listado (FE-136), dentro de las mismas condiciones de `listarCarpetas`, antes del total y la paginación:
+     `residencia=sin_registrar` → `p.ciudad_residencia is null`; otro valor → `p.ciudad_residencia = $n`.
+   - Indicadores: `select * from indicadores_por_residencia('2026-11-20', '2026-11-21')` devuelve siempre 4 filas
+     (`la_paz`, `el_alto`, `otra`, `sin_registrar`) con las mismas columnas que `indicadores_operativos`; su suma es igual a esa función.
+     Las sesiones y pagos se agrupan por la residencia actual del paciente.
+   - Errores: ciudad fuera del catálogo u `otra` sin localidad → `23514` (400).
+
+   ## Difusión (FE-142)
+
+   Contrato de FE-140. Separado de lo clínico: sus FK solo apuntan a `perfiles`.
+
+   ```
+   publicaciones_difusion 1 ─ n recursos_difusion   (metadatos de imágenes; una sola principal)
+   v_publicaciones_publicas                          (solo publicadas, solo campos públicos)
+   ```
+
+   - Estados: se crea en `borrador`; `borrador → publicado → retirado → borrador`. Otra transición → `23514`.
+     `creado_por`, `publicado_en/por` y `retirado_en/por` los pone la base desde `app.usuario_id`; lo que envíe el cliente se ignora.
+   - Para publicar hace falta `resumen`. Los mínimos por tipo (fechas, modalidad, lugar) los valida la API (FE-143) hasta que FE-141 los ratifique.
+   - Límites: título 1–150, resumen ≤ 500, contenido ≤ 10 000, lugar ≤ 200, `contacto_url` http/https ≤ 500, fin ≥ inicio.
+     El contenido se guarda como texto: la API y la interfaz no lo interpretan como HTML.
+   - Imágenes: el archivo va en el bucket `difusion-publica` (nunca en el almacenamiento clínico); aquí se guardan ruta relativa,
+     tipo (`image/jpeg`, `image/png`, `image/webp`), tamaño ≤ 5 MB, dimensiones, `sha256` y texto alternativo obligatorio.
+     Ruta repetida o segunda imagen principal → `23505`.
+   - La API pública lee solo de `v_publicaciones_publicas`: publicada o no existe (retirada o borrador → 404).
+   - RLS activo y sin acceso para `anon`/`authenticated`: todo pasa por el backend.
+
    Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
+
+   ## Composición familiar (FE-125)
+
+   Contrato de FE-123. La familia va en tablas propias, fuera del JSON de `fichas_diagnostico`: guardar el diagnóstico no la borra.
+
+   ```
+   casos 1 ─ 0..1 fichas_familiares   (sin fila = sin registrar; versión para ediciones concurrentes)
+                    1 ─ n familiares   (parentesco respecto del paciente; deleted_at = eliminado)
+   ```
+
+   | Columna de `familiares` | Regla |
+   |---|---|
+   | `parentesco` | `madre`, `padre`, `hermano`, `hermana`, `hijo`, `hija`, `abuelo_materno`, `abuela_materna`, `abuelo_paterno`, `abuela_paterna`, `tio`, `tia`, `pareja`, `tutor`, `tutora`, `otro`. Se puede repetir. |
+   | `parentesco_detalle` | Obligatorio (hasta 100) si el parentesco es `otro`; NULL en los demás. |
+   | `nombre_completo`, `lugar_trabajo_estudio` (150), `ocupacion` (200), `observaciones` (2000) | Opcionales. NULL = desconocido; no se aceptan textos vacíos. |
+   | `fecha_nacimiento` o `edad_referida` + `fecha_referencia` | Una de las dos formas, o ninguna (edad desconocida). Edad 0–130. Fechas desde 1900 y no futuras (hora de Bolivia). |
+   | `convive_con_paciente` | true, false o NULL = desconocido. |
+   | `orden_registro` | Orden en que se registraron; usar para listar. |
+   | `creado_por`, `actualizado_por` | Los llena un trigger desde `app.usuario_id`. |
+
+   - La edad referida no se actualiza sola. Edad cumplida desde el nacimiento: `edad_en(fecha_nacimiento, fecha)`.
+   - Un familiar no cambia de caso ni se edita después de eliminado (`23514`). Sin cabecera no hay familiares (`23503`); la cabecera es única por caso (`23505`).
+   - `fichas_familiares.version` sube una vez por transacción que cambia familiares. Para guardar: `select version ... for update`, comparar con la versión que envió el cliente (distinta → 409) y aplicar los cambios en la misma transacción.
+   - No enlaza familiares con `pacientes` ni crea carpetas para ellos.
+   - `v_fuente_clinica_vigente`: por caso, el diagnóstico de la ficha (`origen = 'ficha'`) o, si no hay ficha, el del alta (`'alta'`), o `'sin_datos'`. Un NULL de la ficha no se completa con el alta. Las columnas `alta_*` conservan siempre lo registrado en el alta.
+
+   ## Informes (FE-152)
+
+   Plantillas de FE-151. Cada generación guarda una copia de los datos usados; un cambio posterior del expediente no la altera.
+
+   ```
+   informes 1 ─ n informe_versiones           (borrador → revisado; datos_origen = fotografía)
+                    1 ─ n informe_version_sesiones   (sesiones citadas, mismo caso, en orden)
+   ```
+
+   - `fotografia_informe(caso, sesiones[], incluirFamilia, incluirGenograma)` devuelve en un jsonb: caso, paciente, responsable actual,
+     diagnóstico vigente (`v_fuente_clinica_vigente`: `origen` ficha / alta / sin_datos), contexto judicial, `seleccion`,
+     sesiones elegidas (sin repetir, por fecha y número) con sus tareas, y familia y genograma si se piden (null = no incluido).
+     Sesión de otro caso o inexistente → `23514`; caso inexistente o eliminado → `P0002`. El genograma requiere la 012 (si falta, `0A000`).
+   - Guardar (FE-153), en una transacción con `app.usuario_id`: `insert into informes (caso_id, tipo)` y
+     `insert into informe_versiones (informe_id, caso_id, version_plantilla, datos_origen, secciones)` con `datos_origen` =
+     el resultado de `fotografia_informe`. La base comprueba que la fotografía es igual a los datos actuales del caso:
+     alterada, de otro caso o desactualizada → `23514` (volver a leerla y regenerar). Informe de otro caso → `23503`.
+   - La base pone `nro_version`, `creado_por`, `generado_por`, `revisado_por/en` y llena `informe_version_sesiones`.
+     `ficha_diagnostico_id` y `genograma_clave` salen de la fotografía.
+   - `secciones` (`[{ titulo, contenido }]`) se edita solo en borrador; cada cambio queda en `auditoria` con su autor.
+     `estado = 'revisado'` es definitivo: después no se edita ni se elimina (`23514`). Un borrador se puede eliminar.
+     Un solo borrador abierto por informe (`23505`).
+   - `informe_version_al_dia(version)` → false si el expediente cambió desde la fotografía (para avisar y ofrecer otra versión).
+   - El caso, el tipo y el autor de un informe no cambian. `informes.formato` y `archivo_path` quedan para la exportación (FE-158).
 
    ## Pruebas de las migraciones con PostgreSQL local
 
@@ -57,6 +149,10 @@
    | FE-89 | `pagos-integridad-postgres.test.mjs` |
    | FE-84 | `historial-postgres.test.mjs` |
    | FE-94 | `indicadores-postgres.test.mjs` |
+   | FE-135 | `residencia-postgres.test.mjs` |
+   | FE-142 | `difusion-postgres.test.mjs` |
+   | FE-125 | `familiares-postgres.test.mjs` (aplica la 015 sobre una base con datos existentes) |
+   | FE-152 | `informes-postgres.test.mjs` (aplica la 016 sobre una base con datos existentes) |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
