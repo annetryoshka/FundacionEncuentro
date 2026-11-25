@@ -1,4 +1,4 @@
-import { Injectable, StreamableFile } from '@nestjs/common';
+import { Injectable, StreamableFile, InternalServerErrorException } from '@nestjs/common';
 import { generarDocx, type DocumentoExportable } from './generar-docx.js';
 import { generarPdf } from './generar-pdf.js';
 
@@ -17,17 +17,28 @@ export type FormatoExportacion = keyof typeof FORMATOS;
 
 @Injectable()
 export class ExportacionesService {
-  async prepararDescarga(
+    async prepararDescarga(
     formato: FormatoExportacion,
     datos: DocumentoExportable,
   ): Promise<StreamableFile> {
     const { generar, tipo } = FORMATOS[formato];
-    const contenido = await generar(datos);
 
-    return new StreamableFile(contenido, {
-      type: tipo,
-      disposition: `attachment; filename="exportacion.${formato}"`,
-      length: contenido.length,
-    });
+    try {
+      const contenido = await generar(datos);
+
+      if (contenido.length === 0) {
+        throw new Error('El generador devolvió un archivo vacío');
+      }
+
+      return new StreamableFile(contenido, {
+        type: tipo,
+        disposition: `attachment; filename="exportacion.${formato}"`,
+        length: contenido.length,
+      });
+    } catch {
+      throw new InternalServerErrorException(
+        'No se pudo generar el archivo de exportación. Intenta de nuevo.',
+      );
+    }
   }
 }
