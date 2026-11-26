@@ -4,6 +4,8 @@ import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-va
 import { CLASIFICACIONES_CASO } from './actualizar-clasificacion.dto.js';
 import { ESTADOS_CASO } from './registrar-caso.dto.js';
 
+const FILTROS_RESIDENCIA = ['la_paz', 'el_alto', 'otra', 'sin_registrar'] as const;
+
 export class ListarCarpetasQuery {
   @ApiPropertyOptional({ enum: CLASIFICACIONES_CASO })
   @IsOptional()
@@ -14,6 +16,11 @@ export class ListarCarpetasQuery {
   @IsOptional()
   @IsIn(ESTADOS_CASO)
   estado?: (typeof ESTADOS_CASO)[number];
+
+  @ApiPropertyOptional({ enum: FILTROS_RESIDENCIA })
+  @IsOptional()
+  @IsIn(FILTROS_RESIDENCIA)
+  residencia?: (typeof FILTROS_RESIDENCIA)[number];
 
   @ApiPropertyOptional({ description: 'Nombre del paciente o número de carpeta' })
   @IsOptional()

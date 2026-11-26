@@ -444,3 +444,16 @@ Demostración integrada en navegador con frontend real, backend de `main` y Post
 25 comprobaciones aprobadas (cuentas, alta, duplicados, asignación, búsqueda y permisos por rol).
 Auth fue un Supabase de prueba local. Detalle, incidencias corregidas y guion en
 `docs/pruebas/FE-46-demostracion-integrada.md`.
+
+## Residencia del paciente (FE-136)
+
+- El alta de un paciente y la edición administrativa admiten
+  `ciudadResidencia` (`la_paz`, `el_alto`, `otra` o `null`) y `otraLocalidad`.
+  `otra` requiere una localidad. En la edición, omitir ambos campos conserva
+  la residencia y enviar `ciudadResidencia: null` la limpia.
+- El listado y el detalle de carpetas devuelven ambos campos dentro de `paciente`.
+- `GET /api/carpetas` admite `residencia=la_paz|el_alto|otra|sin_registrar`.
+  El filtro se combina con permisos y demás filtros antes de contar y paginar.
+- `GET /api/indicadores/por-residencia?desde=AAAA-MM-DD&hasta=AAAA-MM-DD`
+  es exclusivo de administración. Devuelve `periodo` y `porResidencia`, con
+  casos actuales, estados, sesiones y pagos en BOB para cada grupo.

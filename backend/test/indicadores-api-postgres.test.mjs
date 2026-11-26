@@ -490,3 +490,49 @@ test(
     assert.equal(r.pagosRecibidos.monto, "225.60");
   },
 );
+
+test('FE-136: desglosa indicadores por residencia solo para administración', opciones, async () => {
+  await conexion.query(
+    "update pacientes set ciudad_residencia = 'la_paz' where id = $1",
+    [casos.A.pacienteId],
+  );
+  await conexion.query(
+    "update pacientes set ciudad_residencia = 'el_alto' where id = $1",
+    [casos.B.pacienteId],
+  );
+  await conexion.query(
+    `update pacientes set ciudad_residencia = 'otra', otra_localidad = 'Viacha QA'
+      where id = $1`,
+    [casos.D.pacienteId],
+  );
+
+  const periodo = { desde: '2026-10-12', hasta: '2026-10-19' };
+  const ruta = `${base}/api/indicadores/por-residencia?${new URLSearchParams(periodo)}`;
+  const solicitar = (token) =>
+    fetch(ruta, { headers: { Authorization: `Bearer ${token}` } });
+
+  for (const token of ['terapeutaA', 'marketing']) {
+    const denegada = await solicitar(token);
+    assert.equal(denegada.status, 403);
+    await denegada.json();
+  }
+
+  const respuesta = await solicitar('fixture');
+  const cuerpo = await respuesta.json();
+
+  assert.equal(respuesta.status, 200, JSON.stringify(cuerpo));
+  assert.deepEqual(cuerpo.periodo, periodo);
+  assert.equal(cuerpo.porResidencia.length, 4);
+  assert.deepEqual(
+    Object.fromEntries(cuerpo.porResidencia.map((fila) => [
+      fila.residencia,
+      [fila.casosActuales, fila.sesiones, fila.pagosRecibidos.monto],
+    ])),
+    {
+      la_paz: [1, 2, '75.50'],
+      el_alto: [1, 1, '125.00'],
+      otra: [1, 0, '0.00'],
+      sin_registrar: [1, 0, '25.10'],
+    },
+  );
+});

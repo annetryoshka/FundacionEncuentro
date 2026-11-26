@@ -26,4 +26,10 @@ export class IndicadoresController {
   consultar(@Query() filtros: ConsultarIndicadoresQuery) {
     return this.indicadores.consultar(filtros);
   }
+
+  @Get('por-residencia')
+  @ApiOperation({ summary: 'Consultar indicadores por residencia del paciente' })
+  consultarPorResidencia(@Query() filtros: ConsultarIndicadoresQuery) {
+    return this.indicadores.consultarPorResidencia(filtros);
+  }
 }
