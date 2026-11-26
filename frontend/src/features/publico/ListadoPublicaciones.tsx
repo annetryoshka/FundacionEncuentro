@@ -1,5 +1,6 @@
 import { NOMBRE_TIPO_PLURAL, type PublicacionPublica, type TipoPublicacion } from './publicaciones'
 import { TarjetaPublicacion } from './TarjetaPublicacion'
+import { VacioPublico } from './VacioPublico'
 
 interface PropsCategorias {
   /** `''` = todas. */
@@ -51,14 +52,13 @@ interface PropsListado {
 export function ListadoPublicaciones({ publicaciones, rutaDetalle, tipo = '' }: PropsListado) {
   if (publicaciones.length === 0) {
     return (
-      <p
-        role="status"
-        className="rounded-3xl border border-dashed border-linea bg-crema px-6 py-10 text-center text-suave"
-      >
-        {tipo
-          ? `Por ahora no hay ${NOMBRE_TIPO_PLURAL[tipo].toLowerCase()} publicadas.`
-          : 'Por ahora no hay publicaciones. Vuelve pronto.'}
-      </p>
+      <VacioPublico
+        mensaje={
+          tipo
+            ? `Por ahora no hay ${NOMBRE_TIPO_PLURAL[tipo].toLowerCase()} publicadas.`
+            : 'Por ahora no hay publicaciones. Vuelve pronto.'
+        }
+      />
     )
   }
   return (

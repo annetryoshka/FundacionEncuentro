@@ -1,7 +1,7 @@
-import { useState } from 'react'
 import { Link } from 'react-router'
 import { Icono } from '../../componentes/iconos'
 import { Insignia } from '../../componentes/ui'
+import { ImagenPublica } from './ImagenPublica'
 import {
   NOMBRE_MODALIDAD,
   NOMBRE_TIPO_PUBLICACION,
@@ -21,27 +21,13 @@ interface Props {
  * Si la imagen falla, el texto se conserva y se avisa con claridad (contrato FE-140, criterio 5).
  */
 export function TarjetaPublicacion({ publicacion, aDetalle }: Props) {
-  const [imagenFallo, setImagenFallo] = useState(false)
   const { tipo, titulo, resumen, imagen, fechaInicio, fechaFin, modalidad, lugar, contactoUrl } = publicacion
   const fechas = textoFechas(fechaInicio, fechaFin)
   const donde = [modalidad && NOMBRE_MODALIDAD[modalidad], lugar].filter(Boolean).join(' · ')
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-linea bg-white">
-      {imagen &&
-        (imagenFallo ? (
-          <p className="flex h-40 items-center justify-center bg-crema px-4 text-center text-sm text-suave">
-            La imagen no está disponible por ahora.
-          </p>
-        ) : (
-          <img
-            src={imagen.url}
-            alt={imagen.textoAlternativo}
-            loading="lazy"
-            onError={() => setImagenFallo(true)}
-            className="h-40 w-full object-cover"
-          />
-        ))}
+      {imagen && <ImagenPublica imagen={imagen} />}
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div>
           <Insignia color={tipo === 'campana' ? 'naranja' : 'verde'}>{NOMBRE_TIPO_PUBLICACION[tipo]}</Insignia>
