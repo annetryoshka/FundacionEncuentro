@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { fallarUnaVez, llamadas, montarApp } from '../../test/montarApp'
 
@@ -22,14 +22,14 @@ describe('Indicadores', () => {
 
   it('un período sin actividad da cero sesiones y Bs 0,00, sin cambiar los casos', async () => {
     const { usuario, fetchEspia } = await montarApp('/indicadores?desde=2026-10-12&hasta=2026-10-19')
-    await screen.findByText('Bs 75,50')
+    await screen.findByRole('heading', { name: 'Casos actuales' })
     await usuario.clear(screen.getByLabelText('Desde'))
     await usuario.type(screen.getByLabelText('Desde'), '2026-10-01')
     await usuario.clear(screen.getByLabelText('Hasta'))
     await usuario.type(screen.getByLabelText('Hasta'), '2026-10-05')
     await usuario.click(screen.getByRole('button', { name: 'Consultar' }))
 
-    expect(await screen.findByText('Bs 0,00')).toBeInTheDocument()
+    await waitFor(() => expect(cifra('Pagos recibidos').getByText('Bs 0,00')).toBeInTheDocument())
     expect(cifra('Sesiones del período').getByText('0')).toBeInTheDocument()
     expect(cifra('Casos actuales').getByText('14')).toBeInTheDocument()
     expect(ultimaConsulta(fetchEspia).get('desde')).toBe('2026-10-01')
@@ -38,7 +38,7 @@ describe('Indicadores', () => {
 
   it('no consulta un período con la fecha desde posterior a hasta', async () => {
     const { usuario, fetchEspia } = await montarApp('/indicadores?desde=2026-10-12&hasta=2026-10-19')
-    await screen.findByText('Bs 75,50')
+    await screen.findByRole('heading', { name: 'Casos actuales' })
     const antes = llamadas(fetchEspia, 'GET', '/api/indicadores').length
     await usuario.clear(screen.getByLabelText('Desde'))
     await usuario.type(screen.getByLabelText('Desde'), '2026-10-25')
@@ -65,6 +65,39 @@ describe('Indicadores', () => {
     expect(await screen.findByRole('heading', { name: 'Casos actuales' })).toBeInTheDocument()
   })
 
+  // FE-138 · Desglose por ciudad de residencia (FE-134/FE-136).
+  const filaResidencia = (nombre: string) =>
+    within(screen.getByRole('table')).getByRole('rowheader', { name: nombre }).closest('tr')!
+
+  it('desglosa casos, sesiones y pagos por ciudad de residencia con el mismo período', async () => {
+    const { fetchEspia } = await montarApp('/indicadores?desde=2026-10-12&hasta=2026-10-19')
+    expect(await screen.findByRole('heading', { name: 'Por ciudad de residencia' })).toBeInTheDocument()
+    await screen.findByRole('table')
+    const celdas = (nombre: string) => [...filaResidencia(nombre).querySelectorAll('td')].map((td) => td.textContent)
+    // Casos actuales, Iniciado, En proceso, En conclusión, Sesiones, Pagos
+    expect(celdas('La Paz')).toEqual(['5', '1', '3', '1', '2', 'Bs 75,50'])
+    expect(celdas('El Alto')).toEqual(['4', '2', '2', '0', '0', 'Bs 0,00'])
+    expect(celdas('Otra localidad')).toEqual(['2', '2', '0', '0', '0', 'Bs 0,00'])
+    expect(celdas('Sin registrar')).toEqual(['3', '1', '1', '1', '0', 'Bs 0,00'])
+    const consulta = new URL(
+      String(llamadas(fetchEspia, 'GET', '/api/indicadores/por-residencia').at(-1)![0]),
+      'http://x',
+    )
+    expect(consulta.searchParams.get('desde')).toBe('2026-10-12')
+    expect(consulta.searchParams.get('hasta')).toBe('2026-10-19')
+  })
+
+  it('si falla el desglose por residencia se muestra el error y el resto sigue visible', async () => {
+    const { usuario, fetchEspia } = await montarApp('/inicio')
+    fallarUnaVez(fetchEspia, 'GET', '/api/indicadores/por-residencia', 500)
+    await usuario.click(screen.getAllByRole('link', { name: /Indicadores/ })[0])
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo calcular el desglose por residencia.')
+    expect(screen.getByRole('heading', { name: 'Casos actuales' })).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    await usuario.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByRole('table')).toBeInTheDocument()
+  })
+
   it('una terapeuta no tiene el menú ni puede abrir los indicadores', async () => {
     const { fetchEspia } = await montarApp('/indicadores', 'sofia')
     expect(
@@ -72,5 +105,6 @@ describe('Indicadores', () => {
     ).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Indicadores' })).not.toBeInTheDocument()
     expect(llamadas(fetchEspia, 'GET', '/api/indicadores')).toHaveLength(0)
+    expect(llamadas(fetchEspia, 'GET', '/api/indicadores/por-residencia')).toHaveLength(0)
   })
 })

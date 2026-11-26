@@ -16,6 +16,8 @@ interface Seccion {
 const SECCIONES: Seccion[] = [
   { ruta: '/inicio', nombre: 'Inicio', roles: ['administrador', 'terapeuta', 'marketing'] },
   { ruta: '/carpetas', nombre: 'Carpetas', roles: ['administrador', 'terapeuta'] },
+  { ruta: '/investigacion', nombre: 'Investigación', roles: ['administrador', 'terapeuta'] },
+  { ruta: '/difusion', nombre: 'Difusión', roles: ['administrador', 'marketing'] },
   { ruta: '/indicadores', nombre: 'Indicadores', roles: ['administrador'] },
   { ruta: '/usuarios', nombre: 'Cuentas del personal', roles: ['administrador'] },
 ]

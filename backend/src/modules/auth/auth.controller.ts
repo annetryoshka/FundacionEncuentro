@@ -68,15 +68,27 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Cerrar sesión',
-    description: 'Cierra la sesión del usuario autenticado.',
+    description: 'Solicita a Supabase el cierre de la sesión actual.',
   })
   @ApiResponse({
     status: 204,
-    description: 'Sesión cerrada correctamente. Sin contenido.',
+    description: 'Supabase confirmó el cierre y el backend registró la auditoría.',
   })
   @ApiResponse({
     status: 401,
     description: 'Usuario no autenticado.',
+  })
+  @ApiResponse({
+    status: 502,
+    description: 'Supabase respondió sin confirmar la revocación.',
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'El servicio de autenticación falló o no pudo ser contactado.',
+  })
+  @ApiResponse({
+    status: 504,
+    description: 'El servicio de autenticación superó el tiempo de espera.',
   })
   async logout(
     @UsuarioActual() usuario: Usuario,

@@ -12,7 +12,8 @@ import { ProveedorSesion } from './ProveedorSesion'
 
 /** Sesión contra el contrato real de backend/src/modules/auth (FE-20, FE-22, FE-24, FE-26). */
 describe('Sesión', () => {
-  it.each([400, 401, 403, 500, 503])('logout HTTP %s no restaura la sesión local ni afirma revocación', async (estado) => {
+  // 502, 503 y 504 son las respuestas del backend corregido en FE-192 (FE-193).
+  it.each([400, 401, 403, 500, 502, 503, 504])('logout HTTP %s no restaura la sesión local ni afirma revocación', async (estado) => {
     const { usuario, fetchEspia } = await montarApp('/carpetas', 'direccion')
     await screen.findByText('14 carpetas')
     const simulado = fetchEspia.getMockImplementation()!

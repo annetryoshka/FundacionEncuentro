@@ -339,3 +339,71 @@ test(
     assert.equal((await verFicha(casoA.id, "terapeutaB")).status, 200);
   },
 );
+
+test("FE-126: dos ediciones conservan un campo adicional del diagnóstico", opciones, async () => {
+  const inicial = await guardarFicha(casoA.id, fichaValida, "terapeutaA");
+  assert.equal(inicial.status, 200);
+  await inicial.json();
+
+  await conexion.query(
+    `update fichas_diagnostico
+        set contenido = contenido || $2::jsonb
+      where caso_id = $1`,
+    [casoA.id, JSON.stringify({ campoAdicionalQA: "Dato que debe conservarse" })],
+  );
+
+  for (const diagnosticoIngreso of ["Primera edición QA", "Segunda edición QA"]) {
+    const respuesta = await guardarFicha(
+      casoA.id,
+      { ...fichaValida, diagnosticoIngreso },
+      "terapeutaA",
+    );
+    assert.equal(respuesta.status, 200);
+    await respuesta.json();
+
+    const [ficha] = await fichasEnBase(casoA.id);
+    assert.equal(ficha.contenido.diagnosticoIngreso, diagnosticoIngreso);
+    assert.equal(ficha.contenido.campoAdicionalQA, "Dato que debe conservarse");
+  }
+});
+
+test("FE-126: la ficha vigente conserva sus nulos y distingue el alta", opciones, async () => {
+  const ruta = `/carpetas/${casoA.id}/diagnostico/vigente`;
+
+  const consultar = async () => {
+    const respuesta = await api.solicitar(ruta, { token: "terapeutaA" });
+    const cuerpo = await respuesta.json();
+    assert.equal(respuesta.status, 200, JSON.stringify(cuerpo));
+    return cuerpo;
+  };
+
+  const sinDatos = await consultar();
+  assert.equal(sinDatos.origen, "sin_datos");
+  assert.equal(sinDatos.fichaId, null);
+
+  await conexion.query(
+    `update casos
+        set diagnostico_ingreso = $2, comentarios_clinicos = $3
+      where id = $1`,
+    [casoA.id, "Diagnóstico ficticio del alta", "Comentario histórico QA"],
+  );
+
+  const alta = await consultar();
+  assert.equal(alta.origen, "alta");
+  assert.equal(alta.comentariosClinicos, "Comentario histórico QA");
+
+  const respuesta = await guardarFicha(casoA.id, fichaValida, "terapeutaA");
+  assert.equal(respuesta.status, 200);
+  const { diagnostico } = await respuesta.json();
+
+  const vigente = await consultar();
+  assert.equal(vigente.origen, "ficha");
+  assert.equal(vigente.fichaId, diagnostico.id);
+  assert.equal(vigente.diagnosticoIngreso, fichaValida.diagnosticoIngreso);
+  assert.equal(vigente.comentariosClinicos, null);
+  assert.equal(vigente.alta.comentariosClinicos, "Comentario histórico QA");
+
+  const denegada = await api.solicitar(ruta, { token: "terapeutaB" });
+  assert.equal(denegada.status, 404);
+  await denegada.json();
+});

@@ -81,8 +81,7 @@ abajo se aplican en backend, independientemente del frontend.
 
 `POST /api/auth/refresh` · `@Public()` → `{ "refreshToken": "…" }` → misma respuesta que el login; 401 si ya no sirve.
 
-`POST /api/auth/logout` → 204 cuando el servicio termina sin error. La revocación del
-refresh token en Supabase real no está comprobada por FE-34; corresponde a FE-26/FE-27.
+`POST /api/auth/logout` → devuelve 204 cuando Supabase confirma el cierre de la sesión actual (scope=local) y el backend registra la auditoría. Si Supabase devuelve una respuesta inesperada, falla la comunicación o vence el plazo, la API responde 502, 503 o 504, respectivamente. En esos casos el frontend conserva el cierre local y avisa que la revocación remota quedó sin confirmar. La vigencia del access token y el comportamiento del refresh token se comprueban por separado en Supabase de QA.
 
 `GET /api/auth/me` → `{ id, nombreCompleto, rol }`.
 
@@ -505,3 +504,124 @@ devuelve `409`; las filas sin resolver o un salto de contador sin aceptar
 devuelven `422`. Si los datos cambiaron al confirmar, la API puede
 responder `estado: "revisar"` sin aplicar el lote. Confirmar de nuevo un
 lote ya aplicado devuelve el mismo resultado sin duplicar registros.
+
+## Ficha familiar y diagnóstico vigente (FE-126)
+
+Estas rutas requieren una sesión autenticada. Pueden usarlas
+administración y la terapeuta asignada al caso.
+
+| Método y ruta | Resultado |
+| --- | --- |
+| `GET /api/carpetas/:id/familia` | Devuelve `casoId`, `pacienteId`, `registrada`, `version` y `familiares`. |
+| `PUT /api/carpetas/:id/familia` | Recibe `version`, `familiares` y, opcionalmente, `eliminarIds`. Devuelve la ficha actualizada. |
+| `GET /api/carpetas/:id/diagnostico/vigente` | Devuelve `origen` (`ficha`, `alta` o `sin_datos`), los campos clínicos vigentes y los datos históricos en `alta`. |
+
+### Guardado de familia
+
+- Una ficha sin registrar devuelve `registrada: false`, `version: null` y
+  `familiares: []`. Una ficha registrada puede tener la lista vacía.
+- Enviar `version: null` al crear la ficha. En una edición, enviar la
+  última versión recibida. Si quedó desactualizada, la API devuelve `409`.
+- Un integrante sin `id` se crea. Con `id`, se edita el integrante del
+  caso. Omitir un campo opcional conserva su valor; enviar `null` lo limpia.
+- Para eliminar un integrante, incluir su ID en `eliminarIds`. Dejarlo
+  fuera de `familiares` conserva su registro.
+- Una solicitud inválida devuelve `400` y revierte todos sus cambios.
+- Una terapeuta ajena recibe `404`. Un rol sin permiso clínico recibe `403`.
+
+Si existe una ficha de diagnóstico, sus valores `null` se conservan.
+Los datos del alta quedan disponibles como antecedente. El contrato de
+`GET /api/carpetas/:id/diagnostico` se mantiene.
+
+## Genograma del caso (FE-131)
+
+Las operaciones requieren una sesión autenticada. El servidor comprueba
+que la persona sea administradora o la terapeuta asignada al caso.
+
+| Método y ruta | Solicitud | Respuesta exitosa |
+| --- | --- | --- |
+| `PUT /api/carpetas/:id/genograma` | Formulario `multipart/form-data` con el campo `archivo`. | `204` sin cuerpo. |
+| `GET /api/carpetas/:id/genograma` | Sin cuerpo. | `200` con `nombre`, `tipo`, `tamanio` en bytes, `autorId` y `actualizadoEn` en formato ISO 8601. |
+| `GET /api/carpetas/:id/genograma/archivo` | Sin cuerpo. | `200` con el archivo como adjunto. |
+
+La carga admite PDF, PNG y JPEG. El límite actual es de 5 MiB, pendiente
+de confirmación. Una carga sin archivo devuelve `400`. Si supera el
+límite devuelve `413`. Si el formato no coincide con los bytes iniciales
+o no está admitido, devuelve `415`.
+
+El servidor devuelve `404` si el caso no existe o la terapeuta no tiene
+acceso. La consulta y la descarga también devuelven `404` si el caso
+accesible todavía no tiene genograma.
+
+Un reemplazo inválido conserva el archivo vigente. Tras un `204`, el
+frontend puede consultar de nuevo los metadatos para refrescar la ficha.
+
+## Borradores de informes (FE-153)
+
+Las tres rutas requieren una terapeuta autenticada y asignada al caso.
+`versionId` es el `id` de la versión devuelta por el POST.
+
+| Método y ruta | Cuerpo | Respuesta |
+| --- | --- | --- |
+| `POST /api/carpetas/:id/informes` | `tipo` (`intervencion_sistemica` o `judicial`). Opcionales: `sesionesIds`, `incluirFamilia`, `incluirGenograma` y `objeto`. | `201` con `id`, `informeId`, `nroVersion`, `estado` y `creadoPor`. |
+| `GET /api/carpetas/:id/informes/:versionId` | Sin cuerpo. | `200` con las secciones, el estado y la autoría de la versión. |
+| `PATCH /api/carpetas/:id/informes/:versionId/revision` | `secciones`, una lista de objetos con `titulo` y `contenido`. | `200` con `id`, `estado`, `revisadoPor` y `revisadoEn`. |
+
+El POST devuelve `422` con `camposFaltantes` si faltan los mínimos.
+Para un informe judicial, se requiere un juzgado registrado y un `objeto`.
+El servidor devuelve `404` si el caso o la versión no están disponibles
+para la solicitante. Una segunda revisión de la misma versión devuelve `409`.
+
+Al revisar, se conserva la copia original de los datos del expediente.
+
+## Publicaciones de difusión (FE-143)
+
+| Método y ruta | Qué hace |
+| --- | --- |
+| `GET /api/publico/publicaciones` | Lista publicaciones visibles. Admite `tipo`, `pagina` y `tamano`. |
+| `GET /api/publico/publicaciones/:id` | Devuelve una publicación visible y su imagen principal, si existe. Un borrador o una publicación retirada devuelve `404`. |
+| `GET /api/difusion/publicaciones` | Lista publicaciones para administración y marketing. Admite también el filtro `estado`. |
+| `GET /api/difusion/publicaciones/:id` | Devuelve el detalle privado, la autoría y los recursos. |
+| `POST /api/difusion/publicaciones` | Crea un borrador. |
+| `PUT /api/difusion/publicaciones/:id` | Reemplaza los campos de contenido y conserva el estado. |
+| `PATCH /api/difusion/publicaciones/:id/estado` | Recibe `{ "estado": "publicado" }`, `"retirado"` o `"borrador"` según la transición. |
+| `POST /api/difusion/publicaciones/:id/recursos` | Asocia los metadatos de una imagen del bucket público. |
+| `DELETE /api/difusion/publicaciones/:id/recursos/:recursoId` | Quita la asociación y devuelve `204`. El objeto del bucket permanece. |
+
+Las rutas administrativas requieren una sesión de administración o marketing.
+El flujo es `borrador → publicado → retirado → borrador`. Una transición
+inválida devuelve `409`. Si falta el resumen al publicar, devuelve `422`
+con `camposFaltantes`. Los mínimos adicionales por tipo siguen pendientes
+de ratificación.
+
+Las imágenes admiten JPEG, PNG o WebP, hasta 5 MiB. El recurso requiere
+ruta relativa y texto alternativo. Una segunda imagen principal devuelve
+`409`. La API gestiona metadatos; la carga del archivo se hace aparte.
+
+## Investigación y exportación para Atlas.ti (FE-169)
+
+| Método y ruta | Operación |
+| --- | --- |
+| `GET /api/investigacion/categorias` | Consulta el catálogo y los conteos dentro del alcance del perfil. |
+| `POST /api/investigacion/categorias` | Crea una categoría. Solo administración. |
+| `PUT /api/investigacion/categorias/:id` | Edita o retira una categoría con `activa: false`. Solo administración. |
+| `GET /api/investigacion/seleccion` | Filtra casos autorizados por categorías, período y residencia. |
+| `POST /api/investigacion/casos/:casoId/etiquetas` | Etiqueta el caso o una ficha de diagnóstico o seguimiento del mismo caso. |
+| `POST /api/investigacion/exportaciones` | Recibe `casosIds`, `secciones`, `formato` (`txt` o `docx`) y, opcionalmente, `desde` y `hasta`. Devuelve `exportacionId`. |
+| `GET /api/investigacion/exportaciones/:id/manifiesto` | Consulta el manifiesto del paquete autorizado. |
+| `GET /api/investigacion/exportaciones/:id/documentos/:codigo` | Previsualiza un documento por su código `INV-…`. |
+| `GET /api/investigacion/exportaciones/:id/revision` | Devuelve el contenido a revisar y su `huella`. |
+| `PATCH /api/investigacion/exportaciones/:id/revision` | Recibe `{ "huella": "..." }` y confirma la revisión si el contenido coincide. |
+| `GET /api/investigacion/exportaciones/:id/descarga` | Devuelve un ZIP con `manifiesto.json` y un archivo por caso. Requiere revisión vigente. |
+
+Administración y terapeutas acceden según su alcance. Una terapeuta solo
+puede seleccionar sus casos asignados. Marketing recibe `403`. Si el
+paquete incluye un caso ajeno, se rechaza la solicitud completa con `404`.
+
+La descarga devuelve `409` antes de la revisión o si el contenido cambió.
+La migración 019 conserva la huella revisada. El ZIP se genera en memoria
+al descargar.
+
+El texto libre puede contener identificadores y requiere revisión humana.
+El uso con datos reales sigue sujeto a ratificación. La prueba de
+importación en Atlas.ti corresponde a FE-171.

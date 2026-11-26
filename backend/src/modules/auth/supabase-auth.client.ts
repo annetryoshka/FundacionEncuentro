@@ -4,8 +4,12 @@ import {
   Injectable,
   ServiceUnavailableException,
   UnauthorizedException,
+  BadGatewayException,
+  GatewayTimeoutException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+
+const SUPABASE_AUTH_TIMEOUT_MS = 5_000;
 
 export interface SesionSupabase {
   access_token: string;
@@ -42,17 +46,20 @@ export class SupabaseAuthClient {
     return this.leerSesion(res, 'La sesión expiró, inicia sesión de nuevo');
   }
 
-  /**
-   * Cierra SOLO la sesión de este dispositivo (scope=local): el refresh token
-   * deja de servir y el token de acceso se invalida.
-   */
+  /** Solicita a Supabase el cierre de la sesión actual (scope=local). */
   async cerrarSesion(accessToken: string): Promise<void> {
     const res = await this.llamar('/auth/v1/logout?scope=local', {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+
+    if (res.status === 204) return;
+
     if (res.status >= 500) throw this.servicioCaido();
-    // 401/403: la sesión ya estaba cerrada o vencida; el resultado es el mismo.
+
+    throw new BadGatewayException(
+      'El servicio de autenticación no confirmó la revocación de la sesión',
+    );
   }
 
   async obtenerUsuario(accessToken: string): Promise<{ id: string } | null> {
@@ -62,25 +69,50 @@ export class SupabaseAuthClient {
     });
     if (res.status >= 500) throw this.servicioCaido();
     if (!res.ok) return null;
-    const user = (await res.json()) as { id?: string };
+    const user = await this.leerJson<{ id?: string }>(res);
     return user.id ? { id: user.id } : null;
   }
 
   // --- internos -----------------------------------------------------------
 
-  private async llamar(ruta: string, init: RequestInit & { headers?: Record<string, string> }) {
+  private async llamar(
+    ruta: string,
+    init: RequestInit & { headers?: Record<string, string> },
+  ): Promise<Response> {
     try {
       return await fetch(`${this.url}${ruta}`, {
         ...init,
+        signal: AbortSignal.timeout(SUPABASE_AUTH_TIMEOUT_MS),
         headers: {
           'Content-Type': 'application/json',
           apikey: this.anonKey,
           ...init.headers,
         },
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        throw new GatewayTimeoutException(
+          'El servicio de autenticación superó el tiempo de espera',
+        );
+      }
       throw this.servicioCaido();
     }
+  }
+
+  private async leerJson<T>(res: Response): Promise<T> {
+    try {
+        return (await res.json()) as T;
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.name === 'TimeoutError' || error.name === 'AbortError')
+        ) {
+          throw new GatewayTimeoutException(
+            'El servicio de autenticación superó el tiempo de espera',
+          );
+        }
+        throw this.servicioCaido();
+      }
   }
 
   private async leerSesion(res: Response, mensajeInvalido: string): Promise<SesionSupabase> {
@@ -89,7 +121,7 @@ export class SupabaseAuthClient {
     }
     if (res.status >= 500) throw this.servicioCaido();
     if (!res.ok) throw new UnauthorizedException(mensajeInvalido);
-    return (await res.json()) as SesionSupabase;
+    return this.leerJson<SesionSupabase>(res);
   }
 
   private servicioCaido() {

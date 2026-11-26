@@ -19,9 +19,14 @@ describe('Plantilla y navegación', () => {
     expect(menu().queryByRole('link', { name: 'Cuentas del personal' })).not.toBeInTheDocument()
   })
 
-  it('apoyo/marketing no ve ninguna sección clínica', async () => {
+  it('apoyo/marketing no ve ninguna sección clínica; solo Inicio y Difusión (FE-144)', async () => {
     await montarApp('/inicio', 'apoyo')
-    expect(screen.queryByRole('navigation', { name: 'Secciones' })).not.toBeInTheDocument()
+    const menu = screen.getByRole('navigation', { name: 'Secciones' })
+    expect(
+      within(menu)
+        .getAllByRole('link')
+        .map((a) => a.textContent),
+    ).toEqual(['Inicio', 'Difusión'])
     expect(screen.getByText(/no tiene acceso a la información clínica/)).toBeInTheDocument()
   })
 
@@ -52,7 +57,8 @@ describe('Plantilla y navegación', () => {
     const reuso = await atenderSimulado('/api/auth/me', { headers: { Authorization: token ?? '' } })
     expect(reuso.status).toBe(401)
     const renovar = await atenderSimulado('/api/auth/refresh', {
-      method: 'POST', body: JSON.stringify({ refreshToken }),
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
     })
     expect(renovar.status).toBe(401)
   })

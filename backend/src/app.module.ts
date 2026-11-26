@@ -9,6 +9,11 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
 import { IndicadoresModule } from './modules/indicadores/indicadores.module.js';
 import { ExportacionesModule } from './modules/exportaciones/exportaciones.module.js';
 import { ImportacionModule } from './modules/importacion/importacion.module.js';
+import { InformesModule } from './modules/informes/informes.module.js';
+
+import { DifusionModule } from './modules/difusion/difusion.module.js';
+
+import { InvestigacionModule } from './modules/investigacion/investigacion.module.js';
 
 @Module({
   imports: [
@@ -20,6 +25,11 @@ import { ImportacionModule } from './modules/importacion/importacion.module.js';
     IndicadoresModule,
     ExportacionesModule,
     ImportacionModule,
+    InformesModule,
+
+    DifusionModule,
+
+    InvestigacionModule,
   ],
   controllers: [HealthController],
 })

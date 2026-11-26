@@ -288,7 +288,6 @@
      queda además en `auditoria`.
    - Una exportación no cambia ni se elimina (`23514`). La ruta del archivo la fija la base: no se registra bajo otro caso.
    - `informes.formato` y `archivo_path` quedan sin uso: un informe puede exportarse varias veces, cada una con su fila.
-
    ## Pruebas de las migraciones con PostgreSQL local
 
    Cada archivo `backend/test/*-postgres.test.mjs` del Sprint 2 crea una base desechable, aplica todas las migraciones, carga datos ficticios y la borra al terminar. Nunca usa Supabase.
@@ -316,6 +315,8 @@
    | FE-152 | `informes-postgres.test.mjs` (aplica la 016 sobre una base con datos existentes) |
    | FE-168 | `investigacion-postgres.test.mjs` (aplica la 018 sobre una base con datos existentes) |
    | FE-158 | `exportaciones-postgres.test.mjs` (aplica la 020 sobre una base con datos existentes) |
+
+   | FE-130 | `genograma-postgres.test.mjs` (también la API con base real) |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 

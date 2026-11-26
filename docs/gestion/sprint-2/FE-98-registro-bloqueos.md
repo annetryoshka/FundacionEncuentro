@@ -28,11 +28,16 @@ Un bloqueo se cierra solo con acción y resolución anotadas. Corte inicial: **2
 
 | # | Fecha | Historia | Bloqueo | Responsable | Acción | Estado | Resolución |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 2026-11-09 | FE-50 | Falta decidir condiciones, estados y evidencia de la constancia de consentimiento (FE-61). | Andrea (PO) | Confirmar la propuesta de FE-61 con la fundación y publicarla como decisión. | Abierto | |
-| 2 | 2026-11-09 | FE-13 | Falta confirmar la ficha de referencia y el mínimo obligatorio del diagnóstico (FE-66). | Andrea (PO) | Validar el mínimo obligatorio y cerrar FE-66. | Abierto | |
-| 3 | 2026-11-09 | FE-7 | Falta definir cuántos pagos admite una sesión y qué métodos entran en la demo (FE-86). | Andrea (PO) | Decidir cardinalidad y métodos; actualizar FE-86. | Abierto | |
-| 4 | 2026-11-09 | FE-55, FE-56, FE-7 | Falta confirmar el identificador de sesión compartido y validar sus relaciones en la API. | Adriana (backend) con Alejandro (BD) | Acordar el contrato de sesión y registrarlo en `docs/api/contrato-frontend-backend.md`. | Abierto | |
-| 5 | 2026-11-09 | FE-50, 13, 55, 56, 57, 7, 6 | No hay ramas de implementación de estas HU en el repositorio; solo existe el backend de clasificación (FE-48, PR #18). | Gemina (seguimiento) | Pedir a cada responsable la rama y la fecha prevista de su primer PR. | Abierto | |
+| 1 | 2026-11-09 | FE-50 | Falta decidir condiciones, estados y evidencia de la constancia de consentimiento (FE-61). | Andrea (PO) | Confirmar la propuesta de FE-61 con la fundación y publicarla como decisión. | Implementado, validación pendiente | Se implementó la propuesta y QA la verificó (FE-65, merge `8ac78a3`, 2026-11-13). FE-61 sigue marcando como pendiente la validación de las reglas con la Fundación. |
+| 2 | 2026-11-09 | FE-13 | Falta confirmar la ficha de referencia y el mínimo obligatorio del diagnóstico (FE-66). | Andrea (PO) | Validar el mínimo obligatorio y cerrar FE-66. | Implementado, validación pendiente | Se implementó y QA la verificó (FE-70, merge `3b1706f`). FE-66 sigue pendiente de contrastar con la ficha vacía de referencia. |
+| 3 | 2026-11-09 | FE-7 | Falta definir cuántos pagos admite una sesión y qué métodos entran en la demo (FE-86). | Andrea (PO) | Decidir cardinalidad y métodos; actualizar FE-86. | Implementado, validación pendiente | Se implementó y QA la verificó (FE-90, merge `258e9fd`). FE-86 sigue marcando pendiente la decisión funcional sobre uno o varios pagos y el efectivo. |
+| 4 | 2026-11-09 | FE-55, FE-56, FE-7 | Falta confirmar el identificador de sesión compartido y validar sus relaciones en la API. | Adriana (backend) con Alejandro (BD) | Acordar el contrato de sesión y registrarlo en `docs/api/contrato-frontend-backend.md`. | Resuelto | Implementado en las migraciones 008 (sesiones), 009 (tareas por sesión) y 010 (pagos por sesión); las verificaciones FE-75, FE-80 y FE-90 pasan (2026-11-13). |
+| 5 | 2026-11-09 | FE-50, 13, 55, 56, 57, 7, 6 | No hay ramas de implementación de estas HU en el repositorio; solo existe el backend de clasificación (FE-48, PR #18). | Gemina (seguimiento) | Pedir a cada responsable la rama y la fecha prevista de su primer PR. | Resuelto | Las HU se integraron en `main` el 2026-11-13 (merges `c73b8eb` a `313373d`). |
+| 6 | 2026-11-13 | FE-85, FE-95, FE-65 | QA encontró tres defectos al verificar (FE-65-D1, FE-85-D1, FE-95-D1). | Adriana (backend) con Emilia (QA) | Corregir y reverificar. | Resuelto | Corregidos en `8c77aa3`, `ebb39a8` y `7e2c490`; reverificados (FE-107). |
+| 7 | 2026-11-13 | Entorno | Aplicar en Supabase las migraciones 004 en adelante y fijar el orden de integración de la cadena de base de datos. | Alejandro (BD) | Aplicar las migraciones y confirmar el orden. | Abierto | Según FE-107 seguía abierto el 2026-11-13; no consta en el repositorio que se haya cerrado. |
+| 8 | 2026-11-23 | Sprint 2 | La review y la retrospectiva no tienen fecha confirmada. | Gemina con Andrea | Fijar fecha y registrar acuerdos. | Abierto | |
+
+Actualización: **2026-11-23**, sobre `main` en `37ed16b`.
 
 ## Regla de escalamiento
 
