@@ -1,10 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 import ExcelJS from 'exceljs';
+import { posicionesEncabezado } from './encabezado-importacion.js';
 
 const COLUMNAS_FECHA = new Set([
   'fechaNacimiento', 'fechaIngreso', 'fechaDerivacion',
 ]);
-const COLUMNAS_NUMERO = new Set(['edadAlIngreso', 'numeroCorrelativo']);
 
 export async function leerXlsxImportacion(
   archivo: Buffer,
@@ -23,15 +23,12 @@ export async function leerXlsxImportacion(
     throw new BadRequestException('El XLSX debe contener una hoja llamada Importacion');
   }
 
-  const encabezado = hoja.getRow(1);
-  if (
-    encabezado.actualCellCount !== columnas.length ||
-    columnas.some((columna, i) => encabezado.getCell(i + 1).value !== columna)
-  ) {
-    throw new BadRequestException(
-      'Los encabezados del XLSX deben coincidir con la plantilla de importación',
-    );
-  }
+  const filaEncabezado = hoja.getRow(1);
+  const encabezado = Array.from(
+    { length: filaEncabezado.cellCount },
+    (_, i) => filaEncabezado.getCell(i + 1).value,
+  );
+  const { posiciones, ancho: anchoEncabezado } = posicionesEncabezado(encabezado, columnas, 'XLSX');
 
   const filas: { numeroFila: number; datos: Record<string, string> }[] = [];
 
@@ -39,13 +36,14 @@ export async function leerXlsxImportacion(
     if (numeroFila === 1) return;
 
     fila.eachCell((_celda, numeroColumna) => {
-      if (numeroColumna > columnas.length) {
+      if (numeroColumna > anchoEncabezado) {
         throw new BadRequestException(`La fila ${numeroFila} tiene columnas adicionales`);
       }
     });
 
     const datos = Object.fromEntries(columnas.map((columna, i) => {
-      const { value } = fila.getCell(i + 1);
+      if (posiciones[i] < 0) return [columna, ''];
+      const { value } = fila.getCell(posiciones[i] + 1);
 
       if (value == null || typeof value === 'string') {
         return [columna, value ?? ''];
@@ -53,7 +51,8 @@ export async function leerXlsxImportacion(
       if (value instanceof Date && COLUMNAS_FECHA.has(columna)) {
         return [columna, value.toISOString().slice(0, 10)];
       }
-      if (typeof value === 'number' && COLUMNAS_NUMERO.has(columna)) {
+      // Excel guarda teléfonos, números de carpeta y edades como número.
+      if (typeof value === 'number' && Number.isFinite(value) && !COLUMNAS_FECHA.has(columna)) {
         return [columna, String(value)];
       }
 
