@@ -16,6 +16,7 @@
    | `migrations/009_tareas_por_sesion.sql` | FE-79: cada tarea pertenece a una sesión del mismo caso; quién cambió el cumplimiento |
    | `migrations/010_pagos_por_sesion.sql` | FE-89: un pago por sesión del mismo caso; monto sin redondeo silencioso |
    | `migrations/011_indicadores_operativos.sql` | FE-94: función `indicadores_operativos(desde, hasta)` para el dashboard de FE-6 |
+   | `migrations/012_genograma_archivos.sql` | FE-130: archivo privado del genograma (PDF/PNG/JPEG) con versiones; `genogramas.archivo_clave` apunta al vigente |
    | `migrations/013_residencia_pacientes.sql` | FE-135: ciudad de residencia del paciente y `indicadores_por_residencia(desde, hasta)` |
    | `migrations/014_difusion_publicaciones.sql` | FE-142: publicaciones de difusión, imágenes y vista pública `v_publicaciones_publicas` |
    | `migrations/015_familiares_caso.sql` | FE-125: composición familiar por caso y vista `v_fuente_clinica_vigente` |
@@ -80,6 +81,21 @@
    - RLS activo y sin acceso para `anon`/`authenticated`: todo pasa por el backend.
 
    Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
+
+   ## Genograma (FE-130)
+
+   ```
+   casos 1 ─ n    genograma_archivos   (una fila por archivo subido; contenido bytea inmutable)
+         1 ─ 0..1 genogramas           (archivo_clave = versión vigente)
+   ```
+
+   - La clave es `<caso_id>/<uuid>`. Un check y la FK compuesta `(archivo_clave, caso_id)` impiden usar el archivo de otro caso.
+   - Primero se guarda el archivo sin activar; luego, en una transacción, se activa (nombre, autor, fecha) y se cambia la referencia. Si falla, el vigente anterior no cambia.
+   - Las versiones anteriores se conservan. No se borra el archivo vigente (FK `restrict`).
+   - Archivos que nunca se activaron (carga fallida), descartables: `select clave from genograma_archivos where activado_en is null and creado_en < now() - interval '1 day'`.
+   - `sha256` es una columna generada. Comprobación de integridad: `select clave from genograma_archivos where sha256 <> sha256(contenido)` debe devolver 0 filas.
+   - `genograma_archivos` no tiene trigger de auditoría (copiaría el archivo entero); el cambio de vigente se audita en `genogramas`.
+   - Respaldo y recuperación: los archivos están en la base, así que un `pg_dump` los incluye. Restaurar y correr la comprobación de integridad anterior. Procedimiento probado en `docs/pruebas/FE-130-almacenamiento-genograma.md`.
 
    ## Composición familiar (FE-125)
 
