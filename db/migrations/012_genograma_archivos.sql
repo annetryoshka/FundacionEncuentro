@@ -78,4 +78,6 @@ create trigger trg_aud_genogramas
   after insert or update or delete on public.genogramas
   for each row execute function public.auditar_cambio();
 
+revoke all on public.genograma_archivos from anon, authenticated;
+
 commit;
