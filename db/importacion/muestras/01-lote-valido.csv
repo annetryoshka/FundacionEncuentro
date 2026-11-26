@@ -1,0 +1,4 @@
+referenciaOrigen,nombreCompleto,fechaNacimiento,edadAlIngreso,telefono,tipo,numeroCorrelativo,fechaIngreso,clasificacion,ciudadResidencia,otraLocalidad,diagnosticoIngreso,hipotesisRelacional,comentariosClinicos,estado,juzgado,nroExpediente,fechaDerivacion
+V-0101,QA Rosa Quispe,2010-05-14,,,voluntario,15,2018-03-12,social,la_paz,,"Ansiedad, según ficha antigua",,Antecedente ficticio,concluido,,,
+V-0102,QA Mario Choque,,34,,derivado,,2019-07-01,privado,otra,Viacha,,Conflicto de pareja,,concluido,Juzgado 3.º de Familia QA,QA-123/2019,2019-06-20
+V-0103,QA Lucía Apaza,,,,voluntario,16,2018-04-02,,el_alto,,,,,en_proceso,,,

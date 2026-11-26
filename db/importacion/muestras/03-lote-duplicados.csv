@@ -1,0 +1,8 @@
+referenciaOrigen,nombreCompleto,fechaNacimiento,edadAlIngreso,telefono,tipo,numeroCorrelativo,fechaIngreso,clasificacion,ciudadResidencia,otraLocalidad,diagnosticoIngreso,hipotesisRelacional,comentariosClinicos,estado,juzgado,nroExpediente,fechaDerivacion
+D-01,QA Paciente Antiguo,,,,voluntario,1,2017-05-02,,,,,,Misma carpeta que un caso existente,,,,
+D-02,QA Paciente Antiguos,,,,voluntario,,2017-08-15,,,,,,Nombre parecido a un paciente existente,,,,
+D-03,QA Carmen Vargas,,,,voluntario,40,2017-09-01,,,,,,Mismo número que D-04,,,,
+D-04,QA Julio Rojas,,,,voluntario,40,2017-09-03,,,,,,Mismo número que D-03,,,,
+D-05,QA Ana Torrez,2001-02-03,,,voluntario,41,2017-10-01,,,,,,Primera carpeta de la misma persona,,,,
+D-06,QA Ana Torrez,2001-02-03,,,voluntario,42,2018-02-01,,,,,,Segunda carpeta de la misma persona,,,,
+D-07,QA Pedro Nuevo,,,,derivado,7,2017-11-20,,,,,,Sin coincidencias,,,,

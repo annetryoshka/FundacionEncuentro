@@ -1,0 +1,13 @@
+referenciaOrigen,nombreCompleto,fechaNacimiento,edadAlIngreso,telefono,tipo,numeroCorrelativo,fechaIngreso,clasificacion,ciudadResidencia,otraLocalidad,diagnosticoIngreso,hipotesisRelacional,comentariosClinicos,estado,juzgado,nroExpediente,fechaDerivacion
+E-01,,,,,voluntario,201,2018-01-10,,,,,,Nombre vacío,,,,
+E-02,QA Error Dos,,,,social,202,2018-01-10,,,,,,Origen inválido,,,,
+E-03,QA Error Tres,,,,voluntario,203,2026-02-30,,,,,,Fecha imposible,,,,
+E-04,QA Error Cuatro,,,,voluntario,204,,,,,,,Sin fecha de ingreso,,,,
+E-05,QA Error Cinco,2019-01-01,,,voluntario,205,2018-01-10,,,,,,Nacimiento posterior al ingreso,,,,
+E-06,QA Error Seis,,,,voluntario,20a,2018-01-10,,,,,,Número no entero,,,,
+E-07,QA Error Siete,,,,voluntario,207,2018-01-10,,otra,,,,Otra localidad sin nombre,,,,
+E-08,QA Error Ocho,,,,voluntario,208,2018-01-10,,,,,,Voluntario con juzgado,,Juzgado QA,,
+E-09,QA Error Nueve,,,,voluntario,209,2018-01-10,publica,,,,,Clasificación inválida,,,,
+E-10,QA Error Diez,,130,,voluntario,210,2018-01-10,,,,,,Edad fuera de rango,,,,
+E-11,QA Error Once,,,,voluntario,211,2099-01-10,,,,,,Ingreso futuro,,,,
+E-12,QA Fila Correcta,,,,voluntario,212,2018-01-10,,,,,,Única fila válida,,,,

@@ -20,6 +20,7 @@
    | `migrations/014_difusion_publicaciones.sql` | FE-142: publicaciones de difusión, imágenes y vista pública `v_publicaciones_publicas` |
    | `migrations/015_familiares_caso.sql` | FE-125: composición familiar por caso y vista `v_fuente_clinica_vigente` |
    | `migrations/016_fotografia_informes.sql` | FE-152: versiones de informes con la fotografía de los datos usados y `fotografia_informe(...)` |
+   | `migrations/017_importacion_historica.sql` | FE-163: lotes de importación histórica, coincidencias y `confirmar_importacion(...)` |
 
    ## Modelo del Sprint 2
 
@@ -127,6 +128,54 @@
      Un solo borrador abierto por informe (`23505`).
    - `informe_version_al_dia(version)` → false si el expediente cambió desde la fotografía (para avisar y ofrecer otra versión).
    - El caso, el tipo y el autor de un informe no cambian. `informes.formato` y `archivo_path` quedan para la exportación (FE-158).
+
+   ## Importación histórica (FE-163)
+
+   Mapeo de FE-162 (propuesta). Plantilla y muestras ficticias en `db/importacion/`. La importación solo inserta
+   pacientes y casos: no modifica, fusiona ni borra registros existentes.
+
+   ```
+   importaciones 1 ─ n importacion_filas   (en_revision → confirmada | descartada; datos = fila leída)
+   importacion_filas → pacientes, casos    (resultado: creada | vinculada | excluida)
+   ```
+
+   Flujo para la API (FE-164), cada paso en una transacción con `app.usuario_id` de administración:
+
+   1. **Cargar:** `insert into importaciones (perfil_id, archivo_nombre, formato, archivo_sha256, origen)` y una fila de
+      `importacion_filas (importacion_id, numero_fila, referencia_origen, datos)` por línea, con `datos` = `{ columna: texto }`
+      de la plantilla (`importacion_columnas()`; encabezado = línea 1). Luego `select clasificar_importacion(id)`.
+      Si es la misma transacción, la versión queda en 1. Archivo ya importado:
+      `select id from importaciones where archivo_sha256 = $1 and estado = 'confirmada'`.
+   2. **Vista previa:** `importacion_filas` con `estado` (`valida_nueva`, `error`, `posible_duplicado`, `duplicado_en_lote`),
+      `errores` (`[{ campo, mensaje }]`), `coincidencias`, `advertencias` y `decision`, más `importaciones.version`.
+      Coincidencias por `tipo`: `carpeta` (mismo origen y número que un caso, también eliminado), `ya_importada`
+      (misma fila en un lote confirmado), `referencia` (misma referencia con otros datos), `nombre` (similitud > 0.6,
+      como el alta manual) y `fila` (otra fila del lote; `mismoNumero` indica choque de número).
+      Advertencia `contador`: el número supera el último del tipo y el contador avanzará.
+   3. **Decidir o corregir:** `update importacion_filas set decision = ...` (`crear`, `excluir` o `vincular` con uno de
+      `caso_destino_id`, `paciente_destino_id`, `fila_destino`). Para corregir, cambiar `datos` y volver a clasificar.
+      Las filas válidas reciben `crear`; si cambian su estado o coincidencias, la decisión se borra y se vuelve a pedir.
+      La base pone `decidido_por/en` y sube `version` una vez por transacción.
+   4. **Confirmar:** `select confirmar_importacion(id, version, aceptaAvance)` aplica todo el lote o nada. Devuelve el resumen
+      (`creadas`, `vinculadas`, `excluidas`, `filas` con `pacienteId`, `casoId` y número) o `{ estado: 'revisar', filas, version }`
+      si al volver a clasificar cambió algo (la nueva clasificación queda guardada). Repetirlo sobre un lote confirmado
+      devuelve el mismo resumen sin escribir nada.
+      Si los números propios harían saltar un contador (dejar huecos, p. ej. de 10 a 900001), con `aceptaAvance = false`
+      (por defecto) se detiene con `FEI04`; la API muestra el salto y vuelve a confirmar con `true` solo si administración
+      lo acepta. Números consecutivos al último o por debajo de él no lo requieren. Queda en `acepta_avance_contador`.
+
+   | Decisión | Efecto |
+   |---|---|
+   | `crear` | Paciente y caso nuevos (número propio o el del contador), residencia y contexto judicial si hay |
+   | `vincular` + `caso_destino_id` | Nada se escribe en el caso: la fila queda como antecedente de origen |
+   | `vincular` + `paciente_destino_id` / `fila_destino` | Caso nuevo del paciente existente o del creado por esa fila; el paciente no cambia |
+   | `excluir` | No se importa; queda registrada |
+
+   - Errores para traducir: `FEI01` versión desactualizada → 409; `FEI02` filas sin resolver → 400 (DETAIL: JSON
+     `[{ numeroFila, motivo }]`); `FEI03` lote descartado → 409; `FEI04` salto del contador sin aceptar → 409 (DETAIL:
+     JSON `[{ tipo, ultimoActual, nuevoUltimo }]`); `P0002` → 404; `42501` falta `app.usuario_id`.
+   - Lote confirmado o descartado: no se modifica ni elimina (`23514`). Descartar: `update importaciones set estado = 'descartada'`.
+   - Solo el backend accede (RLS, sin permisos para `anon`/`authenticated`). Que sea solo administración lo controla la API.
 
    ## Pruebas de las migraciones con PostgreSQL local
 
