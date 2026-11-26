@@ -7,8 +7,9 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { ResidenciaPacienteDto } from './residencia-paciente.dto.js';
 
-export class ActualizarCasoDto {
+export class ActualizarCasoDto extends ResidenciaPacienteDto {
   @ApiProperty({
     description: 'Nombre completo actualizado del paciente',
     example: 'María López García',
