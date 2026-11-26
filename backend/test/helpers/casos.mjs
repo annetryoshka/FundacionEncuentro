@@ -13,7 +13,8 @@ export const datos = (nombre = 'Paciente ficticio QA', tipo = 'voluntario') => (
   caso: { tipo, fechaIngreso: '2020-01-01' },
 });
 
-export async function servidor(db, usuariosPorToken = { fixture: actor }, modulos = []) {
+export async function servidor(db, usuariosPorToken = { fixture: actor }, opciones = []) {
+  const { modulos = [], configuracion = {} } = Array.isArray(opciones) ? { modulos: opciones } : opciones;
   const original = globalThis.fetch;
 
   globalThis.fetch = async (url, init) => {
@@ -46,6 +47,7 @@ export async function servidor(db, usuariosPorToken = { fixture: actor }, modulo
           getOrThrow: (key) => ({
             SUPABASE_URL: 'https://auth.invalid',
             SUPABASE_ANON_KEY: 'ficticia',
+            ...configuracion,
           })[key],
         },
       },

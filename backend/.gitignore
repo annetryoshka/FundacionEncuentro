@@ -11,3 +11,6 @@ dist/
 # Otros
 .DS_Store
 *.log
+
+# Archivos exportados (datos clínicos)
+almacenamiento/

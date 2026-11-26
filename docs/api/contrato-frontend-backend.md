@@ -445,6 +445,40 @@ Demostración integrada en navegador con frontend real, backend de `main` y Post
 Auth fue un Supabase de prueba local. Detalle, incidencias corregidas y guion en
 `docs/pruebas/FE-46-demostracion-integrada.md`.
 
+## Residencia del paciente (FE-136)
+
+- El alta de un paciente y la edición administrativa admiten
+  `ciudadResidencia` (`la_paz`, `el_alto`, `otra` o `null`) y `otraLocalidad`.
+  `otra` requiere una localidad. En la edición, omitir ambos campos conserva
+  la residencia y enviar `ciudadResidencia: null` la limpia.
+- El listado y el detalle de carpetas devuelven ambos campos dentro de `paciente`.
+- `GET /api/carpetas` admite `residencia=la_paz|el_alto|otra|sin_registrar`.
+  El filtro se combina con permisos y demás filtros antes de contar y paginar.
+- `GET /api/indicadores/por-residencia?desde=AAAA-MM-DD&hasta=AAAA-MM-DD`
+  es exclusivo de administración. Devuelve `periodo` y `porResidencia`, con
+  casos actuales, estados, sesiones y pagos en BOB para cada grupo.
+
+## Exportación a PDF y Word (FE-159)
+
+| Método y ruta | Resultado |
+| --- | --- |
+| `POST /api/carpetas/:casoId/exportaciones` | Genera el archivo y devuelve `201` con `{ "exportacionId": "..." }`. |
+| `GET /api/carpetas/:casoId/exportaciones/:exportacionId/archivo` | Descarga el PDF o DOCX después de volver a comprobar el acceso y verificar la integridad del archivo. |
+
+El POST recibe `documento` (`informe`, `ficha` o `historial`) y `formato`
+(`pdf` o `docx`). Para un informe requiere `informeVersionId` de una versión
+revisada del mismo caso. La ficha y el historial admiten `secciones`.
+`incluirPagos` solo se admite para administración y en el historial.
+
+El backend guarda los archivos fuera del directorio público, en la ruta
+absoluta configurada con `EXPORTACIONES_DIR` (vacía: `backend/almacenamiento/exportaciones`,
+ignorada por Git). En un despliegue, esa ruta debe apuntar a almacenamiento
+persistente y privado; los respaldos de la base no incluyen estos archivos. Si falla la escritura,
+la API devuelve `500` y registra la exportación como fallida.
+
+La inserción visual del genograma queda pendiente. La migración 012
+habilita sus metadatos, que es lo que el conversor actual puede mostrar.
+
 ## Importación histórica (FE-164)
 
 Solo administración puede usar estas rutas.

@@ -16,12 +16,14 @@
    | `migrations/009_tareas_por_sesion.sql` | FE-79: cada tarea pertenece a una sesión del mismo caso; quién cambió el cumplimiento |
    | `migrations/010_pagos_por_sesion.sql` | FE-89: un pago por sesión del mismo caso; monto sin redondeo silencioso |
    | `migrations/011_indicadores_operativos.sql` | FE-94: función `indicadores_operativos(desde, hasta)` para el dashboard de FE-6 |
+   | `migrations/012_genograma_archivos.sql` | FE-130: archivo privado del genograma (PDF/PNG/JPEG) con versiones; `genogramas.archivo_clave` apunta al vigente |
    | `migrations/013_residencia_pacientes.sql` | FE-135: ciudad de residencia del paciente y `indicadores_por_residencia(desde, hasta)` |
    | `migrations/014_difusion_publicaciones.sql` | FE-142: publicaciones de difusión, imágenes y vista pública `v_publicaciones_publicas` |
    | `migrations/015_familiares_caso.sql` | FE-125: composición familiar por caso y vista `v_fuente_clinica_vigente` |
    | `migrations/016_fotografia_informes.sql` | FE-152: versiones de informes con la fotografía de los datos usados y `fotografia_informe(...)` |
    | `migrations/017_importacion_historica.sql` | FE-163: lotes de importación histórica, coincidencias y `confirmar_importacion(...)` |
    | `migrations/018_investigacion_categorias.sql` | FE-168: categorías de investigación, selección autorizada y paquete para Atlas.ti con manifiesto |
+   | `migrations/020_registro_exportaciones.sql` | FE-158: exportaciones PDF/Word de informe revisado, ficha o historial con sus datos, archivo privado y trazabilidad (019 la usa FE-169) |
 
    ## Modelo del Sprint 2
 
@@ -79,6 +81,21 @@
    - RLS activo y sin acceso para `anon`/`authenticated`: todo pasa por el backend.
 
    Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
+
+   ## Genograma (FE-130)
+
+   ```
+   casos 1 ─ n    genograma_archivos   (una fila por archivo subido; contenido bytea inmutable)
+         1 ─ 0..1 genogramas           (archivo_clave = versión vigente)
+   ```
+
+   - La clave es `<caso_id>/<uuid>`. Un check y la FK compuesta `(archivo_clave, caso_id)` impiden usar el archivo de otro caso.
+   - Primero se guarda el archivo sin activar; luego, en una transacción, se activa (nombre, autor, fecha) y se cambia la referencia. Si falla, el vigente anterior no cambia.
+   - Las versiones anteriores se conservan. No se borra el archivo vigente (FK `restrict`).
+   - Archivos que nunca se activaron (carga fallida), descartables: `select clave from genograma_archivos where activado_en is null and creado_en < now() - interval '1 day'`.
+   - `sha256` es una columna generada. Comprobación de integridad: `select clave from genograma_archivos where sha256 <> sha256(contenido)` debe devolver 0 filas.
+   - `genograma_archivos` no tiene trigger de auditoría (copiaría el archivo entero); el cambio de vigente se audita en `genogramas`.
+   - Respaldo y recuperación: los archivos están en la base, así que un `pg_dump` los incluye. Restaurar y correr la comprobación de integridad anterior. Procedimiento probado en `docs/pruebas/FE-130-almacenamiento-genograma.md`.
 
    ## Composición familiar (FE-125)
 
@@ -227,6 +244,51 @@
      preparar otro paquete.
    - Un paquete preparado no cambia ni pierde documentos (`23514`); se puede eliminar completo.
 
+   ## Exportación de documentos PDF y Word (FE-158)
+
+   Propuesta de FE-156. Cada exportación de un informe revisado, una ficha o un historial es una fila de `exportaciones`
+   (tipo `pdf` o `word`) con el caso, quién la preparó, los parámetros, los datos exactos del documento y su archivo.
+
+   ```
+   exportaciones (pdf | word) → casos                  (siempre un caso; los datos son de ese caso)
+                              → informe_versiones      (solo documento = informe; versión revisada del mismo caso)
+   estado: preparada → generada (archivo registrado) | fallida (error del generador)
+   ```
+
+   - **Parámetros** (`formatoVersion: 1`): `documento` (`informe`, `ficha`, `historial`), `formato` (`pdf`, `docx`), `secciones`,
+     `informeVersionId`, `incluirGenograma`, `incluirPagos`. La base los guarda en forma canónica; una clave desconocida → `22023`.
+     - Informe: solo `informeVersionId`. Se exporta tal como se revisó (texto y fotografía de `informe_versiones`); no se regenera
+       aunque el expediente cambie. Versión en borrador → `23514`; de otro caso o inexistente → `P0002`.
+     - Ficha: `identificacion`, `familia`, `diagnostico` (por defecto identificación y diagnóstico).
+     - Historial: además `sesiones` (por defecto las cuatro). `incluirPagos` solo aquí y solo administración (`42501`).
+     - `incluirGenograma` requiere la 012 (si falta, `0A000`).
+   - **Datos** (`datos_origen`): `documento`, `caso` (siempre), `seleccion` y las claves de las secciones pedidas: `paciente`,
+     `responsable`, `judicial` (identificación), `familia`, `diagnostico` (fuente vigente), `sesiones` (todas, por fecha y número,
+     con tareas), `genograma`, `pagos` (`[{ fecha, monto: "50.50", moneda, metodo, referencia, nroSesion, sesionId }]`).
+     Se leen una sola vez, al preparar, en una misma instantánea (reutiliza `fotografia_informe`). El archivo se genera desde aquí.
+   - **Alcance:** administración, cualquier caso activo; terapeuta, sus casos asignados. Caso ajeno, dado de baja o inexistente →
+     `P0002` (404); marketing, cuenta inactiva o sin `app.usuario_id` → `42501`.
+
+   Flujo para la API (FE-159/FE-160), cada paso en una transacción con `app.usuario_id`:
+
+   1. **Vista previa (opcional):** `select datos_exportacion_actuales(caso, parametros)` devuelve los datos que se registrarían.
+   2. **Preparar:** `select preparar_exportacion_documento(caso, parametros, datosMostrados)` → id. Con `datosMostrados` (la vista
+      previa), si el expediente cambió entretanto → `23514`: volver a pedir la vista previa. Sin él, usa los datos actuales.
+   3. **Generar:** `datos_exportacion_documento(id)` → `{ exportacionId, documento, formato, estado, archivoNombre, archivoPath, datos }`.
+      Generar el archivo desde `datos` y guardarlo en `archivoPath` (`<caso_id>/<id>.pdf|.docx`, privado).
+   4. **Registrar:** `select registrar_archivo_exportacion(id, sha256Hex, bytes)` (tamaño 0 → `22023`) o, si el generador falla,
+      `select registrar_fallo_exportacion(id, mensaje)`. Una vez; después `23514`. Para reintentar, preparar otra exportación.
+   5. **Descargar:** `archivo_exportacion(id)` → `{ archivoPath, archivoNombre, tipoContenido, bytes, sha256 }`. Sin archivo
+      registrado → `55000` (409). Comprobar el sha256 al leer el archivo.
+
+   - **Lectura** (pasos 3–5): quien la preparó o administración, mientras el caso siga autorizado; con pagos, solo administración.
+     Si no, `P0002`. El nombre de descarga (`exportacion-<id>.pdf`) no tiene datos personales.
+   - **Trazabilidad:** `select * from exportaciones_documentos_caso(caso)`: documento, formato, versión del informe, secciones,
+     pagos/genograma, autor, fecha, estado y nombre. Administración ve todas las del caso; terapeuta, las suyas. Cada alta y cierre
+     queda además en `auditoria`.
+   - Una exportación no cambia ni se elimina (`23514`). La ruta del archivo la fija la base: no se registra bajo otro caso.
+   - `informes.formato` y `archivo_path` quedan sin uso: un informe puede exportarse varias veces, cada una con su fila.
+
    ## Pruebas de las migraciones con PostgreSQL local
 
    Cada archivo `backend/test/*-postgres.test.mjs` del Sprint 2 crea una base desechable, aplica todas las migraciones, carga datos ficticios y la borra al terminar. Nunca usa Supabase.
@@ -253,6 +315,7 @@
    | FE-125 | `familiares-postgres.test.mjs` (aplica la 015 sobre una base con datos existentes) |
    | FE-152 | `informes-postgres.test.mjs` (aplica la 016 sobre una base con datos existentes) |
    | FE-168 | `investigacion-postgres.test.mjs` (aplica la 018 sobre una base con datos existentes) |
+   | FE-158 | `exportaciones-postgres.test.mjs` (aplica la 020 sobre una base con datos existentes) |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
@@ -305,3 +368,14 @@ usuario en Auth y asociar su perfil mediante una transacción auditada; después
 reutiliza POST `/api/usuarios`. Generar contraseñas temporales fuera de Git y no
 copiar hashes. Las pruebas automatizadas de FE-23 generan sus credenciales
 ficticias en memoria y no crean cuentas reales.
+
+## Actualización y recuperación (FE-197)
+
+Guía completa: `docs/operacion/sprint-3/actualizacion-y-recuperacion.md`.
+
+- Antes de aplicar en Supabase: respaldo del esquema `public` con `pg_dump` 17, ensayo local y prueba en seco con `rollback`.
+- Comprobar si una migración está aplicada con un objeto que **ella crea** (012 → `genograma_archivos`, no `genogramas`).
+- Revertir = restaurar el respaldo previo. Restaurar en tres secciones (`pre-data`, `data`, `post-data`);
+  fuera de Supabase, llenar `auth.users` desde `perfiles` antes de `post-data`.
+- El respaldo incluye los archivos de genograma (bytea). No incluye `auth.users` ni archivos de Supabase Storage.
+- Ensayo automático (PostgreSQL local): `backend/scripts/ensayo-actualizacion.mjs`.

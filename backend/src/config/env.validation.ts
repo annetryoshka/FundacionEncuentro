@@ -1,3 +1,5 @@
+import { isAbsolute, resolve } from 'node:path';
+
 const REQUERIDAS = [
   'DATABASE_URL',
   'SUPABASE_URL',
@@ -18,9 +20,15 @@ export function validarEnv(config: Record<string, unknown>) {
     );
   }
 
+  const exportaciones = String(config.EXPORTACIONES_DIR ?? '').trim();
+  if (exportaciones && !isAbsolute(exportaciones)) {
+    throw new Error('EXPORTACIONES_DIR debe ser una ruta absoluta.');
+  }
+
   return {
     ...config,
     PORT: Number(config.PORT ?? 3000),
     FRONTEND_URL: String(config.FRONTEND_URL ?? 'http://localhost:5173'),
+    EXPORTACIONES_DIR: exportaciones || resolve('almacenamiento', 'exportaciones'),
   };
 }
