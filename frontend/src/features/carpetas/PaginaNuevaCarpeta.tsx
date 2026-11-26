@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ErrorApi, mensajeErrorGeneral } from '../../api/cliente'
-import { Aviso, Boton, CampoTexto, EncabezadoPagina, GrupoOpciones, Tarjeta } from '../../componentes/ui'
+import { Aviso, Boton, CampoTexto, EncabezadoPagina, EnlaceVolver, GrupoOpciones, Tarjeta } from '../../componentes/ui'
 import { hoyIso } from '../../utilidades/fechas'
 import { registrarCarpeta } from './carpetasApi'
 import { type NuevaCarpeta, type TipoCaso } from './tipos'
@@ -83,9 +83,7 @@ export function PaginaNuevaCarpeta() {
 
   return (
     <div className="space-y-6">
-      <Link to="/carpetas" className="text-sm font-semibold text-naranja-texto underline-offset-4 hover:underline">
-        Volver a carpetas
-      </Link>
+      <EnlaceVolver a="/carpetas">Volver a carpetas</EnlaceVolver>
       <EncabezadoPagina
         titulo="Registrar paciente"
         descripcion="Se abre su carpeta digital con estado «Iniciado». Los datos clínicos se completan después, en las fichas."
@@ -145,7 +143,7 @@ export function PaginaNuevaCarpeta() {
               >
                 Cancelar
               </Link>
-              <Boton type="submit" cargando={guardando} textoCargando="Registrando…">
+              <Boton type="submit" icono="carpeta" cargando={guardando} textoCargando="Registrando…">
                 Registrar y abrir carpeta
               </Boton>
             </div>

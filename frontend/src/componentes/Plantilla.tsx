@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router'
 import { useSesion } from '../features/auth/sesion'
 import type { Rol } from '../features/auth/tipos'
 import { nombreRol } from '../features/usuarios/tipos'
+import { Icono } from './iconos'
 import { Logo, PieContacto } from './marca'
 
 interface Seccion {
@@ -63,8 +64,9 @@ export function Plantilla() {
               type="button"
               onClick={salir}
               disabled={saliendo}
-              className="rounded-full border border-verde px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-verde hover:bg-verde hover:text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+              className="inline-flex items-center gap-1.5 rounded-full border border-verde px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-verde hover:bg-verde hover:text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
             >
+              <Icono nombre="salir" className="size-4" />
               {saliendo ? 'Cerrando…' : 'Cerrar sesión'}
             </button>
           </div>

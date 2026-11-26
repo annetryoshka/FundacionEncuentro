@@ -132,7 +132,7 @@ function ControlGuardado<T extends string>({
       <label htmlFor={`${id}-valor`} className="block text-sm font-semibold text-texto">
         {etiqueta}
       </label>
-      <div className="mt-1.5 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-1.5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <select
           id={`${id}-valor`}
           value={elegido}
@@ -142,7 +142,7 @@ function ControlGuardado<T extends string>({
           }}
           disabled={guardando}
           aria-describedby={ayuda ? `${id}-ayuda` : undefined}
-          className={`${claseCampo(false)} mt-0 sm:flex-1`}
+          className={`${claseCampo(false)} mt-0 sm:flex-[1_1_13.5rem]`}
         >
           {actual === null && (
             <option value="" disabled>
@@ -156,7 +156,7 @@ function ControlGuardado<T extends string>({
             </option>
           ))}
         </select>
-        <Boton onClick={enviar} disabled={sinCambios} cargando={guardando} textoCargando="Guardando…">
+        <Boton onClick={enviar} icono="guardar" disabled={sinCambios} cargando={guardando} textoCargando="Guardando…">
           {textoBoton}
         </Boton>
       </div>
