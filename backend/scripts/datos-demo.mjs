@@ -111,6 +111,19 @@ const PUBLICACIONES = [
 ];
 const idPublicacion = (n) => `40000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
+// [FE-168] catálogo de prueba de FE-167 §2 (requiere la migración 018). Ejemplos técnicos, no una taxonomía aprobada.
+const CATEGORIAS = [
+  [1, 'QA-CAT-01', 'Categoría de prueba 1'],
+  [2, 'QA-CAT-02', 'Categoría de prueba 2'],
+];
+// [carpeta, categoría, destino]: QA-CAT-01 en la carpeta 1 (caso A) y en su ficha de diagnóstico; QA-CAT-02 en la 2 (caso B).
+const ETIQUETAS = [
+  [1, 1, 'caso'],
+  [1, 1, 'diagnostico'],
+  [2, 2, 'caso'],
+];
+const idCategoria = (n) => `50000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
 const idCaso = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const idPaciente = (n) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 // [FE-74] sesión n de la carpeta c: 30000000-0000-4000-8000-0000ccc00nnn
@@ -353,12 +366,58 @@ async function crearDatosDifusion(cuentas) {
   return nuevas;
 }
 
+// [FE-168] categorías y etiquetas de investigación. Sin la migración 018 no hace nada.
+async function crearDatosInvestigacion(cuentas) {
+  const { rows: [m] } = await pool.query(
+    `select count(*)::int as n from information_schema.columns
+      where table_schema = 'public' and table_name = 'categorias_investigacion' and column_name = 'codigo'`);
+  if (!m.n) return null;
+  const cliente = await pool.connect();
+  const resumen = { categorias: 0, etiquetas: 0 };
+  try {
+    await cliente.query('begin');
+    await cliente.query(`select set_config('app.usuario_id', $1, true)`, [cuentas.direccion]);
+    for (const [n, codigo, nombre] of CATEGORIAS) {
+      const r = await cliente.query(
+        `insert into categorias_investigacion (id, codigo, nombre, descripcion)
+         values ($1, $2, $3, 'Ejemplo técnico de FE-167 (dato ficticio).') on conflict do nothing`,
+        [idCategoria(n), codigo, nombre]);
+      resumen.categorias += r.rowCount;
+    }
+    for (const [carpeta, n, destino] of ETIQUETAS) {
+      const r = await cliente.query(
+        `insert into caso_categorias (caso_id, categoria_id, ficha_diagnostico_id)
+         select $1, $2, case when $3 = 'diagnostico' then (select id from fichas_diagnostico where caso_id = $1) end
+          where $3 = 'caso' or exists (select 1 from fichas_diagnostico where caso_id = $1)
+         on conflict on constraint uq_caso_cat_destino do nothing`,
+        [idCaso(carpeta), idCategoria(n), destino]);
+      resumen.etiquetas += r.rowCount;
+    }
+    await cliente.query('commit');
+  } catch (error) {
+    await cliente.query('rollback');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+  return resumen;
+}
+
 async function borrar() {
   const idsCasos = casos.map((c) => c.id);
   const idsPacientes = PACIENTES.map((_, i) => idPaciente(i + 1));
   const cliente = await pool.connect();
   try {
     await cliente.query('begin');
+    // [FE-168] paquetes de investigación con carpetas de demostración (con sus documentos) y etiquetas
+    if ((await cliente.query(`select to_regclass('public.exportacion_documentos') as t`)).rows[0].t) {
+      await cliente.query(
+        'delete from exportaciones where id in (select exportacion_id from exportacion_documentos where caso_id = any($1))', [idsCasos]);
+    }
+    await cliente.query('delete from caso_categorias where caso_id = any($1)', [idsCasos]);
+    await cliente.query(
+      'delete from categorias_investigacion c where id = any($1) and not exists (select 1 from caso_categorias where categoria_id = c.id)',
+      [CATEGORIAS.map(([n]) => idCategoria(n))]);
     const tablas = ['pagos', 'tareas_terapeuticas', 'fichas_seguimiento', 'fichas_diagnostico'];
     // [FE-64] la tabla de constancias existe desde la migración 005
     tablas.push('constancias_atencion');
@@ -408,10 +467,13 @@ try {
     const r = await crearCarpetas(cuentas);
     const s = await crearDatosSprint2(cuentas);
     const d = await crearDatosDifusion(cuentas);
+    const inv = await crearDatosInvestigacion(cuentas);
     console.log(`Cuentas listas (contraseña ${CONTRASENA}): ${CUENTAS.map((c) => c.email).join(', ')}`);
     console.log(`Nuevos: ${r.pacientes} pacientes, ${r.carpetas} carpetas, ${r.asignaciones} asignaciones, ${r.residencias} residencias.`);
     console.log(`Sprint 2, nuevos: ${Object.entries(s).map(([dato, n]) => `${n} ${dato}`).join(', ')}.`);
     console.log(`Difusión, nuevas: ${d} publicaciones.`);
+    console.log(inv ? `Investigación, nuevas: ${inv.categorias} categorías, ${inv.etiquetas} etiquetas.`
+      : 'Investigación: falta la migración 018, no se cargó.');
   }
 } finally {
   await pool.end();

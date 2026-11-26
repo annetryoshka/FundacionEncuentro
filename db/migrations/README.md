@@ -21,6 +21,7 @@
    | `migrations/015_familiares_caso.sql` | FE-125: composición familiar por caso y vista `v_fuente_clinica_vigente` |
    | `migrations/016_fotografia_informes.sql` | FE-152: versiones de informes con la fotografía de los datos usados y `fotografia_informe(...)` |
    | `migrations/017_importacion_historica.sql` | FE-163: lotes de importación histórica, coincidencias y `confirmar_importacion(...)` |
+   | `migrations/018_investigacion_categorias.sql` | FE-168: categorías de investigación, selección autorizada y paquete para Atlas.ti con manifiesto |
 
    ## Modelo del Sprint 2
 
@@ -177,6 +178,55 @@
    - Lote confirmado o descartado: no se modifica ni elimina (`23514`). Descartar: `update importaciones set estado = 'descartada'`.
    - Solo el backend accede (RLS, sin permisos para `anon`/`authenticated`). Que sea solo administración lo controla la API.
 
+   ## Investigación y paquete para Atlas.ti (FE-168)
+
+   Propuesta de FE-167 (catálogo, perfiles e identificadores pendientes de ratificar). El sistema prepara documentos
+   DOCX/TXT y un manifiesto; no exporta códigos ni proyectos de Atlas.ti.
+
+   ```
+   categorias_investigacion 1 ─ n categorias_investigacion   (padre_id; sin ciclos)
+                            1 ─ n caso_categorias            (en el caso, su diagnóstico o una sesión del mismo caso)
+   exportaciones (tipo atlas_ti) 1 ─ n exportacion_documentos  (INV-001 ↔ caso, solo en el sistema)
+   ```
+
+   - **Catálogo:** `codigo` (`QA-CAT-01`; mayúsculas, números y guiones; no cambia), `nombre` único en su nivel sin distinguir
+     mayúsculas, `activa`. Una categoría con etiquetas o subcategorías no se borra (`23503`): se retira con `activa = false`.
+   - **Etiquetas:** `insert into caso_categorias (caso_id, categoria_id, ficha_diagnostico_id | ficha_seguimiento_id, fragmento, nota)`.
+     Ficha de otro caso → `23503`; la misma categoría en el mismo destino → `23505`; categoría retirada, carpeta dada de baja
+     o cambio de caso/categoría/ficha → `23514`. La base pone `etiquetado_por`; `fragmento` y `nota` se editan.
+   - **Alcance:** administración, todos los casos activos; terapeuta, sus casos asignados; marketing o cuenta inactiva, ninguno.
+   - `seleccion_investigacion(perfil, categorias[], desde, hasta, residencias[])`: casos del alcance con `tipo`, número,
+     `categorias` (códigos), `sesiones_en_periodo` y `tiene_diagnostico`. Categorías: cualquiera de las elegidas, con sus
+     subcategorías. Período: al menos una sesión entre las fechas (inclusivas). Residencias: `la_paz`, `el_alto`, `otra`,
+     `sin_registrar`. Filtro inválido → `22023`.
+   - `conteo_categorias(perfil, desde, hasta, residencias[])`: todo el catálogo con casos y etiquetas por ámbito (caso,
+     diagnóstico, sesión) dentro del alcance; no suma subcategorías.
+
+   Flujo para la API (FE-169), cada paso en una transacción con `app.usuario_id`:
+
+   1. **Preparar:** `select preparar_exportacion_investigacion(casos[], secciones[], formato, desde, hasta, criterios)` → id.
+      Secciones `diagnostico`, `seguimiento`, `tareas` (con seguimiento); formato `docx` o `txt`; `criterios` = filtros usados
+      (jsonb, para trazabilidad). Un caso inexistente, dado de baja o no autorizado anula todo (`P0002` → 404); marketing o
+      sin `app.usuario_id` → `42501`. Numera `INV-001…` sin seguir el número de carpeta.
+   2. **Vista previa y revisión:** `manifiesto_exportacion(id)` y `datos_documento_investigacion(id, 'INV-001')`. Solo los lee
+      quien preparó el paquete o administración, y solo si el caso sigue autorizado (si no, `P0002`). Mostrar el texto libre
+      (evolución, fragmentos, notas) para revisar nombres u otros identificadores: la base no los quita.
+   3. **Confirmar revisión:** `select marcar_revision_exportacion(id)` (una vez; repetir → `23514`).
+   4. **Generar y registrar:** con los mismos datos, un archivo por documento con el nombre de `archivo` y `manifiesto.json`;
+      después `update exportaciones set archivo_path = ...` (antes de revisar → `23514`).
+
+   - **Manifiesto** (`formatoVersion: 1`): `formato`, `periodo`, `catalogo` (`[{ codigo, nombre, descripcion, padre }]` de las
+     categorías usadas y sus superiores) y `documentos` (`[{ idExportacion, archivo, categorias, secciones }]`).
+     Sin id del paquete, casos, carpetas ni personas.
+   - **Documento:** `categorias` (`[{ codigo, nombre, ambito, nroSesion, fragmento, nota }]`), `diagnostico` (fuente vigente)
+     y `seguimiento` (`[{ nroSesion, mes, evolucion, tareas? }]`, mes `AAAA-MM`). Nunca nombres, teléfono, nacimiento,
+     residencia, número de carpeta, datos judiciales, familia, pagos ni responsables.
+   - **Correspondencia:** un documento por caso y por archivo; las categorías del manifiesto son las de su documento (las del
+     caso, las de su diagnóstico si se exporta y las de sus sesiones del período si se exporta seguimiento). Si cambian
+     después de preparar, manifiesto, documento y revisión fallan con `FEX01` → 409 (DETAIL: JSON con los `idExportacion`):
+     preparar otro paquete.
+   - Un paquete preparado no cambia ni pierde documentos (`23514`); se puede eliminar completo.
+
    ## Pruebas de las migraciones con PostgreSQL local
 
    Cada archivo `backend/test/*-postgres.test.mjs` del Sprint 2 crea una base desechable, aplica todas las migraciones, carga datos ficticios y la borra al terminar. Nunca usa Supabase.
@@ -202,6 +252,7 @@
    | FE-142 | `difusion-postgres.test.mjs` |
    | FE-125 | `familiares-postgres.test.mjs` (aplica la 015 sobre una base con datos existentes) |
    | FE-152 | `informes-postgres.test.mjs` (aplica la 016 sobre una base con datos existentes) |
+   | FE-168 | `investigacion-postgres.test.mjs` (aplica la 018 sobre una base con datos existentes) |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
