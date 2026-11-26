@@ -458,8 +458,9 @@ revisada del mismo caso. La ficha y el historial admiten `secciones`.
 `incluirPagos` solo se admite para administración y en el historial.
 
 El backend guarda los archivos fuera del directorio público, en la ruta
-absoluta configurada con `EXPORTACIONES_DIR`. En un despliegue, esa ruta
-debe apuntar a almacenamiento persistente y privado. Si falla la escritura,
+absoluta configurada con `EXPORTACIONES_DIR` (vacía: `backend/almacenamiento/exportaciones`,
+ignorada por Git). En un despliegue, esa ruta debe apuntar a almacenamiento
+persistente y privado; los respaldos de la base no incluyen estos archivos. Si falla la escritura,
 la API devuelve `500` y registra la exportación como fallida.
 
 La inserción visual del genograma queda pendiente. La migración 012
