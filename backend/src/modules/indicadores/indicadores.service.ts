@@ -57,4 +57,41 @@ export class IndicadoresService {
       },
     };
   }
+
+    async consultarPorResidencia({ desde, hasta }: ConsultarIndicadoresQuery) {
+    if (desde > hasta) {
+      throw new BadRequestException(
+        'La fecha desde no puede ser posterior a hasta',
+      );
+    }
+
+    const { rows } = await this.db.query<FilaIndicadores & { residencia: string }>(
+      `select residencia, casos_actuales, casos_iniciados,
+              casos_en_proceso, casos_concluidos, sesiones,
+              round(pagos_recibidos, 2)::text as pagos_recibidos
+         from public.indicadores_por_residencia($1::date, $2::date)`,
+      [desde, hasta],
+    );
+
+    if (rows.length === 0) {
+      throw new InternalServerErrorException(
+        'No se pudieron obtener los indicadores por residencia',
+      );
+    }
+
+    return {
+      periodo: { desde, hasta },
+      porResidencia: rows.map((fila) => ({
+        residencia: fila.residencia,
+        casosActuales: fila.casos_actuales,
+        casosPorEstado: {
+          iniciado: fila.casos_iniciados,
+          en_proceso: fila.casos_en_proceso,
+          concluido: fila.casos_concluidos,
+        },
+        sesiones: fila.sesiones,
+        pagosRecibidos: { monto: fila.pagos_recibidos, moneda: 'BOB' },
+      })),
+    };
+  }
 }
