@@ -444,3 +444,26 @@ Demostración integrada en navegador con frontend real, backend de `main` y Post
 25 comprobaciones aprobadas (cuentas, alta, duplicados, asignación, búsqueda y permisos por rol).
 Auth fue un Supabase de prueba local. Detalle, incidencias corregidas y guion en
 `docs/pruebas/FE-46-demostracion-integrada.md`.
+
+## Importación histórica (FE-164)
+
+Solo administración puede usar estas rutas.
+
+| Método y ruta | Operación |
+| --- | --- |
+| `POST /api/importaciones` | Recibe `archivo` y, opcionalmente, `origen` en `multipart/form-data`. Devuelve `201` con la vista previa. |
+| `GET /api/importaciones/:id` | Consulta el estado, la versión, el resumen y las filas del lote. |
+| `PATCH /api/importaciones/:id/filas/:numeroFila/datos` | Recibe `version` y `datos`. Corrige las columnas enviadas y reclasifica el lote. |
+| `PATCH /api/importaciones/:id/filas/:numeroFila` | Recibe `version` y `decision` (`crear`, `vincular` o `excluir`). Para vincular se envía un único destino. |
+| `POST /api/importaciones/:id/confirmar` | Recibe `version` y, opcionalmente, `aceptaAvanceContador`. Devuelve el resultado de la confirmación. |
+
+Se admite CSV UTF-8 separado por comas o XLSX, hasta 5 MiB. El XLSX debe
+tener la hoja `Importacion`, los encabezados de la plantilla en la
+primera fila y valores sin fórmulas. Los teléfonos y las referencias se
+guardan como texto para conservar ceros iniciales.
+
+La vista previa no crea pacientes ni casos. Una versión desactualizada
+devuelve `409`; las filas sin resolver o un salto de contador sin aceptar
+devuelven `422`. Si los datos cambiaron al confirmar, la API puede
+responder `estado: "revisar"` sin aplicar el lote. Confirmar de nuevo un
+lote ya aplicado devuelve el mismo resultado sin duplicar registros.
