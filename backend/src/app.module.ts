@@ -8,6 +8,7 @@ import { CasosModule } from './modules/casos/casos.module.js';
 import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
 import { IndicadoresModule } from './modules/indicadores/indicadores.module.js';
 import { ExportacionesModule } from './modules/exportaciones/exportaciones.module.js';
+import { ImportacionModule } from './modules/importacion/importacion.module.js';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ExportacionesModule } from './modules/exportaciones/exportaciones.modul
     CasosModule,
     IndicadoresModule,
     ExportacionesModule,
+    ImportacionModule,
   ],
   controllers: [HealthController],
 })

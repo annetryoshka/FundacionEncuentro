@@ -478,3 +478,30 @@ la API devuelve `500` y registra la exportación como fallida.
 
 La inserción visual del genograma queda pendiente. La migración 012
 habilita sus metadatos, que es lo que el conversor actual puede mostrar.
+
+## Importación histórica (FE-164)
+
+Solo administración puede usar estas rutas.
+
+| Método y ruta | Operación |
+| --- | --- |
+| `POST /api/importaciones` | Recibe `archivo` y, opcionalmente, `origen` en `multipart/form-data`. Devuelve `201` con la vista previa. |
+| `GET /api/importaciones/:id` | Consulta el estado, la versión, el resumen y las filas del lote. |
+| `PATCH /api/importaciones/:id/filas/:numeroFila/datos` | Recibe `version` y `datos`. Corrige las columnas enviadas y reclasifica el lote. |
+| `PATCH /api/importaciones/:id/filas/:numeroFila` | Recibe `version` y `decision` (`crear`, `vincular` o `excluir`). Para vincular se envía un único destino. |
+| `POST /api/importaciones/:id/confirmar` | Recibe `version` y, opcionalmente, `aceptaAvanceContador`. Devuelve el resultado de la confirmación. |
+
+Se admite CSV UTF-8 separado por comas o por punto y coma, o XLSX, hasta
+5 MiB. El XLSX debe tener la hoja `Importacion`. La primera fila lleva
+columnas de la plantilla en cualquier orden; puede traer solo una parte
+(por ejemplo, el formato de FE-162) y las que faltan quedan vacías. Una
+columna desconocida o repetida devuelve `400`. En el XLSX no se admiten
+fórmulas; los números se leen como texto (un teléfono guardado como número
+pierde los ceros iniciales: conviene guardarlo como texto) y las fechas
+deben ser fechas de Excel o texto AAAA-MM-DD.
+
+La vista previa no crea pacientes ni casos. Una versión desactualizada
+devuelve `409`; las filas sin resolver o un salto de contador sin aceptar
+devuelven `422`. Si los datos cambiaron al confirmar, la API puede
+responder `estado: "revisar"` sin aplicar el lote. Confirmar de nuevo un
+lote ya aplicado devuelve el mismo resultado sin duplicar registros.
