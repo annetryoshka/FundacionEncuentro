@@ -444,3 +444,31 @@ Demostración integrada en navegador con frontend real, backend de `main` y Post
 25 comprobaciones aprobadas (cuentas, alta, duplicados, asignación, búsqueda y permisos por rol).
 Auth fue un Supabase de prueba local. Detalle, incidencias corregidas y guion en
 `docs/pruebas/FE-46-demostracion-integrada.md`.
+
+## Investigación y exportación para Atlas.ti (FE-169)
+
+| Método y ruta | Operación |
+| --- | --- |
+| `GET /api/investigacion/categorias` | Consulta el catálogo y los conteos dentro del alcance del perfil. |
+| `POST /api/investigacion/categorias` | Crea una categoría. Solo administración. |
+| `PUT /api/investigacion/categorias/:id` | Edita o retira una categoría con `activa: false`. Solo administración. |
+| `GET /api/investigacion/seleccion` | Filtra casos autorizados por categorías, período y residencia. |
+| `POST /api/investigacion/casos/:casoId/etiquetas` | Etiqueta el caso o una ficha de diagnóstico o seguimiento del mismo caso. |
+| `POST /api/investigacion/exportaciones` | Recibe `casosIds`, `secciones`, `formato` (`txt` o `docx`) y, opcionalmente, `desde` y `hasta`. Devuelve `exportacionId`. |
+| `GET /api/investigacion/exportaciones/:id/manifiesto` | Consulta el manifiesto del paquete autorizado. |
+| `GET /api/investigacion/exportaciones/:id/documentos/:codigo` | Previsualiza un documento por su código `INV-…`. |
+| `GET /api/investigacion/exportaciones/:id/revision` | Devuelve el contenido a revisar y su `huella`. |
+| `PATCH /api/investigacion/exportaciones/:id/revision` | Recibe `{ "huella": "..." }` y confirma la revisión si el contenido coincide. |
+| `GET /api/investigacion/exportaciones/:id/descarga` | Devuelve un ZIP con `manifiesto.json` y un archivo por caso. Requiere revisión vigente. |
+
+Administración y terapeutas acceden según su alcance. Una terapeuta solo
+puede seleccionar sus casos asignados. Marketing recibe `403`. Si el
+paquete incluye un caso ajeno, se rechaza la solicitud completa con `404`.
+
+La descarga devuelve `409` antes de la revisión o si el contenido cambió.
+La migración 019 conserva la huella revisada. El ZIP se genera en memoria
+al descargar.
+
+El texto libre puede contener identificadores y requiere revisión humana.
+El uso con datos reales sigue sujeto a ratificación. La prueba de
+importación en Atlas.ti corresponde a FE-171.
