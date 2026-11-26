@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, Param, ParseUUIDPipe, Put,
+  Body, Controller, Get, Param, ParseUUIDPipe, Put, Header,
 } from '@nestjs/common';
 import {
   ApiBearerAuth, ApiOperation, ApiResponse, ApiTags,
@@ -29,6 +29,16 @@ export class DiagnosticoController {
     @UsuarioActual() usuario: Usuario,
   ) {
     return this.diagnostico.obtener(id, usuario);
+  }
+
+  @Get('vigente')
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({ summary: 'Consultar la fuente clínica vigente del caso' })
+  obtenerVigente(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UsuarioActual() usuario: Usuario,
+  ) {
+    return this.diagnostico.obtenerVigente(id, usuario);
   }
 
   @Put()

@@ -15,6 +15,8 @@ import { PagosController } from './pagos.controller.js';
 import { PagosService } from './pagos.service.js';
 import { HistorialController } from './historial.controller.js';
 import { HistorialService } from './historial.service.js';
+import { FamiliaController } from './familia.controller.js';
+import { FamiliaService } from './familia.service.js';
 
 @Module({
   controllers: [
@@ -27,6 +29,7 @@ import { HistorialService } from './historial.service.js';
     TareasController,
     PagosController,
     HistorialController,
+    FamiliaController,
   ],
   providers: [
     CasosService,
@@ -34,6 +37,7 @@ import { HistorialService } from './historial.service.js';
     DiagnosticoService,
     SesionesService,
     TareasService,
+    FamiliaService,
     PagosService,
     HistorialService,
   ],

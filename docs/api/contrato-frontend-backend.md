@@ -444,3 +444,31 @@ Demostración integrada en navegador con frontend real, backend de `main` y Post
 25 comprobaciones aprobadas (cuentas, alta, duplicados, asignación, búsqueda y permisos por rol).
 Auth fue un Supabase de prueba local. Detalle, incidencias corregidas y guion en
 `docs/pruebas/FE-46-demostracion-integrada.md`.
+
+## Ficha familiar y diagnóstico vigente (FE-126)
+
+Estas rutas requieren una sesión autenticada. Pueden usarlas
+administración y la terapeuta asignada al caso.
+
+| Método y ruta | Resultado |
+| --- | --- |
+| `GET /api/carpetas/:id/familia` | Devuelve `casoId`, `pacienteId`, `registrada`, `version` y `familiares`. |
+| `PUT /api/carpetas/:id/familia` | Recibe `version`, `familiares` y, opcionalmente, `eliminarIds`. Devuelve la ficha actualizada. |
+| `GET /api/carpetas/:id/diagnostico/vigente` | Devuelve `origen` (`ficha`, `alta` o `sin_datos`), los campos clínicos vigentes y los datos históricos en `alta`. |
+
+### Guardado de familia
+
+- Una ficha sin registrar devuelve `registrada: false`, `version: null` y
+  `familiares: []`. Una ficha registrada puede tener la lista vacía.
+- Enviar `version: null` al crear la ficha. En una edición, enviar la
+  última versión recibida. Si quedó desactualizada, la API devuelve `409`.
+- Un integrante sin `id` se crea. Con `id`, se edita el integrante del
+  caso. Omitir un campo opcional conserva su valor; enviar `null` lo limpia.
+- Para eliminar un integrante, incluir su ID en `eliminarIds`. Dejarlo
+  fuera de `familiares` conserva su registro.
+- Una solicitud inválida devuelve `400` y revierte todos sus cambios.
+- Una terapeuta ajena recibe `404`. Un rol sin permiso clínico recibe `403`.
+
+Si existe una ficha de diagnóstico, sus valores `null` se conservan.
+Los datos del alta quedan disponibles como antecedente. El contrato de
+`GET /api/carpetas/:id/diagnostico` se mantiene.
