@@ -444,3 +444,27 @@ Demostración integrada en navegador con frontend real, backend de `main` y Post
 25 comprobaciones aprobadas (cuentas, alta, duplicados, asignación, búsqueda y permisos por rol).
 Auth fue un Supabase de prueba local. Detalle, incidencias corregidas y guion en
 `docs/pruebas/FE-46-demostracion-integrada.md`.
+
+## Publicaciones de difusión (FE-143)
+
+| Método y ruta | Qué hace |
+| --- | --- |
+| `GET /api/publico/publicaciones` | Lista publicaciones visibles. Admite `tipo`, `pagina` y `tamano`. |
+| `GET /api/publico/publicaciones/:id` | Devuelve una publicación visible y su imagen principal, si existe. Un borrador o una publicación retirada devuelve `404`. |
+| `GET /api/difusion/publicaciones` | Lista publicaciones para administración y marketing. Admite también el filtro `estado`. |
+| `GET /api/difusion/publicaciones/:id` | Devuelve el detalle privado, la autoría y los recursos. |
+| `POST /api/difusion/publicaciones` | Crea un borrador. |
+| `PUT /api/difusion/publicaciones/:id` | Reemplaza los campos de contenido y conserva el estado. |
+| `PATCH /api/difusion/publicaciones/:id/estado` | Recibe `{ "estado": "publicado" }`, `"retirado"` o `"borrador"` según la transición. |
+| `POST /api/difusion/publicaciones/:id/recursos` | Asocia los metadatos de una imagen del bucket público. |
+| `DELETE /api/difusion/publicaciones/:id/recursos/:recursoId` | Quita la asociación y devuelve `204`. El objeto del bucket permanece. |
+
+Las rutas administrativas requieren una sesión de administración o marketing.
+El flujo es `borrador → publicado → retirado → borrador`. Una transición
+inválida devuelve `409`. Si falta el resumen al publicar, devuelve `422`
+con `camposFaltantes`. Los mínimos adicionales por tipo siguen pendientes
+de ratificación.
+
+Las imágenes admiten JPEG, PNG o WebP, hasta 5 MiB. El recurso requiere
+ruta relativa y texto alternativo. Una segunda imagen principal devuelve
+`409`. La API gestiona metadatos; la carga del archivo se hace aparte.
