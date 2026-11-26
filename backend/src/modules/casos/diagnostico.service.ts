@@ -83,6 +83,35 @@ export class DiagnosticoService {
     });
   }
 
+    async obtenerVigente(id: string, usuario: Usuario) {
+    return this.db.transaction(usuario.id, async (client) => {
+      await this.verificarAcceso(client, id, usuario);
+
+      const { rows } = await client.query(
+        `select origen,
+                ficha_id as "fichaId",
+                to_char(ficha_fecha, 'YYYY-MM-DD') as "fichaFecha",
+                diagnostico_ingreso as "diagnosticoIngreso",
+                hipotesis_relacional as "hipotesisRelacional",
+                comentarios_clinicos as "comentariosClinicos",
+                jsonb_build_object(
+                  'diagnosticoIngreso', alta_diagnostico_ingreso,
+                  'hipotesisRelacional', alta_hipotesis_relacional,
+                  'comentariosClinicos', alta_comentarios_clinicos
+                ) as alta
+           from public.v_fuente_clinica_vigente
+          where caso_id = $1`,
+        [id],
+      );
+
+      if (!rows[0]) {
+        throw new NotFoundException('Caso no encontrado');
+      }
+
+      return rows[0];
+    });
+  }
+
   async guardar(
     id: string,
     dto: GuardarDiagnosticoDto,
@@ -104,7 +133,7 @@ export class DiagnosticoService {
          values ($1, $2::date, $3::jsonb, $4, $4)
          on conflict (caso_id) do update set
            fecha = excluded.fecha,
-           contenido = excluded.contenido,
+           contenido = fichas_diagnostico.contenido || excluded.contenido,
            actualizado_por = excluded.actualizado_por
          returning id, caso_id,
                    to_char(fecha, 'YYYY-MM-DD') as fecha,

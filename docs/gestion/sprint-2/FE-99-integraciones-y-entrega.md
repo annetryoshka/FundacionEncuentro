@@ -15,22 +15,25 @@ Fechas reales: _por confirmar_ (FE-58 no fija fechas de inicio ni cierre).
 
 | Campo | Valor |
 | --- | --- |
-| Versión de referencia (`main`) | `4c50218` — docs(FE-96) |
-| Fecha del corte | 2026-11-09 |
-| Migraciones en el repositorio (`db/migrations`) | 001 esquema base, 002 asignación única por caso, 003 búsqueda con unaccent, 004 clasificación de casos |
-| Código del Sprint 2 integrado | Solo el backend de clasificación y actualización de casos (FE-48, PR #18, 2026-11-06) |
+| Versión de referencia (`main`) | `37ed16b` — documento de pruebas (2026-11-22) |
+| Fecha del corte | 2026-11-23 (el corte anterior fue el 2026-11-09, sobre `4c50218`) |
+| Migraciones en el repositorio (`db/migrations`) | 001 a 011: esquema base, asignación única, búsqueda con unaccent, clasificación, constancia de atención, diagnóstico único por caso, identidad y clasificación, sesiones (008), tareas por sesión (009), pagos por sesión (010) e indicadores operativos (011) |
+| Código del Sprint 2 integrado | Las 8 HU con su verificación de QA y la interfaz del expediente clínico (merges del 2026-11-13) |
 | Base de datos de la demo | PostgreSQL con datos **ficticios** (muestra en `docs/pruebas/FE-96-datos-ficticios.json`) |
 | Commit desplegado en el entorno de demo | **Por confirmar**: no consta en el repositorio qué commit está desplegado. |
 
 Verificación: comparar `git log -1 --format=%h origin/main` con el despliegue de demo antes del corte H1 y del H2, y anotar el resultado en la fila anterior.
 
-## Estado de los hitos (corte 2026-11-09)
+## Estado de los hitos (corte 2026-11-23)
 
 | Hito | HU | Estado en `main` |
 | --- | --- | --- |
-| H1 | FE-14 | Backend integrado (FE-48). Falta la pantalla de clasificación y filtros. |
-| H1 | FE-50, FE-13, FE-55 | Con especificación (FE-61, FE-66, FE-71), sin código integrado. |
-| H2 | FE-56, FE-57, FE-7, FE-6 | Con especificación (FE-76, FE-81, FE-86, FE-91), sin código integrado. |
+| H1 | FE-14 | Backend integrado (FE-48, 2026-11-06) y verificado (FE-49, merge `a3bc05c`). |
+| H1 | FE-50, FE-13, FE-55 | Integradas el 2026-11-13 y verificadas (FE-65, FE-70, FE-75). |
+| H2 | FE-56, FE-57, FE-7, FE-6 | Integradas el 2026-11-13 y verificadas (FE-80, FE-85, FE-90, FE-95). |
+| H2 | Interfaz del expediente clínico | Integrada (merge `d8ea18f`). |
+
+Las 8 verificaciones de QA se ejecutaron con PostgreSQL local y datos ficticios, no con el entorno real de Supabase. Falta registrar la aceptación integral de Andrea (FE-101).
 
 Las fechas de los hitos quedan por fijar con el equipo; FE-58 no define fechas.
 
@@ -47,4 +50,5 @@ Las fechas de los hitos quedan por fijar con el equipo; FE-58 no define fechas.
 | # | Incidencia | Responsable de corrección | Estado |
 | --- | --- | --- | --- |
 | 1 | No consta qué commit está desplegado en la demo. | Gemina (verificar) y Alejandro (BD/entorno) | Abierta |
-| 2 | El guion de aceptación pide identificar el commit probado y las migraciones (FE-97). | Emilia (QA) | Abierta hasta la ejecución de pruebas |
+| 2 | El guion de aceptación pide identificar el commit probado y las migraciones (FE-97). | Emilia (QA) | Parcial: cada verificación indica su commit; falta el registro de la aceptación integral. |
+| 3 | Aplicar en Supabase las migraciones 004 a 011. | Alejandro (BD) | Abierta según FE-107 al 2026-11-13 |

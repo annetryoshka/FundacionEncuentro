@@ -12,6 +12,7 @@ import { DatabaseService } from '../dist/database/database.service.js';
 const id = '00000000-0000-4000-8000-000000000001';
 const fetchReal = globalThis.fetch;
 let app, base, logoutStatus, userStatus, refreshStatus, networkFailure, auditFailure, role;
+let logoutDetenido = false;
 let auditorias, llamadas, consultasClinicas;
 const db = {
   async query(sql, params) {
@@ -44,30 +45,60 @@ Module({ imports: [InfraestructuraPrueba, AuthModule, CasosModule] })(Aplicacion
 
 before(async () => {
   globalThis.fetch = async (url, init) => {
-    if (!String(url).startsWith('https://supabase.invalid/')) return fetchReal(url, init);
+    if (!String(url).startsWith('https://supabase.invalid/')) {
+      return fetchReal(url, init);
+    }
+
     const ruta = new URL(url).pathname;
     llamadas.push({ url: String(url), init });
+
     if (ruta.endsWith('/logout')) {
+      if (logoutDetenido) {
+        return new Promise((_, reject) => {
+          const signal = init?.signal;
+          assert.ok(signal, 'La solicitud debe tener una señal de cancelación');
+
+          if (signal.aborted) {
+            reject(signal.reason);
+            return;
+          }
+
+          signal.addEventListener('abort', () => reject(signal.reason), {
+            once: true,
+          });
+        });
+      }
+
       if (networkFailure) throw new TypeError('Red interrumpida (simulada)');
       return new Response(null, { status: logoutStatus });
     }
+
     if (ruta.endsWith('/user')) {
       const valido = init.headers.Authorization === 'Bearer acceso-ficticio';
-      return Response.json(valido ? { id } : {}, { status: valido ? userStatus : 401 });
+      return Response.json(valido ? { id } : {}, {
+        status: valido ? userStatus : 401,
+      });
     }
-    if (ruta.endsWith('/token')) return Response.json({}, { status: refreshStatus });
+
+    if (ruta.endsWith('/token')) {
+      return Response.json({}, { status: refreshStatus });
+    }
+
     throw new Error('Ruta externa inesperada');
   };
+
   app = await NestFactory.create(AplicacionPrueba, { logger: false });
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   await app.listen(0, '127.0.0.1');
   base = await app.getUrl();
 });
+
 beforeEach(() => {
   logoutStatus = 204; userStatus = 200; refreshStatus = 400;
   networkFailure = false; auditFailure = false; role = 'administrador';
   auditorias = []; llamadas = []; consultasClinicas = 0;
+  logoutDetenido = false;
 });
 after(async () => {
   try { await app?.close(); } finally { globalThis.fetch = fetchReal; }
@@ -91,20 +122,43 @@ test('logout 204 utiliza scope local y registra una auditoría asociada al usuar
   assert.deepEqual(auditorias[0].params, [id]);
 });
 
-for (const status of [400, 401, 403]) {
-  test(`DEFECTO FE-26: Supabase ${status} se convierte en 204 y auditoría de éxito`, async () => {
+for (const status of [200, 400, 401, 403, 429]) {
+  test(`logout remoto ${status}: responde 502 y no registra LOGOUT`, async () => {
     logoutStatus = status;
-    assert.equal((await solicitar('/auth/logout', { method: 'POST' })).status, 204);
-    assert.equal(auditorias.length, 1);
-  });
-}
-for (const modo of ['500', 'red']) {
-  test(`Supabase ${modo}: responde 503 y no registra LOGOUT`, async () => {
-    logoutStatus = 500; networkFailure = modo === 'red';
-    assert.equal((await solicitar('/auth/logout', { method: 'POST' })).status, 503);
+
+    const respuesta = await solicitar('/auth/logout', { method: 'POST' });
+
+    assert.equal(respuesta.status, 502);
     assert.equal(auditorias.length, 0);
   });
 }
+
+for (const modo of ['500', 'red']) {
+    test(`Supabase ${modo}: responde 503 y no registra LOGOUT`, async () => {
+      logoutStatus = 500; networkFailure = modo === 'red';
+      assert.equal((await solicitar('/auth/logout', { method: 'POST' })).status, 503);
+      assert.equal(auditorias.length, 0);
+    });
+  }
+
+test('logout detenido: cancela la solicitud y devuelve 504 sin auditar', {
+    timeout: 2_000,
+  }, async (t) => {
+    logoutDetenido = true;
+
+    const timeoutReal = AbortSignal.timeout.bind(AbortSignal);
+    t.mock.method(AbortSignal, 'timeout', (ms) =>
+      timeoutReal(ms === 5_000 ? 25 : ms),
+    );
+
+    const respuesta = await solicitar('/auth/logout', { method: 'POST' });
+
+    assert.equal(respuesta.status, 504);
+    assert.equal(auditorias.length, 0);
+
+    const salida = llamadas.find((c) => c.url.includes('/logout'));
+    assert.equal(salida?.init.signal.aborted, true);
+  });
 
 for (const [method, ruta] of [
   ['POST', '/auth/logout'], ['GET', '/auth/me'], ['GET', '/casos'],

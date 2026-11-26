@@ -9,6 +9,15 @@ import { fechaCorta } from '../../utilidades/fechas'
 import { useSesion } from '../auth/sesion'
 import { buscarCarpetas } from './carpetasApi'
 import { EtiquetaClasificacion, EtiquetaEstado, EtiquetaTipo } from './Etiquetas'
+import { EtiquetaResidencia } from './EtiquetaResidencia'
+import {
+  FILTRO_SIN_REGISTRAR,
+  NOMBRE_RESIDENCIA,
+  SIN_REGISTRAR,
+  esFiltroResidencia,
+  type FiltroResidencia,
+} from './residencia'
+import { FiltroResidenciaCarpetas } from './SelectorResidencia'
 import {
   NOMBRE_CLASIFICACION,
   NOMBRE_ESTADO,
@@ -25,14 +34,16 @@ interface Criterios {
   q: string
   clasificacion: Clasificacion | ''
   estado: EstadoCaso | ''
+  residencia: FiltroResidencia
 }
 
-const SIN_CRITERIOS: Criterios = { q: '', clasificacion: '', estado: '' }
+const SIN_CRITERIOS: Criterios = { q: '', clasificacion: '', estado: '', residencia: '' }
 
 /**
  * FE-39 · Listado y búsqueda de carpetas (historia FE-16).
  * FE-47 · Filtros por clasificación y estado combinados con la búsqueda (historia FE-14).
- * Búsqueda, filtros y página viven en la URL (?q=…&clasificacion=…&estado=…&pagina=…) para que
+ * FE-138 · Filtro por ciudad de residencia (?residencia=la_paz|el_alto|otra|sin_registrar).
+ * Búsqueda, filtros y página viven en la URL (?q=…&clasificacion=…&estado=…&residencia=…&pagina=…) para que
  * Atrás, recargar y compartir el enlace conserven lo elegido. Un valor desconocido en la URL se ignora.
  * El backend solo devuelve las carpetas que la persona puede consultar.
  */
@@ -45,13 +56,15 @@ export function PaginaCarpetas() {
   const estadoUrl = parametros.get('estado')
   const clasificacion = esClasificacion(clasificacionUrl) ? clasificacionUrl : ''
   const estado = esEstado(estadoUrl) ? estadoUrl : ''
+  const residenciaUrl = parametros.get('residencia') ?? ''
+  const residencia = esFiltroResidencia(residenciaUrl) ? residenciaUrl : ''
   const pagina = Math.max(1, Number(parametros.get('pagina')) || 1)
-  const criterios: Criterios = { q, clasificacion, estado }
-  const hayFiltros = Boolean(clasificacion || estado)
+  const criterios: Criterios = { q, clasificacion, estado, residencia }
+  const hayFiltros = Boolean(clasificacion || estado || residencia)
 
   const { datos, error, cargando, recargar } = useCarga(
-    () => buscarCarpetas({ busqueda: q, clasificacion, estado, pagina }),
-    [q, clasificacion, estado, pagina],
+    () => buscarCarpetas({ busqueda: q, clasificacion, estado, residencia, pagina }),
+    [q, clasificacion, estado, residencia, pagina],
   )
 
   // Al cambiar la búsqueda o un filtro se vuelve a la página 1 (FE-59).
@@ -60,6 +73,7 @@ export function PaginaCarpetas() {
     if (nuevos.q.trim()) siguientes.set('q', nuevos.q.trim())
     if (nuevos.clasificacion) siguientes.set('clasificacion', nuevos.clasificacion)
     if (nuevos.estado) siguientes.set('estado', nuevos.estado)
+    if (nuevos.residencia) siguientes.set('residencia', nuevos.residencia)
     if (nuevaPagina > 1) siguientes.set('pagina', String(nuevaPagina))
     setParametros(siguientes)
   }
@@ -81,7 +95,7 @@ export function PaginaCarpetas() {
 
       {/* key: si la URL cambia (Atrás, Limpiar), el formulario muestra la búsqueda y los filtros vigentes. */}
       <FormularioBusqueda
-        key={`${q}|${clasificacion}|${estado}`}
+        key={`${q}|${clasificacion}|${estado}|${residencia}`}
         inicial={criterios}
         alBuscar={(nuevos) => irA(nuevos)}
         alLimpiar={() => irA(SIN_CRITERIOS)}
@@ -118,13 +132,13 @@ function FormularioBusqueda({
   }
   // Un filtro se aplica al elegirlo y se combina con lo que ya esté escrito en la búsqueda.
   const filtrar = (cambio: Partial<Criterios>) => alBuscar({ ...inicial, q: texto, ...cambio })
-  const hayAlgo = Boolean(inicial.q || inicial.clasificacion || inicial.estado)
+  const hayAlgo = Boolean(inicial.q || inicial.clasificacion || inicial.estado || inicial.residencia)
 
   return (
     <form
       role="search"
       onSubmit={buscar}
-      className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1fr)_11rem_11rem_auto] lg:items-end"
+      className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1fr)_10rem_10rem_10rem_auto] lg:items-end"
     >
       <div className="col-span-2 lg:col-span-1">
         <label htmlFor="busqueda-carpetas" className="block text-sm font-semibold text-texto">
@@ -176,6 +190,9 @@ function FormularioBusqueda({
           ))}
         </select>
       </div>
+      <div className="col-span-2 lg:col-span-1">
+        <FiltroResidenciaCarpetas valor={inicial.residencia} alCambiar={(residencia) => filtrar({ residencia })} />
+      </div>
       <div className="col-span-2 flex gap-2 lg:col-span-1">
         <Boton type="submit" icono="buscar" className="flex-1 lg:flex-none">
           Buscar
@@ -203,8 +220,12 @@ interface PropsResultados {
 }
 
 /** «Social · En proceso»: los filtros activos, en palabras, para el contador y el mensaje vacío. */
-function describirFiltros({ clasificacion, estado }: Criterios) {
-  return [clasificacion && NOMBRE_CLASIFICACION[clasificacion], estado && NOMBRE_ESTADO[estado]]
+function describirFiltros({ clasificacion, estado, residencia }: Criterios) {
+  return [
+    clasificacion && NOMBRE_CLASIFICACION[clasificacion],
+    estado && NOMBRE_ESTADO[estado],
+    residencia && `Residencia: ${residencia === FILTRO_SIN_REGISTRAR ? SIN_REGISTRAR : NOMBRE_RESIDENCIA[residencia]}`,
+  ]
     .filter(Boolean)
     .join(' · ')
 }
@@ -297,6 +318,10 @@ function Resultados({
               <span className="flex flex-wrap gap-1.5 sm:justify-end">
                 <EtiquetaClasificacion clasificacion={c.clasificacion} />
                 <EtiquetaEstado estado={c.estado} />
+                <EtiquetaResidencia
+                  ciudadResidencia={c.paciente.ciudadResidencia ?? null}
+                  otraLocalidad={c.paciente.otraLocalidad ?? null}
+                />
               </span>
             </Link>
           </li>

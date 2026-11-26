@@ -5,6 +5,54 @@
 import type { ReactNode } from 'react'
 
 const TRAZOS = {
+  // ---- Sprint 3 ----
+  genograma: (
+    <>
+      <rect width="6" height="6" x="3" y="3" rx="1" />
+      <circle cx="18" cy="6" r="3" />
+      <rect width="6" height="6" x="9" y="15" rx="1" />
+      <path d="M6 9v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9M12 12v3" />
+    </>
+  ),
+  informe: (
+    <>
+      <path d="M12.5 22H18a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v9.5" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+      <path d="M13.4 12.6a2 2 0 1 1 3 3L11 21l-4 1 1-4Z" />
+    </>
+  ),
+  subir: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />,
+  descargar: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />,
+  megafono: (
+    <>
+      <path d="m3 11 18-5v12L3 14v-3z" />
+      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+    </>
+  ),
+  etiqueta: (
+    <>
+      <path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4Z" />
+      <circle cx="7.5" cy="7.5" r="1.5" />
+    </>
+  ),
+  importar: (
+    <>
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v4a2 2 0 0 0 2 2h4M12 18v-6M9 15l3-3 3 3" />
+    </>
+  ),
+  ojo: (
+    <>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  web: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </>
+  ),
   buscar: (
     <>
       <circle cx="11" cy="11" r="7" />

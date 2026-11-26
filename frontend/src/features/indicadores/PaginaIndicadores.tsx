@@ -7,6 +7,7 @@ import { esFechaValida, fechaLarga, hoyIso } from '../../utilidades/fechas'
 import { NOMBRE_ESTADO } from '../carpetas/tipos'
 import { consultarIndicadores } from '../expediente/expedienteApi'
 import { bolivianos } from '../expediente/moneda'
+import { consultarIndicadoresPorResidencia, filasPorResidencia, nombreGrupoResidencia } from './porResidencia'
 
 const iso = (fecha: Date) =>
   `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`
@@ -28,6 +29,7 @@ function mesAnterior() {
  * FE-92 · Indicadores operativos para administración (cálculo de FE-91). Casos actuales y por estado son una
  * foto del momento; sesiones y pagos recibidos dependen del período elegido, con ambos extremos incluidos.
  * El período vive en la URL para poder recargar o compartir la misma consulta.
+ * FE-138 · Desglose por ciudad de residencia del paciente con el mismo período (FE-134/FE-136).
  */
 export function PaginaIndicadores() {
   const [params, setParams] = useSearchParams()
@@ -83,7 +85,121 @@ export function PaginaIndicadores() {
           </div>
         </section>
       )}
+
+      <IndicadoresPorResidencia desde={desde} hasta={hasta} />
     </div>
+  )
+}
+
+/**
+ * Tabla por ciudad de residencia. Se carga aparte: si falla, el resto de los indicadores sigue visible
+ * y el error se muestra como error, nunca como ceros.
+ */
+function IndicadoresPorResidencia({ desde, hasta }: { desde: string; hasta: string }) {
+  const { datos, error, cargando, recargar } = useCarga(
+    () => consultarIndicadoresPorResidencia(desde, hasta),
+    [desde, hasta],
+  )
+  const filas = datos ? filasPorResidencia(datos) : []
+
+  return (
+    <section aria-labelledby="titulo-por-residencia" className="space-y-3">
+      <div>
+        <h2 id="titulo-por-residencia" className="text-lg font-semibold text-verde-oscuro">
+          Por ciudad de residencia
+        </h2>
+        <p className="text-sm text-suave">
+          Ciudad donde vive el paciente, no donde se atiende. Los casos sin dato aparecen en «Sin registrar».
+        </p>
+      </div>
+
+      {error !== undefined ? (
+        <ErrorDeCarga
+          error={error}
+          alReintentar={recargar}
+          contexto="No se pudo calcular el desglose por residencia."
+        />
+      ) : !datos ? (
+        <Cargando texto="Calculando por residencia…" />
+      ) : (
+        <div aria-busy={cargando} className={cargando ? 'opacity-60' : undefined}>
+          {/* Escritorio y tableta: tabla con encabezados de fila y columna. */}
+          <div className="hidden overflow-x-auto rounded-3xl border border-linea bg-white sm:block">
+            <table className="w-full text-left text-sm">
+              <caption className="sr-only">
+                Casos, sesiones y pagos por ciudad de residencia, del {fechaLarga(datos.periodo.desde)} al{' '}
+                {fechaLarga(datos.periodo.hasta)}
+              </caption>
+              <thead className="bg-crema text-suave">
+                <tr>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    Residencia
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold">
+                    Casos actuales
+                  </th>
+                  {(['iniciado', 'en_proceso', 'concluido'] as const).map((e) => (
+                    <th key={e} scope="col" className="px-4 py-3 text-right font-semibold">
+                      {NOMBRE_ESTADO[e]}
+                    </th>
+                  ))}
+                  <th scope="col" className="px-4 py-3 text-right font-semibold">
+                    Sesiones
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold">
+                    Pagos recibidos
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-linea/70">
+                {filas.map((f) => (
+                  <tr key={f.residencia}>
+                    <th scope="row" className="px-4 py-3 font-semibold text-texto">
+                      {nombreGrupoResidencia(f.residencia)}
+                    </th>
+                    <td className="px-4 py-3 text-right tabular-nums">{f.casosActuales}</td>
+                    {(['iniciado', 'en_proceso', 'concluido'] as const).map((e) => (
+                      <td key={e} className="px-4 py-3 text-right tabular-nums">
+                        {f.casosPorEstado[e]}
+                      </td>
+                    ))}
+                    <td className="px-4 py-3 text-right tabular-nums">{f.sesiones}</td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                      {bolivianos(f.pagosRecibidos.monto)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Móvil: una tarjeta por ciudad, sin desplazamiento horizontal. */}
+          <ul className="grid gap-3 sm:hidden">
+            {filas.map((f) => (
+              <li key={f.residencia}>
+                <Tarjeta>
+                  <h3 className="font-semibold text-verde-oscuro">{nombreGrupoResidencia(f.residencia)}</h3>
+                  <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                    <dt className="text-suave">Casos actuales</dt>
+                    <dd className="text-right font-semibold tabular-nums">{f.casosActuales}</dd>
+                    {(['iniciado', 'en_proceso', 'concluido'] as const).map((e) => (
+                      <div key={e} className="contents">
+                        <dt className="text-suave">{NOMBRE_ESTADO[e]}</dt>
+                        <dd className="text-right tabular-nums">{f.casosPorEstado[e]}</dd>
+                      </div>
+                    ))}
+                    <dt className="text-suave">Sesiones</dt>
+                    <dd className="text-right tabular-nums">{f.sesiones}</dd>
+                    <dt className="text-suave">Pagos recibidos</dt>
+                    <dd className="text-right tabular-nums">{bolivianos(f.pagosRecibidos.monto)}</dd>
+                  </dl>
+                </Tarjeta>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
   )
 }
 

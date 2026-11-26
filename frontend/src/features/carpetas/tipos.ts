@@ -1,3 +1,5 @@
+import type { DatosResidencia, FiltroResidencia } from './residencia'
+
 /** Valores de casos.tipo y casos.estado en db/migrations/001_esquema_base.sql. */
 export type TipoCaso = 'voluntario' | 'derivado'
 export type EstadoCaso = 'iniciado' | 'en_proceso' | 'concluido'
@@ -9,6 +11,9 @@ export interface PersonaBreve {
   nombreCompleto: string
 }
 
+/** Paciente del listado y del detalle: incluye su ciudad de residencia (FE-136/FE-138). */
+export interface PacienteCarpeta extends PersonaBreve, DatosResidencia {}
+
 /** Fila del listado de GET /api/carpetas. */
 export interface CarpetaResumen {
   id: string
@@ -19,7 +24,7 @@ export interface CarpetaResumen {
   clasificacion: Clasificacion | null
   /** Fecha sin hora, formato AAAA-MM-DD. */
   fechaIngreso: string
-  paciente: PersonaBreve
+  paciente: PacienteCarpeta
   terapeuta: PersonaBreve | null
 }
 
@@ -28,6 +33,8 @@ export interface FiltrosCarpetas {
   busqueda: string
   clasificacion: Clasificacion | ''
   estado: EstadoCaso | ''
+  /** FE-138: «Todas» ('') no se envía; «Sin registrar» viaja como `sin_registrar`. */
+  residencia: FiltroResidencia
   pagina: number
 }
 
@@ -70,6 +77,15 @@ export interface NuevaCarpeta {
   nombreCompleto: string
   fechaIngreso: string
   tipo: TipoCaso
+}
+
+/** Alta con la residencia del paciente (opcional: sin dato queda «Sin registrar»). */
+export interface AltaConResidencia extends NuevaCarpeta, DatosResidencia {}
+
+/** Cuerpo de PATCH /api/carpetas/:id. El backend exige nombre y fecha juntos; la residencia se envía siempre. */
+export interface DatosEditablesPaciente extends DatosResidencia {
+  nombreCompleto: string
+  fechaIngreso: string
 }
 
 /** POST /api/casos: el detalle autorizado se consulta después con GET /api/carpetas/:id. */

@@ -15,6 +15,19 @@ import { PagosController } from './pagos.controller.js';
 import { PagosService } from './pagos.service.js';
 import { HistorialController } from './historial.controller.js';
 import { HistorialService } from './historial.service.js';
+import { FamiliaController } from './familia.controller.js';
+import { FamiliaService } from './familia.service.js';
+import { GenogramaController } from './genograma/genograma.controller.js';
+import { GenogramaAccesoService } from './genograma/genograma-acceso.service.js';
+import { GenogramaAlmacenPostgres } from './genograma/genograma-almacen-postgres.js';
+import {
+  GENOGRAMA_ARCHIVOS,
+  GenogramaDescargaService,
+} from './genograma/genograma-descarga.service.js';
+import {
+  GENOGRAMA_ESCRITURA,
+  GenogramaReemplazoService,
+} from './genograma/genograma-reemplazo.service.js';
 
 @Module({
   controllers: [
@@ -27,6 +40,8 @@ import { HistorialService } from './historial.service.js';
     TareasController,
     PagosController,
     HistorialController,
+    FamiliaController,
+    GenogramaController,
   ],
   providers: [
     CasosService,
@@ -34,8 +49,18 @@ import { HistorialService } from './historial.service.js';
     DiagnosticoService,
     SesionesService,
     TareasService,
+    FamiliaService,
     PagosService,
     HistorialService,
+    GenogramaAccesoService,
+    GenogramaDescargaService,
+    GenogramaReemplazoService,
+    GenogramaAlmacenPostgres,
+    { provide: GENOGRAMA_ARCHIVOS, useExisting: GenogramaAlmacenPostgres },
+    { provide: GENOGRAMA_ESCRITURA, useExisting: GenogramaAlmacenPostgres },
+  ],
+  exports: [
+    CasosService
   ],
 })
 export class CasosModule {}
