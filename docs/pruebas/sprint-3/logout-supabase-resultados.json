@@ -1,0 +1,119 @@
+{
+  "subtarea": "FE-193",
+  "fecha": "2026-11-26T21:28:01.581Z",
+  "commit": "b608d59",
+  "rama": "feature/FE-192-logout-timeout",
+  "node": "v22.20.0",
+  "plazoBackendMs": 5000,
+  "nota": "Sin tokens, contraseñas ni correos. Fuente: Supabase real salvo donde dice \"fallo inyectado\".",
+  "resultados": [
+    {
+      "id": "R0",
+      "escenario": "Login real y /auth/me con sesión vigente",
+      "fuente": "Supabase real",
+      "esperado": "200",
+      "observado": "200",
+      "veredicto": "APROBADO",
+      "ms": 315
+    },
+    {
+      "id": "R1",
+      "escenario": "Logout con Supabase 500",
+      "fuente": "Token real + fallo inyectado",
+      "esperado": "503, 0 LOGOUT",
+      "observado": "503, 0 LOGOUT",
+      "veredicto": "APROBADO",
+      "ms": 402
+    },
+    {
+      "id": "R2",
+      "escenario": "Logout con Supabase 4xx",
+      "fuente": "Token real + fallo inyectado",
+      "esperado": "502, 0 LOGOUT",
+      "observado": "502, 0 LOGOUT",
+      "veredicto": "APROBADO",
+      "ms": 268
+    },
+    {
+      "id": "R3",
+      "escenario": "Logout con conexión detenida",
+      "fuente": "Token real + fallo inyectado",
+      "esperado": "504 en ~5000 ms",
+      "observado": "504 en 5325 ms",
+      "veredicto": "APROBADO",
+      "ms": 5325
+    },
+    {
+      "id": "R4",
+      "escenario": "Cierre real",
+      "fuente": "Supabase real",
+      "esperado": "204, 1 LOGOUT",
+      "observado": "204, 1 LOGOUT",
+      "veredicto": "APROBADO",
+      "ms": 1112
+    },
+    {
+      "id": "R5",
+      "escenario": "Reintento de logout",
+      "fuente": "Supabase real",
+      "esperado": "401 (o 502), 0 LOGOUT",
+      "observado": "401, 0 LOGOUT",
+      "veredicto": "APROBADO",
+      "ms": 432
+    },
+    {
+      "id": "R6",
+      "escenario": "Refresh anterior tras logout",
+      "fuente": "Supabase real",
+      "esperado": "401",
+      "observado": "401",
+      "veredicto": "APROBADO",
+      "ms": 156
+    },
+    {
+      "id": "R7",
+      "escenario": "Access anterior en /auth/me y /casos",
+      "fuente": "Supabase real",
+      "esperado": "401 en ambos",
+      "observado": "/auth/me 401, /casos 401",
+      "veredicto": "APROBADO: rechazado de inmediato",
+      "ms": 165
+    },
+    {
+      "id": "R8",
+      "escenario": "Sesión B tras cerrar A",
+      "fuente": "Supabase real",
+      "esperado": "/auth/me 200, refresh 200",
+      "observado": "/auth/me 200, refresh 200",
+      "veredicto": "APROBADO",
+      "ms": 251
+    },
+    {
+      "id": "R9",
+      "escenario": "Rutas clínicas sin token / token inventado",
+      "fuente": "Supabase real",
+      "esperado": "401 / 401",
+      "observado": "401 / 401",
+      "veredicto": "APROBADO",
+      "ms": 7
+    },
+    {
+      "id": "R10",
+      "escenario": "Marketing en /casos y su logout",
+      "fuente": "Supabase real",
+      "esperado": "403 y 204",
+      "observado": "403 y 204",
+      "veredicto": "APROBADO",
+      "ms": 257
+    },
+    {
+      "id": "R11",
+      "escenario": "Cierre de la sesión B",
+      "fuente": "Supabase real",
+      "esperado": "204",
+      "observado": "204",
+      "veredicto": "APROBADO",
+      "ms": 493
+    }
+  ]
+}
