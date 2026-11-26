@@ -17,28 +17,33 @@ export type FormatoExportacion = keyof typeof FORMATOS;
 
 @Injectable()
 export class ExportacionesService {
-    async prepararDescarga(
+  async generarArchivo(
     formato: FormatoExportacion,
     datos: DocumentoExportable,
-  ): Promise<StreamableFile> {
-    const { generar, tipo } = FORMATOS[formato];
-
+  ): Promise<Buffer> {
     try {
-      const contenido = await generar(datos);
-
+      const contenido = await FORMATOS[formato].generar(datos);
       if (contenido.length === 0) {
         throw new Error('El generador devolvió un archivo vacío');
       }
-
-      return new StreamableFile(contenido, {
-        type: tipo,
-        disposition: `attachment; filename="exportacion.${formato}"`,
-        length: contenido.length,
-      });
+      return contenido;
     } catch {
       throw new InternalServerErrorException(
         'No se pudo generar el archivo de exportación. Intenta de nuevo.',
       );
     }
+  }
+
+  async prepararDescarga(
+    formato: FormatoExportacion,
+    datos: DocumentoExportable,
+  ): Promise<StreamableFile> {
+    const contenido = await this.generarArchivo(formato, datos);
+
+    return new StreamableFile(contenido, {
+      type: FORMATOS[formato].tipo,
+      disposition: `attachment; filename="exportacion.${formato}"`,
+      length: contenido.length,
+    });
   }
 }
