@@ -22,6 +22,7 @@
    | `migrations/016_fotografia_informes.sql` | FE-152: versiones de informes con la fotografía de los datos usados y `fotografia_informe(...)` |
    | `migrations/017_importacion_historica.sql` | FE-163: lotes de importación histórica, coincidencias y `confirmar_importacion(...)` |
    | `migrations/018_investigacion_categorias.sql` | FE-168: categorías de investigación, selección autorizada y paquete para Atlas.ti con manifiesto |
+   | `migrations/020_registro_exportaciones.sql` | FE-158: exportaciones PDF/Word de informe revisado, ficha o historial con sus datos, archivo privado y trazabilidad (019 la usa FE-169) |
 
    ## Modelo del Sprint 2
 
@@ -227,6 +228,51 @@
      preparar otro paquete.
    - Un paquete preparado no cambia ni pierde documentos (`23514`); se puede eliminar completo.
 
+   ## Exportación de documentos PDF y Word (FE-158)
+
+   Propuesta de FE-156. Cada exportación de un informe revisado, una ficha o un historial es una fila de `exportaciones`
+   (tipo `pdf` o `word`) con el caso, quién la preparó, los parámetros, los datos exactos del documento y su archivo.
+
+   ```
+   exportaciones (pdf | word) → casos                  (siempre un caso; los datos son de ese caso)
+                              → informe_versiones      (solo documento = informe; versión revisada del mismo caso)
+   estado: preparada → generada (archivo registrado) | fallida (error del generador)
+   ```
+
+   - **Parámetros** (`formatoVersion: 1`): `documento` (`informe`, `ficha`, `historial`), `formato` (`pdf`, `docx`), `secciones`,
+     `informeVersionId`, `incluirGenograma`, `incluirPagos`. La base los guarda en forma canónica; una clave desconocida → `22023`.
+     - Informe: solo `informeVersionId`. Se exporta tal como se revisó (texto y fotografía de `informe_versiones`); no se regenera
+       aunque el expediente cambie. Versión en borrador → `23514`; de otro caso o inexistente → `P0002`.
+     - Ficha: `identificacion`, `familia`, `diagnostico` (por defecto identificación y diagnóstico).
+     - Historial: además `sesiones` (por defecto las cuatro). `incluirPagos` solo aquí y solo administración (`42501`).
+     - `incluirGenograma` requiere la 012 (si falta, `0A000`).
+   - **Datos** (`datos_origen`): `documento`, `caso` (siempre), `seleccion` y las claves de las secciones pedidas: `paciente`,
+     `responsable`, `judicial` (identificación), `familia`, `diagnostico` (fuente vigente), `sesiones` (todas, por fecha y número,
+     con tareas), `genograma`, `pagos` (`[{ fecha, monto: "50.50", moneda, metodo, referencia, nroSesion, sesionId }]`).
+     Se leen una sola vez, al preparar, en una misma instantánea (reutiliza `fotografia_informe`). El archivo se genera desde aquí.
+   - **Alcance:** administración, cualquier caso activo; terapeuta, sus casos asignados. Caso ajeno, dado de baja o inexistente →
+     `P0002` (404); marketing, cuenta inactiva o sin `app.usuario_id` → `42501`.
+
+   Flujo para la API (FE-159/FE-160), cada paso en una transacción con `app.usuario_id`:
+
+   1. **Vista previa (opcional):** `select datos_exportacion_actuales(caso, parametros)` devuelve los datos que se registrarían.
+   2. **Preparar:** `select preparar_exportacion_documento(caso, parametros, datosMostrados)` → id. Con `datosMostrados` (la vista
+      previa), si el expediente cambió entretanto → `23514`: volver a pedir la vista previa. Sin él, usa los datos actuales.
+   3. **Generar:** `datos_exportacion_documento(id)` → `{ exportacionId, documento, formato, estado, archivoNombre, archivoPath, datos }`.
+      Generar el archivo desde `datos` y guardarlo en `archivoPath` (`<caso_id>/<id>.pdf|.docx`, privado).
+   4. **Registrar:** `select registrar_archivo_exportacion(id, sha256Hex, bytes)` (tamaño 0 → `22023`) o, si el generador falla,
+      `select registrar_fallo_exportacion(id, mensaje)`. Una vez; después `23514`. Para reintentar, preparar otra exportación.
+   5. **Descargar:** `archivo_exportacion(id)` → `{ archivoPath, archivoNombre, tipoContenido, bytes, sha256 }`. Sin archivo
+      registrado → `55000` (409). Comprobar el sha256 al leer el archivo.
+
+   - **Lectura** (pasos 3–5): quien la preparó o administración, mientras el caso siga autorizado; con pagos, solo administración.
+     Si no, `P0002`. El nombre de descarga (`exportacion-<id>.pdf`) no tiene datos personales.
+   - **Trazabilidad:** `select * from exportaciones_documentos_caso(caso)`: documento, formato, versión del informe, secciones,
+     pagos/genograma, autor, fecha, estado y nombre. Administración ve todas las del caso; terapeuta, las suyas. Cada alta y cierre
+     queda además en `auditoria`.
+   - Una exportación no cambia ni se elimina (`23514`). La ruta del archivo la fija la base: no se registra bajo otro caso.
+   - `informes.formato` y `archivo_path` quedan sin uso: un informe puede exportarse varias veces, cada una con su fila.
+
    ## Pruebas de las migraciones con PostgreSQL local
 
    Cada archivo `backend/test/*-postgres.test.mjs` del Sprint 2 crea una base desechable, aplica todas las migraciones, carga datos ficticios y la borra al terminar. Nunca usa Supabase.
@@ -253,6 +299,7 @@
    | FE-125 | `familiares-postgres.test.mjs` (aplica la 015 sobre una base con datos existentes) |
    | FE-152 | `informes-postgres.test.mjs` (aplica la 016 sobre una base con datos existentes) |
    | FE-168 | `investigacion-postgres.test.mjs` (aplica la 018 sobre una base con datos existentes) |
+   | FE-158 | `exportaciones-postgres.test.mjs` (aplica la 020 sobre una base con datos existentes) |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
