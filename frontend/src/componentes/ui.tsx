@@ -11,6 +11,8 @@ import {
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
+  type Ref,
+  type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react'
 
@@ -22,6 +24,8 @@ interface PropsBoton extends ButtonHTMLAttributes<HTMLButtonElement> {
   textoCargando?: string
   /** Ícono a la izquierda del texto. Mientras carga, lo reemplaza el indicador. */
   icono?: NombreIcono
+  /** React 19: `ref` llega como prop y se pasa al <button> (p. ej. para devolver el foco). */
+  ref?: Ref<HTMLButtonElement>
 }
 
 export function Boton({
@@ -199,6 +203,49 @@ export const AreaTexto = forwardRef<HTMLTextAreaElement, PropsAreaTexto>(functio
         className={`${claseCampo(Boolean(error))} resize-y leading-relaxed`}
         {...resto}
       />
+      {ayuda && !error && (
+        <p id={`${idCampo}-ayuda`} className="mt-1.5 text-sm text-suave">
+          {ayuda}
+        </p>
+      )}
+      {error && (
+        <p id={`${idCampo}-error`} className="mt-1.5 text-sm text-error">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+})
+
+interface PropsSeleccion extends SelectHTMLAttributes<HTMLSelectElement> {
+  etiqueta: string
+  error?: string
+  ayuda?: ReactNode
+}
+
+/** Lista desplegable con etiqueta, ayuda y error asociados (Sprint 3: parentesco, convivencia, estado…). */
+export const CampoSeleccion = forwardRef<HTMLSelectElement, PropsSeleccion>(function CampoSeleccion(
+  { etiqueta, error, ayuda, id, className = '', children, ...resto },
+  ref,
+) {
+  const idGenerado = useId()
+  const idCampo = id ?? idGenerado
+  const describe = [ayuda && !error && `${idCampo}-ayuda`, error && `${idCampo}-error`].filter(Boolean).join(' ')
+  return (
+    <div className={className}>
+      <label htmlFor={idCampo} className="block text-sm font-semibold text-texto">
+        {etiqueta}
+      </label>
+      <select
+        ref={ref}
+        id={idCampo}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describe || undefined}
+        className={claseCampo(Boolean(error))}
+        {...resto}
+      >
+        {children}
+      </select>
       {ayuda && !error && (
         <p id={`${idCampo}-ayuda`} className="mt-1.5 text-sm text-suave">
           {ayuda}

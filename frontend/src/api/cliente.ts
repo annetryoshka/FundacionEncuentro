@@ -56,6 +56,15 @@ interface OpcionesPeticion {
   consulta?: Consulta
   /** true para login y refresh: no mandan token ni tratan el 401 como sesión vencida. */
   publica?: boolean
+  /** Sprint 3: `archivo` devuelve el cuerpo como Blob (genograma, PDF/Word, ZIP) en vez de JSON. */
+  respuesta?: 'json' | 'archivo'
+}
+
+/** Archivo recibido de la API. `nombre` sale de Content-Disposition cuando el backend lo envía. */
+export interface ArchivoRecibido {
+  contenido: Blob
+  nombre: string | null
+  tipo: string
 }
 
 export async function peticion<T>(ruta: string, opciones: OpcionesPeticion = {}): Promise<T> {
@@ -78,9 +87,15 @@ export async function peticion<T>(ruta: string, opciones: OpcionesPeticion = {})
     comprobar()
     if (respuesta.status === 401) manejo!.invalidar()
   }
-  const datos = await procesar<T>(respuesta)
+  const datos =
+    opciones.respuesta === 'archivo' ? ((await procesarArchivo(respuesta)) as T) : await procesar<T>(respuesta)
   comprobar()
   return datos
+}
+
+/** GET de un archivo privado con el mismo token, renovación y manejo de errores que el resto. */
+export function descargarArchivo(ruta: string): Promise<ArchivoRecibido> {
+  return peticion<ArchivoRecibido>(ruta, { respuesta: 'archivo' })
 }
 
 /** Única petición que conserva el token capturado al iniciar la salida; no renueva. */
@@ -91,14 +106,16 @@ export async function revocarSesion(token: string): Promise<void> {
 async function enviar(ruta: string, opciones: OpcionesPeticion, token: string | null): Promise<Response> {
   const { metodo = 'GET', cuerpo, consulta } = opciones
   const url = `${URL_BASE}${ruta}${aQueryString(consulta)}`
-  const cabeceras: Record<string, string> = { Accept: 'application/json' }
-  if (cuerpo !== undefined) cabeceras['Content-Type'] = 'application/json'
+  const multipart = cuerpo instanceof FormData
+  const cabeceras: Record<string, string> = { Accept: opciones.respuesta === 'archivo' ? '*/*' : 'application/json' }
+  // Con FormData el navegador pone Content-Type con el boundary: no se fija a mano.
+  if (cuerpo !== undefined && !multipart) cabeceras['Content-Type'] = 'application/json'
   if (token) cabeceras.Authorization = `Bearer ${token}`
   const init: RequestInit = {
     cache: 'no-store',
     method: metodo,
     headers: cabeceras,
-    body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+    body: cuerpo === undefined ? undefined : multipart ? cuerpo : JSON.stringify(cuerpo),
   }
 
   try {
@@ -120,6 +137,31 @@ async function procesar<T>(respuesta: Response): Promise<T> {
   }
   if (respuesta.status === 204) return undefined as T
   return (await respuesta.json()) as T
+}
+
+async function procesarArchivo(respuesta: Response): Promise<ArchivoRecibido> {
+  if (!respuesta.ok) return procesar<never>(respuesta)
+  const contenido = await respuesta.blob()
+  return {
+    contenido,
+    nombre: nombreDeDisposicion(respuesta.headers.get('Content-Disposition')),
+    tipo: respuesta.headers.get('Content-Type') ?? contenido.type,
+  }
+}
+
+/** `attachment; filename="x.pdf"` o `filename*=UTF-8''x.pdf` → nombre del archivo. */
+export function nombreDeDisposicion(cabecera: string | null): string | null {
+  if (!cabecera) return null
+  const extendido = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(cabecera)
+  if (extendido) {
+    try {
+      return decodeURIComponent(extendido[1].trim().replace(/^"|"$/g, ''))
+    } catch {
+      /* se usa el nombre simple */
+    }
+  }
+  const simple = /filename\s*=\s*"?([^";]+)"?/i.exec(cabecera)
+  return simple ? simple[1].trim() : null
 }
 
 function aQueryString(consulta?: Consulta): string {

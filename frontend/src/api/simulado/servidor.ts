@@ -13,7 +13,9 @@
  */
 import type { Rol } from '../../features/auth/tipos'
 import type { Clasificacion, EstadoCaso, TipoCaso } from '../../features/carpetas/tipos'
+import type { CiudadResidencia } from '../../features/carpetas/residencia'
 import { atenderExpediente, expedienteInicial, type ExpedienteSim } from './expediente'
+import { atenderPublico, atenderSprint3, estadoSprint3Inicial, type Sprint3Sim } from './sprint3'
 
 export const CONTRASENA_DEMO = 'Encuentro2026'
 
@@ -35,7 +37,12 @@ interface CasoSim {
   /** null = sin clasificar (así nace toda carpeta nueva). */
   clasificacion: Clasificacion | null
   fechaIngreso: string
-  paciente: { id: string; nombreCompleto: string }
+  paciente: {
+    id: string
+    nombreCompleto: string
+    ciudadResidencia: CiudadResidencia | null
+    otraLocalidad: string | null
+  }
   creadoPor: string | null
   creadoEn: string
   asignacion: { perfilId: string; asignadoPor: string; asignadoEn: string } | null
@@ -51,10 +58,11 @@ interface DatosSim {
   /** refreshToken → id de perfil */
   refrescos: Record<string, string>
   expediente: ExpedienteSim
+  sprint3: Sprint3Sim
 }
 
-// v4: los datos guardados con v3 no tenían expediente (sesiones, tareas, pagos…).
-const CLAVE_ALMACEN = 'fundacion-encuentro:api-simulada:v4'
+// v5: Sprint 3 agrega la residencia del paciente y los datos de ./sprint3.ts.
+const CLAVE_ALMACEN = 'fundacion-encuentro:api-simulada:v5'
 const DURACION_TOKEN_S = 3600 // lo mismo que Supabase por defecto
 let retardoMs = 350
 // Se inicializa al final del módulo, cuando ya existen los datos ficticios.
@@ -88,13 +96,21 @@ export async function atenderSimulado(url: string, init: RequestInit = {}): Prom
   const { pathname, searchParams } = new URL(url, 'http://simulado')
   const ruta = pathname.replace(/^\/api/, '')
   const metodo = (init.method ?? 'GET').toUpperCase()
-  const cuerpo = init.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {}
+  const formulario = init.body instanceof FormData ? init.body : null
+  const cuerpo =
+    init.body && !formulario
+      ? (JSON.parse(String(init.body)) as Record<string, unknown>)
+      : ({} as Record<string, unknown>)
   const cabeceras = new Headers(init.headers)
 
   try {
     // Rutas públicas (@Public en el backend)
     if (metodo === 'POST' && ruta === '/auth/login') return login(cuerpo)
     if (metodo === 'POST' && ruta === '/auth/refresh') return refrescar(cuerpo)
+
+    // FE-143 · Portal público (@Public): sin token.
+    const portal = atenderPublico({ metodo, ruta, params: searchParams, estado: datos.sprint3, json, error })
+    if (portal) return portal
 
     // Guard global: todo lo demás exige sesión
     const token = cabeceras.get('Authorization')?.match(/^Bearer (.+)$/i)?.[1]
@@ -124,16 +140,29 @@ export async function atenderSimulado(url: string, init: RequestInit = {}): Prom
       if (yo.rol !== 'administrador') return error(403, 'Solo administración')
       const paciente = cuerpo.paciente as Record<string, unknown> | undefined
       const caso = cuerpo.caso as Record<string, unknown> | undefined
-      return crearCarpeta(yo, { nombreCompleto: paciente?.nombreCompleto, fechaIngreso: caso?.fechaIngreso, tipo: caso?.tipo })
+      return crearCarpeta(yo, {
+        nombreCompleto: paciente?.nombreCompleto,
+        fechaIngreso: caso?.fechaIngreso,
+        tipo: caso?.tipo,
+        ciudadResidencia: paciente?.ciudadResidencia,
+        otraLocalidad: paciente?.otraLocalidad,
+      })
     }
 
     const detalle = ruta.match(/^\/carpetas\/([^/]+)$/)
     if (detalle && metodo === 'GET') return verCarpeta(yo, detalle[1])
-      if (detalle && metodo === 'PATCH') {
-  return yo.rol === 'administrador'
-    ? editarDatosPaciente(yo, detalle[1], cuerpo)
-    : error(403, 'Solo administración')
-}
+    if (detalle && metodo === 'PATCH') {
+      return yo.rol === 'administrador'
+        ? editarDatosPaciente(yo, detalle[1], cuerpo)
+        : error(403, 'Solo administración')
+    }
+
+    // FE-136 · Desglose de indicadores por ciudad de residencia (solo administración).
+    if (ruta === '/indicadores/por-residencia' && metodo === 'GET') {
+      return yo.rol === 'administrador'
+        ? indicadoresPorResidencia(searchParams)
+        : error(403, 'No tienes permiso para realizar esta acción')
+    }
 
     // FE-47 · Administración o la terapeuta asignada; marketing queda fuera por rol.
     const clasificar = ruta.match(/^\/carpetas\/([^/]+)\/clasificacion$/)
@@ -149,6 +178,24 @@ export async function atenderSimulado(url: string, init: RequestInit = {}): Prom
     if (asignar && metodo === 'PUT') {
       return yo.rol === 'administrador' ? asignarTerapeuta(yo, asignar[1], cuerpo) : error(403, 'Solo administración')
     }
+
+    // Sprint 3 antes que el expediente: /diagnostico/vigente no es un id de sesión ni de tarea.
+    const sprint3 = await atenderSprint3({
+      yo,
+      metodo,
+      ruta,
+      cuerpo,
+      formulario,
+      params: searchParams,
+      casos: datos.casos,
+      perfiles: datos.perfiles,
+      expediente: datos.expediente,
+      estado: datos.sprint3,
+      contadores: datos.contadores,
+      json,
+      error,
+    })
+    if (sprint3) return sprint3
 
     const expediente = atenderExpediente({
       yo,
@@ -300,6 +347,10 @@ function listarCarpetas(yo: PerfilSim, params: URLSearchParams) {
   // Igual que ListarCarpetasQuery: un valor desconocido es un 400, no un filtro vacío.
   const clasificacion = params.get('clasificacion')
   const estado = params.get('estado')
+  const residencia = params.get('residencia')
+  if (residencia !== null && !FILTROS_RESIDENCIA.includes(residencia)) {
+    return error(400, ['residencia must be one of the following values: la_paz, el_alto, otra, sin_registrar'])
+  }
   if (clasificacion !== null && !CLASIFICACIONES.includes(clasificacion as Clasificacion)) {
     return error(400, ['clasificacion must be one of the following values: social, privado'])
   }
@@ -310,6 +361,7 @@ function listarCarpetas(yo: PerfilSim, params: URLSearchParams) {
   let lista = datos.casos.filter((c) => puedeVer(yo, c))
   if (clasificacion) lista = lista.filter((c) => c.clasificacion === clasificacion)
   if (estado) lista = lista.filter((c) => c.estado === estado)
+  if (residencia) lista = lista.filter((c) => (c.paciente.ciudadResidencia ?? 'sin_registrar') === residencia)
   if (/^\d+$/.test(busqueda)) {
     lista = lista.filter((c) => c.numero === Number(busqueda))
   } else if (busqueda) {
@@ -346,6 +398,8 @@ function crearCarpeta(yo: PerfilSim, cuerpo: Record<string, unknown>) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaIngreso) || fechaIngreso > hoyIso()) errores.push('fechaIngreso no es válida')
   if (!['voluntario', 'derivado'].includes(tipo)) errores.push('tipo no es válido')
   if (errores.length) return error(400, errores)
+  const residencia = leerResidencia(cuerpo)
+  if (typeof residencia === 'string') return error(400, residencia)
 
   const duplicados = datos.casos.filter((c) => normalizar(c.paciente.nombreCompleto) === normalizar(nombreCompleto))
 
@@ -357,26 +411,33 @@ function crearCarpeta(yo: PerfilSim, cuerpo: Record<string, unknown>) {
     estado: 'iniciado',
     clasificacion: null,
     fechaIngreso,
-    paciente: { id: crypto.randomUUID(), nombreCompleto },
+    paciente: {
+      id: crypto.randomUUID(),
+      nombreCompleto,
+      ciudadResidencia: residencia?.ciudadResidencia ?? null,
+      otraLocalidad: residencia?.otraLocalidad ?? null,
+    },
     creadoPor: yo.id,
     creadoEn: new Date().toISOString(),
     asignacion: null,
   }
   datos.casos.push(caso)
-  return json(201, { ...detalle(caso), numeroCorrelativo: caso.numero,
-    posiblesDuplicados: duplicados.map((c) => ({ pacienteId: c.paciente.id, nombreCompleto: c.paciente.nombreCompleto, similitud: 1 })),
+  return json(201, {
+    ...detalle(caso),
+    numeroCorrelativo: caso.numero,
+    posiblesDuplicados: duplicados.map((c) => ({
+      pacienteId: c.paciente.id,
+      nombreCompleto: c.paciente.nombreCompleto,
+      similitud: 1,
+    })),
   })
 }
 
 /**
- * FE-52: Actualizar los datos básicos del paciente.
- * Solo permite cambiar el nombre y la fecha de ingreso.
+ * FE-52 / FE-136: actualizar los datos básicos del paciente.
+ * Nombre y fecha son obligatorios; la residencia es opcional (omitida se conserva, null la limpia).
  */
-function editarDatosPaciente(
-  yo: PerfilSim,
-  id: string,
-  cuerpo: Record<string, unknown>,
-) {
+function editarDatosPaciente(yo: PerfilSim, id: string, cuerpo: Record<string, unknown>) {
   const caso = datos.casos.find((c) => c.id === id)
 
   if (!caso) {
@@ -389,30 +450,23 @@ function editarDatosPaciente(
     campos.some(
       (campo) =>
         campo !== 'nombreCompleto' &&
-        campo !== 'fechaIngreso',
+        campo !== 'fechaIngreso' &&
+        campo !== 'ciudadResidencia' &&
+        campo !== 'otraLocalidad',
     )
   ) {
     return error(400, 'Se enviaron campos no permitidos')
   }
 
-  if (
-    typeof cuerpo.nombreCompleto !== 'string' ||
-    typeof cuerpo.fechaIngreso !== 'string'
-  ) {
+  if (typeof cuerpo.nombreCompleto !== 'string' || typeof cuerpo.fechaIngreso !== 'string') {
     return error(400, 'Nombre y fecha de ingreso son obligatorios')
   }
 
-  const nombreCompleto = cuerpo.nombreCompleto
-    .trim()
-    .replace(/\s+/g, ' ')
+  const nombreCompleto = cuerpo.nombreCompleto.trim().replace(/\s+/g, ' ')
 
   const fechaIngreso = cuerpo.fechaIngreso
 
-  if (
-    nombreCompleto.length < 3 ||
-    nombreCompleto.length > 150 ||
-    !/\p{L}/u.test(nombreCompleto)
-  ) {
+  if (nombreCompleto.length < 3 || nombreCompleto.length > 150 || !/\p{L}/u.test(nombreCompleto)) {
     return error(400, 'El nombre del paciente no es válido')
   }
 
@@ -429,9 +483,18 @@ function editarDatosPaciente(
     return error(400, 'La fecha de ingreso no es válida')
   }
 
+  const residencia = leerResidencia(cuerpo)
+  if (typeof residencia === 'string') return error(400, residencia)
+  const nuevaResidencia = residencia ?? {
+    ciudadResidencia: caso.paciente.ciudadResidencia,
+    otraLocalidad: caso.paciente.otraLocalidad,
+  }
+
   if (
     caso.paciente.nombreCompleto !== nombreCompleto ||
-    caso.fechaIngreso !== fechaIngreso
+    caso.fechaIngreso !== fechaIngreso ||
+    caso.paciente.ciudadResidencia !== nuevaResidencia.ciudadResidencia ||
+    caso.paciente.otraLocalidad !== nuevaResidencia.otraLocalidad
   ) {
     caso.actualizacion = { perfilId: yo.id, actualizadoEn: new Date().toISOString() }
   }
@@ -439,9 +502,75 @@ function editarDatosPaciente(
   // Actualizar los datos del paciente.
   caso.paciente.nombreCompleto = nombreCompleto
   caso.fechaIngreso = fechaIngreso
+  caso.paciente.ciudadResidencia = nuevaResidencia.ciudadResidencia
+  caso.paciente.otraLocalidad = nuevaResidencia.otraLocalidad
 
   // Se conserva el número de carpeta.
   return json(200, detalle(caso))
+}
+
+// ---- FE-136 · Residencia del paciente -----------------------------------------
+
+const CIUDADES: CiudadResidencia[] = ['la_paz', 'el_alto', 'otra']
+const FILTROS_RESIDENCIA = [...CIUDADES, 'sin_registrar']
+
+/**
+ * Igual que el backend: omitir ambos campos conserva lo guardado (undefined), null limpia,
+ * «otra» exige localidad y la localidad solo se guarda con «otra». Devuelve el mensaje si es inválido.
+ */
+function leerResidencia(
+  cuerpo: Record<string, unknown>,
+): { ciudadResidencia: CiudadResidencia | null; otraLocalidad: string | null } | undefined | string {
+  if (!('ciudadResidencia' in cuerpo) && !('otraLocalidad' in cuerpo)) return undefined
+  const ciudad = cuerpo.ciudadResidencia ?? null
+  if (ciudad !== null && !CIUDADES.includes(ciudad as CiudadResidencia)) {
+    return 'ciudadResidencia must be one of the following values: la_paz, el_alto, otra'
+  }
+  const localidad = typeof cuerpo.otraLocalidad === 'string' ? cuerpo.otraLocalidad.trim() : ''
+  if (ciudad === 'otra' && !localidad) return 'Indica el nombre de la otra localidad'
+  return { ciudadResidencia: ciudad as CiudadResidencia | null, otraLocalidad: ciudad === 'otra' ? localidad : null }
+}
+
+function indicadoresPorResidencia(params: URLSearchParams) {
+  const general = atenderExpediente({
+    yo: { id: '', rol: 'administrador' },
+    metodo: 'GET',
+    ruta: '/indicadores',
+    cuerpo: {},
+    params,
+    casos: datos.casos,
+    perfiles: datos.perfiles,
+    expediente: datos.expediente,
+    json,
+    error,
+  })
+  if (general && !general.ok) return general
+  const desde = params.get('desde')!
+  const hasta = params.get('hasta')!
+  const enPeriodo = (fecha: string) => fecha >= desde && fecha <= hasta
+  const grupo = (c: CasoSim) => c.paciente.ciudadResidencia ?? 'sin_registrar'
+  return json(200, {
+    periodo: { desde, hasta },
+    porResidencia: FILTROS_RESIDENCIA.map((residencia) => {
+      const casos = datos.casos.filter((c) => grupo(c) === residencia)
+      const ids = new Set(casos.map((c) => c.id))
+      const porEstado = (e: EstadoCaso) => casos.filter((c) => c.estado === e).length
+      const centavos = datos.expediente.pagos
+        .filter((p) => ids.has(p.casoId) && enPeriodo(p.fecha))
+        .reduce((suma, p) => suma + Math.round(Number(p.monto) * 100), 0)
+      return {
+        residencia,
+        casosActuales: casos.length,
+        casosPorEstado: {
+          iniciado: porEstado('iniciado'),
+          en_proceso: porEstado('en_proceso'),
+          concluido: porEstado('concluido'),
+        },
+        sesiones: datos.expediente.sesiones.filter((s) => ids.has(s.casoId) && enPeriodo(s.fecha)).length,
+        pagosRecibidos: { monto: (centavos / 100).toFixed(2), moneda: 'BOB' },
+      }
+    }),
+  })
 }
 
 // ---- FE-47 · Clasificación y estado (igual que CasosService de FE-48) -------
@@ -467,7 +596,12 @@ function cambiarClasificacion(yo: PerfilSim, id: string, cuerpo: Record<string, 
   if (!caso) return error(404, 'Caso no encontrado')
   caso.clasificacion = cuerpo.clasificacion as Clasificacion
   caso.actualizacion = { perfilId: yo.id, actualizadoEn: new Date().toISOString() }
-  return json(200, { id: caso.id, clasificacion: caso.clasificacion, actualizadoPor: yo.id, actualizadoEn: caso.actualizacion.actualizadoEn })
+  return json(200, {
+    id: caso.id,
+    clasificacion: caso.clasificacion,
+    actualizadoPor: yo.id,
+    actualizadoEn: caso.actualizacion.actualizadoEn,
+  })
 }
 
 function cambiarEstado(yo: PerfilSim, id: string, cuerpo: Record<string, unknown>) {
@@ -481,7 +615,12 @@ function cambiarEstado(yo: PerfilSim, id: string, cuerpo: Record<string, unknown
   if (!caso) return error(404, 'Caso no encontrado')
   caso.estado = cuerpo.estado as EstadoCaso
   caso.actualizacion = { perfilId: yo.id, actualizadoEn: new Date().toISOString() }
-  return json(200, { id: caso.id, estado: caso.estado, actualizadoPor: yo.id, actualizadoEn: caso.actualizacion.actualizadoEn })
+  return json(200, {
+    id: caso.id,
+    estado: caso.estado,
+    actualizadoPor: yo.id,
+    actualizadoEn: caso.actualizacion.actualizadoEn,
+  })
 }
 
 function asignarTerapeuta(yo: PerfilSim, id: string, cuerpo: Record<string, unknown>) {
@@ -568,6 +707,24 @@ function datosIniciales(): DatosSim {
     ['Paola Gutiérrez Mendoza', 'voluntario', 'iniciado', '2026-10-05', ID.carla, null],
   ]
 
+  // FE-136: residencia variada; algunos casos antiguos quedan «Sin registrar» (no se adivina el domicilio).
+  const residencias: [CiudadResidencia | null, string | null][] = [
+    ['la_paz', null],
+    ['el_alto', null],
+    ['la_paz', null],
+    [null, null],
+    ['el_alto', null],
+    ['la_paz', null],
+    ['otra', 'Viacha'],
+    [null, null],
+    ['la_paz', null],
+    ['el_alto', null],
+    ['la_paz', null],
+    [null, null],
+    ['otra', 'Achocalla'],
+    ['el_alto', null],
+  ]
+
   const contadores: Record<TipoCaso, number> = { voluntario: 0, derivado: 0 }
   const casos: CasoSim[] = pacientes.map(([nombre, tipo, estado, fechaIngreso, terapeuta, clasificacion], i) => ({
     id: `10000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`,
@@ -576,7 +733,12 @@ function datosIniciales(): DatosSim {
     estado,
     clasificacion,
     fechaIngreso,
-    paciente: { id: `20000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`, nombreCompleto: nombre },
+    paciente: {
+      id: `20000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`,
+      nombreCompleto: nombre,
+      ciudadResidencia: residencias[i][0],
+      otraLocalidad: residencias[i][1],
+    },
     creadoPor: ID.direccion,
     creadoEn: `${fechaIngreso}T14:00:00.000Z`,
     asignacion: terapeuta
@@ -597,6 +759,7 @@ function datosIniciales(): DatosSim {
     accesos: {},
     refrescos: {},
     expediente: expedienteInicial({ caso1: casos[0].id, sofia: ID.sofia, direccion: ID.direccion }),
+    sprint3: estadoSprint3Inicial({ casos, sofia: ID.sofia, direccion: ID.direccion, diego: ID.diego }),
   }
 }
 

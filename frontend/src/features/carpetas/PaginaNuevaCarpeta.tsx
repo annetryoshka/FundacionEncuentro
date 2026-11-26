@@ -4,6 +4,8 @@ import { ErrorApi, mensajeErrorGeneral } from '../../api/cliente'
 import { Aviso, Boton, CampoTexto, EncabezadoPagina, EnlaceVolver, GrupoOpciones, Tarjeta } from '../../componentes/ui'
 import { hoyIso } from '../../utilidades/fechas'
 import { registrarCarpeta } from './carpetasApi'
+import { aDatosResidencia, validarResidencia, type ErroresResidencia, type ValorResidencia } from './residencia'
+import { SelectorResidencia } from './SelectorResidencia'
 import { type NuevaCarpeta, type TipoCaso } from './tipos'
 import { validarNuevaCarpeta, type ErroresCarpeta } from './validacion'
 
@@ -27,6 +29,9 @@ export function PaginaNuevaCarpeta() {
   const navegar = useNavigate()
   const [form, setForm] = useState<Formulario>({ nombreCompleto: '', fechaIngreso: hoyIso(), tipo: '' })
   const [errores, setErrores] = useState<ErroresCarpeta>({})
+  // FE-138: residencia opcional; sin dato queda «Sin registrar».
+  const [residencia, setResidencia] = useState<ValorResidencia>({ ciudad: '', localidad: '' })
+  const [erroresResidencia, setErroresResidencia] = useState<ErroresResidencia>({})
   const [intento, setIntento] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
@@ -34,6 +39,7 @@ export function PaginaNuevaCarpeta() {
 
   const refNombre = useRef<HTMLInputElement>(null)
   const refFecha = useRef<HTMLInputElement>(null)
+  const refResidencia = useRef<HTMLDivElement>(null)
   const refAviso = useRef<HTMLDivElement>(null)
 
   const cambiar = (campo: keyof Formulario, valor: string) => {
@@ -49,10 +55,16 @@ export function PaginaNuevaCarpeta() {
     setErrorGeneral(null)
 
     const encontrados = validarNuevaCarpeta(form)
+    const enResidencia = validarResidencia(residencia)
     setErrores(encontrados)
+    setErroresResidencia(enResidencia)
     if (encontrados.nombreCompleto) return refNombre.current?.focus()
     if (encontrados.fechaIngreso) return refFecha.current?.focus()
     if (encontrados.tipo) return
+    if (enResidencia.ciudad || enResidencia.localidad) {
+      // El campo con error ya existe (select o localidad): se enfoca sin esperar al nuevo render.
+      return refResidencia.current?.querySelector<HTMLElement>(enResidencia.ciudad ? 'select' : 'input')?.focus()
+    }
 
     envioEnCurso.current = true
     setGuardando(true)
@@ -61,6 +73,7 @@ export function PaginaNuevaCarpeta() {
         nombreCompleto: form.nombreCompleto.trim().replace(/\s+/g, ' '),
         fechaIngreso: form.fechaIngreso,
         tipo: form.tipo as TipoCaso,
+        ...aDatosResidencia(residencia),
       })
       navegar(`/carpetas/${carpeta.id}`, {
         state: { recienCreada: true, posiblesDuplicados: carpeta.posiblesDuplicados },
@@ -73,7 +86,7 @@ export function PaginaNuevaCarpeta() {
       } else {
         setErrorGeneral(
           error instanceof ErrorApi && error.estado === 400
-            ? 'El servidor rechazó los datos. Revisa el nombre y la fecha de ingreso.'
+            ? `El servidor rechazó los datos: ${error.message}. Revisa el nombre, la fecha y la residencia.`
             : mensajeErrorGeneral(error),
         )
       }
@@ -125,6 +138,17 @@ export function PaginaNuevaCarpeta() {
               alCambiar={(tipo) => cambiar('tipo', tipo)}
               error={errores.tipo}
             />
+
+            <div ref={refResidencia}>
+              <SelectorResidencia
+                valor={residencia}
+                errores={erroresResidencia}
+                alCambiar={(valor) => {
+                  setResidencia(valor)
+                  if (intento) setErroresResidencia(validarResidencia(valor))
+                }}
+              />
+            </div>
 
             <p className="rounded-xl bg-crema px-4 py-3 text-sm text-suave">
               El número de carpeta se asigna automáticamente al guardar y no se puede cambiar.
