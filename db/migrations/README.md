@@ -368,3 +368,14 @@ usuario en Auth y asociar su perfil mediante una transacción auditada; después
 reutiliza POST `/api/usuarios`. Generar contraseñas temporales fuera de Git y no
 copiar hashes. Las pruebas automatizadas de FE-23 generan sus credenciales
 ficticias en memoria y no crean cuentas reales.
+
+## Actualización y recuperación (FE-197)
+
+Guía completa: `docs/operacion/sprint-3/actualizacion-y-recuperacion.md`.
+
+- Antes de aplicar en Supabase: respaldo del esquema `public` con `pg_dump` 17, ensayo local y prueba en seco con `rollback`.
+- Comprobar si una migración está aplicada con un objeto que **ella crea** (012 → `genograma_archivos`, no `genogramas`).
+- Revertir = restaurar el respaldo previo. Restaurar en tres secciones (`pre-data`, `data`, `post-data`);
+  fuera de Supabase, llenar `auth.users` desde `perfiles` antes de `post-data`.
+- El respaldo incluye los archivos de genograma (bytea). No incluye `auth.users` ni archivos de Supabase Storage.
+- Ensayo automático (PostgreSQL local): `backend/scripts/ensayo-actualizacion.mjs`.
