@@ -14,6 +14,7 @@ import { InformesModule } from './modules/informes/informes.module.js';
 import { DifusionModule } from './modules/difusion/difusion.module.js';
 
 import { InvestigacionModule } from './modules/investigacion/investigacion.module.js';
+import { GastosModule } from './modules/gastos/gastos.module.js';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { InvestigacionModule } from './modules/investigacion/investigacion.modul
     DifusionModule,
 
     InvestigacionModule,
+    GastosModule,
   ],
   controllers: [HealthController],
 })
