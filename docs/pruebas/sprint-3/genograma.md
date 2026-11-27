@@ -5,7 +5,7 @@
 - **Trazabilidad:** RF-15.
 - **Responsable QA:** Emilia Crespo.
 - **Fecha de ejecución:** 2026-11-26 (America/La_Paz) · **Commit probado:** `f9f4447` · PostgreSQL 17 local, Node v22.20.0
-- **Resultado global:** suite QA 11/11 aprobadas (10,0 s); regresión de FE-130 y FE-131 12/12 aprobadas (5,8 s). Se encontró un defecto en la migración 012 (FE133-01, sección 4). La interfaz está pendiente (sección 5).
+- **Resultado global:** suite QA 11/11 aprobadas (10,0 s); regresión de FE-130 y FE-131 12/12 aprobadas (5,8 s). Se encontró un defecto en la migración 012 (FE133-01, sección 4). Interfaz (FE-132): 7/7 pruebas QA y recorrido manual aprobados; falta la muestra real de GenoPro (sección 5).
 
 ## 1. Alcance
 
@@ -13,7 +13,7 @@
 |---|---|---|
 | Almacenamiento privado (FE-130) | Listo | PostgreSQL 17 local desechable con todas las migraciones |
 | API de carga, consulta y descarga (FE-131) | Lista | NestJS HTTP real con guards reales; solo Supabase Auth es un doble |
-| Visor y carga (FE-132, Jorge) | Listo, en la rama `feature/FE-138-FE-170-front-sprint3` | Sección 5 |
+| Visor y carga (FE-132, Jorge) | Listo, en la rama `feature/FE-138-FE-170-front-sprint3` | Pruebas de interfaz en modo simulado y recorrido manual (sección 5) |
 | Muestra real de GenoPro (FE-129, Andrea) | En curso | Sección 5: comparar que la imagen conserva las relaciones |
 
 Todos los archivos son ficticios y se generan en la prueba. Cada ejecución crea una base `fe133_*` en tu PostgreSQL local y la borra al terminar.
@@ -58,15 +58,28 @@ La segunda línea de `node --test` vuelve a correr las suites de Alejandro y Adr
 3. **Límite doble.** La API corta en 5 MB y la base admite hasta 10 MB. No es un problema, pero conviene que el contrato diga 5 MB.
 4. **Estilo:** la sangría de `consultar` y `GenogramaDescargaService` es irregular. No afecta el funcionamiento.
 
-## 5. Interfaz y muestra de GenoPro (pendiente)
+## 5. Interfaz (FE-132) y muestra de GenoPro
 
-| Paso | Esperado | Resultado |
-|---|---|---|
-| Ver un PNG cargado tras recargar; ampliar y cerrar con Esc | La imagen es visible y el foco vuelve | |
-| Ver un PDF (visor, abrir en otra pestaña, descargar) | Se abre y se descarga el mismo archivo | |
-| Reemplazo rechazado (archivo falso) | Mensaje 415 y se conserva el anterior | |
-| Muestra de GenoPro de FE-129 | La imagen conserva las relaciones de la muestra (padres, hijos, uniones) | |
-| Móvil (375 px) | Visor usable, sin desplazamiento horizontal | |
+- **Base probada:** rama `feature/FE-138-FE-170-front-sprint3`, commit `43eb87a` (frontend de Jorge, `f44b309`), en modo simulado. La API real ya quedó verificada en la sección 3.
+- **Fecha:** 2026-11-26.
+- **Automatizado:** `frontend/src/features/expediente/genograma/GenogramaQA.test.tsx` (QA, en la rama de Jorge) 7/7, más `Genograma.test.tsx` (Jorge) 7/7.
+- **Manual:** navegador integrado, escritorio (1280 px) y móvil (375 px), con un genograma ficticio dibujado para la prueba (padre, madre, paciente y hermana).
+
+| Paso | Esperado | Resultado | Evidencia |
+|---|---|---|---|
+| Ver un PNG cargado y después de recargar | La imagen es visible con sus relaciones (unión de los padres, línea hacia los hijos) | Aprobado | Manual (escritorio y móvil) + `Genograma.test` |
+| Integridad en la interfaz | La imagen mostrada tiene exactamente los bytes subidos | Aprobado | `GenogramaQA` |
+| Confidencialidad del archivo | Se pide con `Authorization: Bearer` en la cabecera, nunca con el token en la URL; la imagen usa un `blob:` local, no una URL de la API | Aprobado | `GenogramaQA` |
+| Cerrar sesión | La imagen desaparece y su URL `blob:` se libera | Aprobado | `GenogramaQA` |
+| Ampliar y cerrar con Esc | Se abre el diálogo; Esc lo cierra y el foco vuelve a "Ampliar" | Aprobado | Manual (móvil) + `Genograma.test` |
+| Ver un PDF (visor, abrir en otra pestaña) | Visor con título y enlace a una pestaña nueva | Aprobado | `Genograma.test` (Jorge) |
+| Reemplazo rechazado (415, 413) o con corte de red | Mensaje claro y se conserva el anterior | Aprobado | `Genograma.test` + `GenogramaQA` (red) |
+| Validación en el navegador | Acepta PDF, PNG y JPEG; rechaza SVG, GIF, HTML, vacío y más de 5 MB sin enviar | Aprobado | `GenogramaQA` + `Genograma.test` |
+| Permisos en la interfaz | Administración sube un JPEG; marketing no llega ni descarga; terapeuta ajena no llega | Aprobado | `GenogramaQA` + `Genograma.test` |
+| Móvil (375 px) | Visor usable, sin desplazamiento horizontal de la página (ancho 375 = 375) | Aprobado | Manual |
+| Muestra real de GenoPro de FE-129 | La imagen conserva las relaciones de la muestra | **Pendiente** | Falta la muestra de Andrea (FE-129 en curso) |
+
+Observación menor de interfaz (para Jorge, no bloquea): en móvil, la vista ampliada muestra la imagen a su tamaño real y hay que desplazarse dentro del diálogo para ver la parte derecha. Se podría ajustar la imagen al ancho de la pantalla y dejar el zoom como opción.
 
 ## 6. Hallazgos
 
@@ -77,5 +90,5 @@ La segunda línea de `node --test` vuelve a correr las suites de Alejandro y Adr
 
 - [x] Suite QA y regresión ejecutadas; resultados en la matriz (11/11 y 12/12, 2026-11-26).
 - [ ] Defecto FE133-01 comunicado a Alejandro.
-- [ ] Interfaz verificada (sección 5).
+- [x] Interfaz verificada (sección 5): 7/7 y recorrido manual en escritorio y móvil (2026-11-26).
 - [ ] Muestra de GenoPro comparada cuando Andrea cierre FE-129.
