@@ -24,6 +24,7 @@
    | `migrations/017_importacion_historica.sql` | FE-163: lotes de importación histórica, coincidencias y `confirmar_importacion(...)` |
    | `migrations/018_investigacion_categorias.sql` | FE-168: categorías de investigación, selección autorizada y paquete para Atlas.ti con manifiesto |
    | `migrations/020_registro_exportaciones.sql` | FE-158: exportaciones PDF/Word de informe revisado, ficha o historial con sus datos, archivo privado y trazabilidad (019 la usa FE-169) |
+   | `migrations/021_gastos_funcionamiento.sql` | FE-173: gastos de funcionamiento en `movimientos_contables` (egreso), corrección y anulación con auditoría, `consultar_gastos_mes(mes)` |
 
    ## Modelo del Sprint 2
 
@@ -288,6 +289,40 @@
      queda además en `auditoria`.
    - Una exportación no cambia ni se elimina (`23514`). La ruta del archivo la fija la base: no se registra bajo otro caso.
    - `informes.formato` y `archivo_path` quedan sin uso: un informe puede exportarse varias veces, cada una con su fila.
+
+   ## Gastos de funcionamiento (FE-173)
+
+   Contrato de FE-172 (HU5). Un gasto es una fila de `movimientos_contables` con `tipo = 'egreso'`; los ingresos no cambian.
+   No hay distribución de ingresos.
+
+   | Columna | Regla |
+   |---|---|
+   | `categoria` | `internet`, `electricidad`, `alquiler` u `otros`. Obligatoria. |
+   | `fecha` | Obligatoria, desde 2000-01-01 y no futura (hora de Bolivia). Sin valor por defecto: la envía la API. El mes sale de esta fecha. |
+   | `monto` | Positivo, hasta dos decimales, máximo 99999999.99. Un tercer decimal se rechaza; no se redondea. Se guarda con dos decimales. |
+   | `descripcion` | Hasta 200 caracteres, no solo espacios. Obligatoria para `otros`. |
+   | `pago_id` | Siempre NULL en un gasto: no es un pago de sesión. |
+   | `registrado_por`, `creado_en`, `actualizado_por`, `actualizado_en` | Los pone la base desde `app.usuario_id`; lo que envíe el cliente se ignora. |
+   | `anulado_en`, `anulado_por`, `motivo_anulacion` | Los pone `anular_gasto`. Motivo opcional, hasta 200. |
+
+   Flujo para la API (FE-174), cada paso en una transacción con `app.usuario_id`:
+
+   - **Registrar:** `insert into movimientos_contables (tipo, categoria, fecha, monto, descripcion) values ('egreso', ...) returning *`
+     y responder con `select gasto_json(m) from movimientos_contables m where id = $1`.
+   - **Consultar:** `select consultar_gastos_mes('2026-11')` (null = mes actual en Bolivia) devuelve
+     `{ mes, gastos: [gasto], totalMes, cantidadVigentes, cantidadAnulados, totalesPorCategoria: [{ categoria, cantidad, total }] }`.
+     Los anulados aparecen en `gastos` con `anulado: true`, pero no suman. Las cuatro categorías aparecen siempre, en el orden del contrato.
+     Montos como texto con dos decimales (`"1700.00"`). Mes que no sea `AAAA-MM` → `22023` (400).
+   - **Corregir:** `update movimientos_contables set categoria/fecha/monto/descripcion ... where id = $1 and tipo = 'egreso' returning *`
+     (0 filas = 404). Si cambia la fecha a otro mes, el gasto sale de un total y entra en el otro.
+   - **Anular:** `select anular_gasto(id, motivo)`. Repetirlo devuelve el mismo gasto sin escribir ni restar otra vez.
+     Inexistente o un ingreso → `P0002` (404).
+
+   - Solo administración activa: otro rol, cuenta inactiva o sin `app.usuario_id` → `42501` (403), también al consultar.
+   - Un gasto anulado no se modifica y ningún gasto se elimina (`23514`). Cambiar el `tipo` de un movimiento → `23514`.
+   - Errores para traducir: `23514` y `23502` → 400, `22008` (fecha imposible) → 400, `42501` → 403, `P0002` → 404.
+   - Cada alta, corrección y anulación queda en `auditoria` con su autor (trigger de la 001).
+
    ## Pruebas de las migraciones con PostgreSQL local
 
    Cada archivo `backend/test/*-postgres.test.mjs` del Sprint 2 crea una base desechable, aplica todas las migraciones, carga datos ficticios y la borra al terminar. Nunca usa Supabase.
@@ -315,6 +350,7 @@
    | FE-152 | `informes-postgres.test.mjs` (aplica la 016 sobre una base con datos existentes) |
    | FE-168 | `investigacion-postgres.test.mjs` (aplica la 018 sobre una base con datos existentes) |
    | FE-158 | `exportaciones-postgres.test.mjs` (aplica la 020 sobre una base con datos existentes) |
+   | FE-173 | `gastos-postgres.test.mjs` (aplica la 021 sobre una base con datos existentes) |
 
    | FE-130 | `genograma-postgres.test.mjs` (también la API con base real) |
 
