@@ -22,7 +22,10 @@ import {
 export function PaginaRevisionInvestigacion() {
   const { id = '' } = useParams()
   const { datos, error, recargar } = useCarga(() => obtenerRevision(id), [id])
-  const [revisadoEn, setRevisadoEn] = useState<string | null>(null)
+  const [confirmadoEn, setRevisadoEn] = useState<string | null>(null)
+  // Un paquete ya revisado (en otra visita) se puede descargar sin volver a confirmar.
+  const revisadoEn = confirmadoEn ?? (datos?.revisionVigente ? datos.revisadoEn : null)
+  const caducada = Boolean(datos?.revisadoEn && !datos.revisionVigente && !confirmadoEn)
   const [leido, setLeido] = useState(false)
   const [ocupado, setOcupado] = useState<'confirmando' | 'descargando' | null>(null)
   const [mensaje, setMensaje] = useState<{ tipo: 'exito' | 'error'; texto: string; recargar?: boolean } | null>(null)
@@ -55,13 +58,10 @@ export function PaginaRevisionInvestigacion() {
       setRevisadoEn(r.revisadoEn)
       avisar({ tipo: 'exito', texto: 'Revisión confirmada. Ya puedes descargar el paquete.' })
     } catch (e) {
+      // 409: el contenido cambió desde que se leyó (volver a leer) o el paquete ya se revisó con otro contenido.
       avisar(
         e instanceof ErrorApi && e.estado === 409
-          ? {
-              tipo: 'error',
-              texto: `${e.message} Vuelve a leer el contenido actualizado antes de confirmar.`,
-              recargar: true,
-            }
+          ? { tipo: 'error', texto: e.message, recargar: true }
           : { tipo: 'error', texto: mensajeNoGuardado(e) },
       )
     } finally {
@@ -160,6 +160,17 @@ export function PaginaRevisionInvestigacion() {
               Descargar paquete (.zip)
             </Boton>
           </>
+        ) : caducada ? (
+          <Aviso tipo="info">
+            <p>
+              Este paquete se revisó el {fechaLarga(datos.revisadoEn!)}, pero su contenido cambió después y ya no se
+              puede descargar.{' '}
+              <Link to="/investigacion" className="font-semibold underline underline-offset-2">
+                Prepara un paquete nuevo
+              </Link>
+              .
+            </p>
+          </Aviso>
         ) : (
           <>
             <label className="flex items-start gap-3 text-texto">

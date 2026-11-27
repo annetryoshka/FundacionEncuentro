@@ -1729,13 +1729,21 @@ manejadores.push((ctx) => {
   if (!p) return ctx.error(404, 'Exportación no encontrada')
   const contenido = contenidoPaquete(ctx, p)
   if (m[2] === 'manifiesto' && ctx.metodo === 'GET') return ctx.json(200, contenido.manifiesto)
-  if (m[2] === 'revision' && ctx.metodo === 'GET') return ctx.json(200, contenido)
+  if (m[2] === 'revision' && ctx.metodo === 'GET')
+    return ctx.json(200, {
+      ...contenido,
+      revisadoEn: p.revisadoEn,
+      revisionVigente: p.revisadoEn !== null && p.huellaRevisada === contenido.huella,
+    })
   if (m[2] === 'revision' && ctx.metodo === 'PATCH') {
     const huella = (ctx.cuerpo as { huella?: string }).huella
     if (typeof huella !== 'string' || !/^[0-9a-f]{64}$/.test(huella))
       return ctx.error(400, ['huella must match /^[0-9a-f]{64}$/ regular expression'])
     if (huella !== contenido.huella) return ctx.error(409, 'El contenido cambió. Revisa la vista actualizada.')
-    if (p.revisadoEn) return ctx.error(409, 'No se puede registrar la revisión del paquete')
+    if (p.revisadoEn) {
+      if (p.huellaRevisada === huella) return ctx.json(200, { revisadoEn: p.revisadoEn })
+      return ctx.error(409, 'Este paquete ya se revisó y su contenido cambió después. Prepara un paquete nuevo.')
+    }
     p.huellaRevisada = huella
     p.revisadoEn = ahora()
     return ctx.json(200, { revisadoEn: p.revisadoEn })
