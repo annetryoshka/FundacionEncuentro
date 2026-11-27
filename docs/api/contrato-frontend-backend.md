@@ -589,14 +589,16 @@ Al revisar, se conserva la copia original de los datos del expediente.
 | Método y ruta | Qué hace |
 | --- | --- |
 | `GET /api/publico/publicaciones` | Lista publicaciones visibles. Admite `tipo`, `pagina` y `tamano`. |
-| `GET /api/publico/publicaciones/:id` | Devuelve una publicación visible y su imagen principal, si existe. Un borrador o una publicación retirada devuelve `404`. |
+| `GET /api/publico/publicaciones/:id` | Devuelve una publicación visible y su imagen, si tiene. Un borrador o una publicación retirada devuelve `404`. |
 | `GET /api/difusion/publicaciones` | Lista publicaciones para administración y marketing. Admite también el filtro `estado`. |
-| `GET /api/difusion/publicaciones/:id` | Devuelve el detalle privado, la autoría y los recursos. |
+| `GET /api/difusion/publicaciones/:id` | Devuelve el detalle privado, la autoría y `imagen` (o `null`). |
 | `POST /api/difusion/publicaciones` | Crea un borrador. |
 | `PUT /api/difusion/publicaciones/:id` | Reemplaza los campos de contenido y conserva el estado. |
 | `PATCH /api/difusion/publicaciones/:id/estado` | Recibe `{ "estado": "publicado" }`, `"retirado"` o `"borrador"` según la transición. |
-| `POST /api/difusion/publicaciones/:id/recursos` | Asocia los metadatos de una imagen del bucket público. |
-| `DELETE /api/difusion/publicaciones/:id/recursos/:recursoId` | Quita la asociación y devuelve `204`. El objeto del bucket permanece. |
+| `PUT /api/difusion/publicaciones/:id/imagen` | Sube o reemplaza la imagen (ver «Imágenes del portal»). |
+| `PATCH /api/difusion/publicaciones/:id/imagen` | Cambia la descripción: `{ "textoAlternativo": "…" }`. |
+| `DELETE /api/difusion/publicaciones/:id/imagen` | Quita la imagen y borra el archivo. `204`; sin imagen → `404`. |
+| `GET /api/difusion/publicaciones/:id/imagen/archivo` | La imagen guardada, para la vista previa (también en borrador). |
 
 Las rutas administrativas requieren una sesión de administración o marketing.
 El flujo es `borrador → publicado → retirado → borrador`. Una transición
@@ -604,9 +606,22 @@ inválida devuelve `409`. Si falta el resumen al publicar, devuelve `422`
 con `camposFaltantes`. Los mínimos adicionales por tipo siguen pendientes
 de ratificación.
 
-Las imágenes admiten JPEG, PNG o WebP, hasta 5 MiB. El recurso requiere
-ruta relativa y texto alternativo. Una segunda imagen principal devuelve
-`409`. La API gestiona metadatos; la carga del archivo se hace aparte.
+## Imágenes del portal (024)
+
+Una imagen por publicación o artículo. Se guarda en la base (`imagenes_publicas`, migración 024), como los
+genogramas, así que entra en el respaldo `pg_dump`. No hay bucket de Storage.
+
+- **Subir:** `PUT …/:id/imagen` en `multipart/form-data` con `archivo` (JPEG, PNG o WebP, hasta 15 MB) y
+  `textoAlternativo` (1–300). El servidor reconoce el formato por los bytes, respeta la orientación de la foto, la
+  reduce a 1600 px en su lado mayor, la guarda como WebP y le quita los metadatos (EXIF, ubicación GPS).
+  Responde `200` con `{ id, textoAlternativo, ancho, alto, tamanoBytes }`. La imagen anterior se borra.
+- **Errores** (mensajes en español, listos para mostrar): sin archivo o sin texto → `400`; más de 15 MB → `413`;
+  otro formato (HEIC, SVG, GIF, PDF…) → `415`; ilegible, menos de 200 px por lado o demasiados píxeles → `422`.
+- **Portal:** las respuestas públicas traen `imagen: { id, textoAlternativo, ancho, alto }` o `null`. El archivo se
+  pide a `GET /api/publico/imagenes/:id` (sin sesión), que responde solo si lo que la usa está publicado; si no, `404`.
+  Cabeceras: `Cache-Control: public, no-cache` con `ETag` (`304` si no cambió), `nosniff` y
+  `Cross-Origin-Resource-Policy: cross-origin`.
+- El frontend arma la URL con `urlImagenPublica(id)` (`frontend/src/features/publico/imagenes.ts`).
 
 ## Investigación y exportación para Atlas.ti (FE-169)
 
@@ -658,15 +673,16 @@ Alcance ratificado en [FE-182](../srs/sprint-3/FE-182-investigaciones-publicas.m
 | --- | --- | --- |
 | `GET /api/investigaciones/articulos?estado=&pagina=&tamano=` | — | `{ articulos, total, pagina, tamano }`, cualquier estado. |
 | `GET /api/investigaciones/articulos/:id` | — | Artículo completo o `404`. |
-| `POST /api/investigaciones/articulos` | `{ titulo, resumen?, contenido, autorVisible?, imagen? }` | `201`, siempre en `borrador`. |
-| `PUT /api/investigaciones/articulos/:id` | Mismo cuerpo (formulario completo) | `200`. Un publicado que queda sin resumen → `422` `{ camposFaltantes: ['resumen'] }`. |
+| `POST /api/investigaciones/articulos` | `{ titulo, resumen?, contenido, autorVisible? }` | `201`, siempre en `borrador`. |
+| `PUT /api/investigaciones/articulos/:id` | Mismo cuerpo (formulario completo; la imagen se conserva) | `200`. Un publicado que queda sin resumen → `422` `{ camposFaltantes: ['resumen'] }`. |
 | `PATCH /api/investigaciones/articulos/:id/estado` | `{ estado }` | `borrador → publicado → retirado → borrador`. Otra transición → `409`. Publicar sin resumen → `422` `{ camposFaltantes: ['resumen'] }`. |
 | `DELETE /api/investigaciones/articulos/:id` | — | `204` solo si nunca se publicó; si alguna vez se publicó → `409` (se retira). |
+| `PUT`, `PATCH`, `DELETE /api/investigaciones/articulos/:id/imagen` y `GET …/imagen/archivo` | — | Igual que en difusión (ver «Imágenes del portal»). |
 
 Artículo (gestión): `{ id, titulo, resumen, contenido, estado, autorVisible, imagen, creadoPor, creadoEn, actualizadoPor, actualizadoEn, publicadoEn, publicadoPor, retiradoEn, retiradoPor }`.
 
 - `titulo` hasta 150 y `contenido` hasta 20000, ambos obligatorios y no en blanco; `resumen` hasta 500 (obligatorio para publicar); `autorVisible` hasta 150 o `null` si no se autorizó mostrarlo.
-- `imagen`: `{ ruta, textoAlternativo, ancho?, alto? }` o `null`. La ruta es relativa al almacenamiento público de difusión (sin `..` ni protocolo) y el texto alternativo es obligatorio.
+- `imagen`: `{ id, textoAlternativo, ancho, alto, tamanoBytes }` o `null`. No va en el cuerpo de POST/PUT: enviarla → `400`.
 - Estado, autoría y fechas los pone el servidor; enviarlos → `400`.
 
 **Portal** (sin sesión):
@@ -676,7 +692,7 @@ Artículo (gestión): `{ id, titulo, resumen, contenido, estado, autorVisible, i
 | `GET /api/publico/investigaciones?pagina=&tamano=` | `{ investigaciones: [{ id, titulo, resumen, autor, fechaPublicacion, imagen }], total, pagina, tamano }`, solo publicados, del más reciente al más antiguo. |
 | `GET /api/publico/investigaciones/:id` | Lo mismo más `contenido`. Borrador, retirado o inexistente → `404`. |
 
-`fechaPublicacion` es `AAAA-MM-DD` (fecha de Bolivia) y coincide con `InvestigacionPublica` de `frontend/src/features/publico/investigaciones.ts`; `imagen` usa la misma forma que difusión (`ruta`, no `url`). No hay rutas de comentarios.
+`fechaPublicacion` es `AAAA-MM-DD` (fecha de Bolivia) y coincide con `InvestigacionPublica` de `frontend/src/features/publico/investigaciones.ts`; `imagen` usa la misma forma que difusión (`id`, no `url`). No hay rutas de comentarios.
 
 Pruebas: `backend/src/modules/articulos/tests/articulos.service.spec.ts` (unitarias) y `backend/test/articulos-api-postgres.test.mjs` (API con PostgreSQL y los artículos de FE-185).
 ## Gastos de funcionamiento (FE-174)

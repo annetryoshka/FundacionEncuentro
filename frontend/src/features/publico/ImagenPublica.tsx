@@ -6,8 +6,9 @@ import type { ImagenPublicacion } from './publicaciones'
  * con claridad en lugar de dejar un hueco o un ícono roto (contrato FE-140, criterio 5).
  */
 export function ImagenPublica({ imagen }: { imagen: ImagenPublicacion }) {
-  const [fallo, setFallo] = useState(false)
-  if (fallo) {
+  // Se recuerda qué URL falló: en la vista previa del editor la imagen cambia y debe volver a intentarse.
+  const [fallida, setFallida] = useState<string | null>(null)
+  if (fallida === imagen.url) {
     return (
       <p className="flex h-40 items-center justify-center bg-crema px-4 text-center text-sm text-suave">
         La imagen no está disponible por ahora.
@@ -19,7 +20,7 @@ export function ImagenPublica({ imagen }: { imagen: ImagenPublicacion }) {
       src={imagen.url}
       alt={imagen.textoAlternativo}
       loading="lazy"
-      onError={() => setFallo(true)}
+      onError={() => setFallida(imagen.url)}
       className="h-40 w-full object-cover"
     />
   )

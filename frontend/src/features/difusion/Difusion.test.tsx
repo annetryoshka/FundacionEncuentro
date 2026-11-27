@@ -10,7 +10,16 @@ import {
   montarApp,
   montarSinSesion,
 } from '../../test/montarApp'
-import { aPublica, urlImagenDifusion, validarPublicacion, formularioVacio } from './difusion'
+import { validarImagen } from '../publico/imagenes'
+import { aPublica, validarPublicacion, formularioVacio } from './difusion'
+
+/** Un PNG mínimo: el servidor (y la API simulada) revisa la firma real del archivo. */
+const png = (nombre = 'afiche diciembre.png') =>
+  new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...new Array(2040).fill(0)])], nombre, {
+    type: 'image/png',
+  })
+const formularioEnviado = (fetchEspia: Awaited<ReturnType<typeof montarApp>>['fetchEspia'], ruta: string) =>
+  (llamadas(fetchEspia, 'PUT', ruta).at(-1)![1] as RequestInit).body as FormData
 
 /**
  * FE-144 · Panel de publicaciones (API FE-143). Datos de demostración de FE-141: C1 y K1 publicadas, A1 y X1 en
@@ -120,32 +129,91 @@ describe('Panel de difusión', () => {
     expect(validarPublicacion({ ...base, contactoUrl: 'https://fundacion.test/inscripcion' })).toEqual({})
   })
 
-  it('registra la imagen principal con su texto alternativo y la muestra en la vista previa', async () => {
+  it('sube la imagen de portada con su descripción, la muestra en la vista previa, la describe de nuevo y la quita', async () => {
     const { usuario, fetchEspia } = await montarApp(`/difusion/${PUBLICACION_CAMPANA}`, 'apoyo')
-    await screen.findByRole('heading', { name: 'Imagen principal' })
-    const imagen = new File([new Uint8Array(2048)], 'afiche diciembre.png', { type: 'image/png' })
-    await usuario.upload(screen.getByLabelText('Imagen'), imagen)
-    expect(screen.getByLabelText('Ruta en la carpeta pública')).toHaveValue('afiche-diciembre.png')
-    await usuario.click(screen.getByRole('button', { name: 'Registrar imagen principal' }))
-    expect(screen.getByText('Describe la imagen para quien no la ve.')).toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'Imagen de portada' })
+    expect(screen.queryByText(/carpeta pública/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Ruta/)).not.toBeInTheDocument()
 
-    await usuario.type(screen.getByLabelText('Texto alternativo'), 'Afiche ficticio de la campaña')
-    await usuario.click(screen.getByRole('button', { name: 'Registrar imagen principal' }))
-    expect(await screen.findByText('Imagen principal registrada.')).toBeInTheDocument()
-    expect(cuerpo(fetchEspia, 'POST', `/api/difusion/publicaciones/${PUBLICACION_CAMPANA}/recursos`)).toMatchObject({
-      ruta: 'afiche-diciembre.png',
-      tipoMime: 'image/png',
-      tamanoBytes: 2048,
-      textoAlternativo: 'Afiche ficticio de la campaña',
-      principal: true,
-    })
+    await usuario.upload(screen.getByLabelText('Elegir imagen'), png())
+    expect(screen.getByText(/afiche diciembre\.png/)).toBeInTheDocument()
+    await usuario.click(screen.getByRole('button', { name: 'Guardar imagen' }))
+    expect(screen.getByText('Describe la imagen en una frase.')).toBeInTheDocument()
+    expect(llamadas(fetchEspia, 'PUT', `/api/difusion/publicaciones/${PUBLICACION_CAMPANA}/imagen`)).toHaveLength(0)
+
+    await usuario.type(screen.getByLabelText('Describe la imagen en una frase'), 'Afiche ficticio de la campaña')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar imagen' }))
+    expect(await screen.findByText('Imagen guardada. Ya se ve en el portal.')).toBeInTheDocument()
+    const enviado = formularioEnviado(fetchEspia, `/api/difusion/publicaciones/${PUBLICACION_CAMPANA}/imagen`)
+    expect((enviado.get('archivo') as File).name).toBe('afiche diciembre.png')
+    expect(enviado.get('textoAlternativo')).toBe('Afiche ficticio de la campaña')
     const vista = within(screen.getByRole('complementary', { name: 'Vista previa' }))
     expect(vista.getByRole('img', { name: 'Afiche ficticio de la campaña' })).toHaveAttribute(
       'src',
-      '/imagenes/difusion/afiche-diciembre.png',
+      expect.stringMatching(/^blob:/),
     )
+
+    await usuario.click(screen.getByRole('button', { name: 'Editar descripción' }))
+    const campo = screen.getByLabelText('Describe la imagen en una frase')
+    await usuario.clear(campo)
+    await usuario.type(campo, 'Afiche de la campaña de diciembre')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar descripción' }))
+    expect(await screen.findByText('Descripción guardada.')).toBeInTheDocument()
+    expect(cuerpo(fetchEspia, 'PATCH', `/api/difusion/publicaciones/${PUBLICACION_CAMPANA}/imagen`)).toEqual({
+      textoAlternativo: 'Afiche de la campaña de diciembre',
+    })
+
     await usuario.click(screen.getByRole('button', { name: 'Quitar imagen' }))
+    await usuario.click(screen.getByRole('button', { name: 'Sí, quitar' }))
     expect(await screen.findByText('Imagen quitada.')).toBeInTheDocument()
+    expect(vista.queryByRole('img')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Elegir imagen')).toBeInTheDocument()
+  })
+
+  it('si la subida falla, la imagen elegida y su descripción se conservan para reintentar', async () => {
+    const { usuario, fetchEspia } = await montarApp(`/difusion/${PUBLICACION_BORRADOR}`, 'apoyo')
+    await usuario.upload(await screen.findByLabelText('Elegir imagen'), png())
+    await usuario.type(screen.getByLabelText('Describe la imagen en una frase'), 'Afiche ficticio')
+    fallarUnaVez(fetchEspia, 'PUT', `/api/difusion/publicaciones/${PUBLICACION_BORRADOR}/imagen`, 'red')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar imagen' }))
+    expect(await screen.findByText(/Se cortó la conexión mientras subía la imagen/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Describe la imagen en una frase')).toHaveValue('Afiche ficticio')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar imagen' }))
+    expect(await screen.findByText('Imagen guardada. Se verá en el portal al publicar.')).toBeInTheDocument()
+  })
+
+  it('al crear una publicación, la imagen elegida se sube después de guardar el borrador', async () => {
+    const { usuario, fetchEspia } = await montarApp('/difusion/nueva', 'apoyo')
+    await usuario.click(screen.getByRole('radio', { name: 'Actividad' }))
+    await usuario.type(screen.getByLabelText('Título'), 'Actividad ficticia con afiche')
+    await usuario.upload(screen.getByLabelText('Elegir imagen'), png('afiche.png'))
+    await usuario.click(screen.getByRole('button', { name: 'Guardar borrador' }))
+    // Sin descripción no se guarda nada.
+    expect(screen.getByText('Describe la imagen en una frase.')).toBeInTheDocument()
+    expect(llamadas(fetchEspia, 'POST', '/api/difusion/publicaciones')).toHaveLength(0)
+
+    await usuario.type(screen.getByLabelText('Describe la imagen en una frase'), 'Afiche ficticio de la actividad')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar borrador' }))
+    expect(await screen.findByText(/Publicación guardada como borrador/)).toBeInTheDocument()
+    const subidas = fetchEspia.mock.calls.filter(
+      ([url, init]) => /\/imagen$/.test(String(url)) && (init as RequestInit | undefined)?.method === 'PUT',
+    )
+    expect(subidas).toHaveLength(1)
+    expect(await screen.findByRole('button', { name: 'Editar descripción' })).toBeInTheDocument()
+    expect(screen.getByText('Afiche ficticio de la actividad')).toBeInTheDocument()
+  })
+
+  it('revisa tipo y peso en el navegador antes de subir', () => {
+    const archivo = (nombre: string, tipo: string, bytes = 10) =>
+      new File([new Uint8Array(bytes)], nombre, { type: tipo })
+    expect(validarImagen(archivo('foto.jpg', 'image/jpeg'))).toBeNull()
+    expect(validarImagen(archivo('IMG_0001.HEIC', 'image/heic'))).toMatch(/iPhone/)
+    expect(validarImagen(archivo('informe.pdf', 'application/pdf'))).toMatch(/no es una imagen/)
+    expect(validarImagen(archivo('logo.svg', 'image/svg+xml'))).toMatch(/no es una imagen/)
+    expect(validarImagen(archivo('vacia.png', 'image/png', 0))).toMatch(/vacío/)
+    const grande = archivo('grande.jpg', 'image/jpeg')
+    Object.defineProperty(grande, 'size', { value: 15 * 1024 * 1024 + 1 })
+    expect(validarImagen(grande)).toMatch(/máximo es 15 MB/)
   })
 
   it('una terapeuta no tiene Difusión y no puede abrirla', async () => {
@@ -212,8 +280,7 @@ describe('Portal público', () => {
     expect(await screen.findByRole('heading', { name: 'No encontramos esta página' })).toBeInTheDocument()
   })
 
-  it('la imagen pública se resuelve desde la carpeta pública, nunca desde el almacenamiento clínico', () => {
-    expect(urlImagenDifusion('campanas/x.jpg')).toBe('/imagenes/difusion/campanas/x.jpg')
+  it('la imagen pública se pide a la API de imágenes del portal, nunca al almacenamiento clínico', () => {
     const p = aPublica({
       id: '1',
       tipo: 'curso',
@@ -226,9 +293,12 @@ describe('Portal público', () => {
       lugar: null,
       contactoUrl: null,
       publicadoEn: null,
-      imagen: { ruta: '/a.png', textoAlternativo: 'Afiche', ancho: null, alto: null },
+      imagen: { id: '0f6c0f3e-1b7a-4c35-9d3e-6d4f2a1b9c10', textoAlternativo: 'Afiche', ancho: 1600, alto: 900 },
     })
-    expect(p.imagen).toEqual({ url: '/imagenes/difusion/a.png', textoAlternativo: 'Afiche' })
+    expect(p.imagen).toEqual({
+      url: '/api/publico/imagenes/0f6c0f3e-1b7a-4c35-9d3e-6d4f2a1b9c10',
+      textoAlternativo: 'Afiche',
+    })
     expect(p.resumen).toBe('')
   })
 })

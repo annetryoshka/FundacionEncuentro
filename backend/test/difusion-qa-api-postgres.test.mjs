@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
+import { createCanvas } from '@napi-rs/canvas';
 import { DatabaseService } from '../dist/database/database.service.js';
 import { DifusionModule } from '../dist/modules/difusion/difusion.module.js';
 import { IndicadoresModule } from '../dist/modules/indicadores/indicadores.module.js';
@@ -157,7 +158,8 @@ test('P8 · el portal no admite filtros internos ni escrituras', opciones, async
     ['POST', '/publico/publicaciones', ACTIVIDAD],
     ['PUT', `/publico/publicaciones/${p.id}`, ACTIVIDAD],
     ['PATCH', `/publico/publicaciones/${p.id}/estado`, { estado: 'publicado' }],
-    ['POST', `/publico/publicaciones/${p.id}/recursos`, { ruta: 'x.png' }],
+    ['PUT', `/publico/publicaciones/${p.id}/imagen`, { textoAlternativo: 'x' }],
+    ['DELETE', `/publico/imagenes/${p.id}`, undefined],
     ['DELETE', `/publico/publicaciones/${p.id}`, undefined],
   ]) {
     const r = await pedir(ruta, { token: null, metodo, cuerpo });
@@ -196,25 +198,56 @@ test('P11 · la terapeuta no gestiona difusión; sin sesión tampoco', opciones,
   assert.equal((await pedir(`/difusion/publicaciones/${p.id}`)).cuerpo.estado, 'borrador');
 });
 
-test('P12 · recursos de imagen: rutas peligrosas y tipos no admitidos se rechazan', opciones, async () => {
+/** PUT multipart de la imagen (024). */
+async function subirImagen(id, datos, { tipo = 'image/png', nombre = 'afiche.png', texto = 'Afiche ficticio', token = 'mkt' } = {}) {
+  const formulario = new FormData();
+  formulario.append('archivo', new Blob([datos], { type: tipo }), nombre);
+  formulario.append('textoAlternativo', texto);
+  const r = await fetch(`${api.base}/api/difusion/publicaciones/${id}/imagen`, {
+    method: 'PUT', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formulario,
+  });
+  return { status: r.status, cuerpo: await r.json() };
+}
+function png(ancho, alto) {
+  const lienzo = createCanvas(ancho, alto);
+  lienzo.getContext('2d').fillRect(0, 0, ancho, alto);
+  return lienzo.encodeSync('png');
+}
+
+test('P12 · imagen: archivos peligrosos o no admitidos se rechazan con mensajes claros', opciones, async () => {
   const { cuerpo: p } = await crear({ ...ACTIVIDAD, titulo: 'Imagen QA' });
-  const recurso = { ruta: 'campanas/afiche-qa.png', tipoMime: 'image/png', tamanoBytes: 2048, textoAlternativo: 'Afiche ficticio', principal: true };
-  const ok = await pedir(`/difusion/publicaciones/${p.id}/recursos`, { metodo: 'POST', cuerpo: recurso });
-  assert.equal(ok.status, 201, JSON.stringify(ok.cuerpo));
-  for (const [nombre, cambio] of [
-    ['ruta con ..', { ruta: '../clinico/genograma.png' }],
-    ['ruta absoluta', { ruta: '/etc/passwd' }],
-    ['ruta con protocolo', { ruta: 'https://otro.test/x.png' }],
-    ['SVG', { ruta: 'x.svg', tipoMime: 'image/svg+xml' }],
-    ['más de 5 MB', { ruta: 'grande.png', tamanoBytes: 5 * 1024 * 1024 + 1 }],
-    ['sin texto alternativo', { ruta: 'sin-alt.png', textoAlternativo: '  ' }],
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><rect width="400" height="400"/></svg>');
+  for (const [nombre, datos, opcionesSubida, esperado, mensaje] of [
+    ['SVG con script', svg, { tipo: 'image/svg+xml', nombre: 'x.svg' }, 415, /JPEG, PNG o WebP/],
+    ['HTML disfrazado de PNG', Buffer.from('<html><script>alert(1)</script></html>'), {}, 415, /JPEG, PNG o WebP/],
+    ['HEIC del iPhone', Buffer.from('\0\0\0\x18ftypheic\0\0\0\0', 'latin1'), { tipo: 'image/heic', nombre: 'IMG_0001.HEIC' }, 415, /iPhone/],
+    ['GIF', Buffer.from('GIF89a\x01\0\x01\0', 'latin1'), { tipo: 'image/gif', nombre: 'a.gif' }, 415, /JPEG, PNG o WebP/],
+    ['más de 15 MB', Buffer.alloc(15 * 1024 * 1024 + 1, 0xff), {}, 413, /15 MB/],
+    ['muy pequeña', png(120, 120), {}, 422, /muy pequeña/],
+    ['sin texto alternativo', png(400, 300), { texto: '  ' }, 400, /Describe la imagen/],
   ]) {
-    assert.equal((await pedir(`/difusion/publicaciones/${p.id}/recursos`, { metodo: 'POST', cuerpo: { ...recurso, principal: false, ...cambio } })).status, 400, nombre);
+    const r = await subirImagen(p.id, datos, opcionesSubida);
+    assert.equal(r.status, esperado, `${nombre}: ${JSON.stringify(r.cuerpo)}`);
+    assert.match(String(r.cuerpo.message), mensaje, nombre);
   }
-  assert.equal((await pedir(`/difusion/publicaciones/${p.id}/recursos`, { metodo: 'POST', cuerpo: { ...recurso, ruta: 'otra.png' } })).status, 409, 'Una sola imagen principal');
+  assert.equal((await pedir(`/difusion/publicaciones/${p.id}`)).cuerpo.imagen, null, 'Ningún intento fallido deja imagen');
+
+  for (const token of ['t1', null]) {
+    assert.equal((await subirImagen(p.id, png(400, 300), { token })).status, token ? 403 : 401);
+  }
+  const ok = await subirImagen(p.id, png(400, 300), { token: 'admin' });
+  assert.equal(ok.status, 200, JSON.stringify(ok.cuerpo));
   await estado(p.id, 'publicado');
   const imagen = (await publico(p.id)).cuerpo.imagen;
-  assert.deepEqual({ ruta: imagen.ruta, textoAlternativo: imagen.textoAlternativo }, { ruta: recurso.ruta, textoAlternativo: recurso.textoAlternativo });
+  assert.deepEqual(imagen, { id: ok.cuerpo.id, textoAlternativo: 'Afiche ficticio', ancho: 400, alto: 300 });
+  assert.equal((await fetch(`${api.base}/api/publico/imagenes/${imagen.id}`)).status, 200);
+
+  // Retirada: la imagen deja de servirse al público, pero se conserva para volver a publicar.
+  await estado(p.id, 'retirado');
+  assert.equal((await fetch(`${api.base}/api/publico/imagenes/${imagen.id}`)).status, 404);
+  assert.equal((await pedir(`/difusion/publicaciones/${p.id}`)).cuerpo.imagen.id, imagen.id);
+  // El ID de una carpeta o de una publicación no sirve como imagen.
+  for (const id of [caso.id, p.id]) assert.equal((await fetch(`${api.base}/api/publico/imagenes/${id}`)).status, 404);
 });
 
 test('P13 · listado público: filtro por tipo, paginación y lista vacía sin error', opciones, async () => {

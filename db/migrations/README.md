@@ -26,6 +26,7 @@
    | `migrations/020_registro_exportaciones.sql` | FE-158: exportaciones PDF/Word de informe revisado, ficha o historial con sus datos, archivo privado y trazabilidad (019 la usa FE-169) |
    | `migrations/022_gastos_funcionamiento.sql` | FE-173: gastos de funcionamiento en `movimientos_contables` (egreso), corrección y anulación con auditoría, `consultar_gastos_mes(mes)` |
    | `migrations/023_investigaciones_publicas.sql` | FE-183: artículos de investigación en `publicaciones_foro` (borrador/publicado/retirado), sin comentarios, vista pública `v_investigaciones_publicas` |
+   | `migrations/024_imagenes_publicas.sql` | Imágenes del portal en la base (`imagenes_publicas`); reemplaza las rutas al bucket de 014 y 023 |
 
    ## Modelo del Sprint 2
 
@@ -76,9 +77,8 @@
    - Para publicar hace falta `resumen`. Los mínimos por tipo (fechas, modalidad, lugar) los valida la API (FE-143) hasta que FE-141 los ratifique.
    - Límites: título 1–150, resumen ≤ 500, contenido ≤ 10 000, lugar ≤ 200, `contacto_url` http/https ≤ 500, fin ≥ inicio.
      El contenido se guarda como texto: la API y la interfaz no lo interpretan como HTML.
-   - Imágenes: el archivo va en el bucket `difusion-publica` (nunca en el almacenamiento clínico); aquí se guardan ruta relativa,
-     tipo (`image/jpeg`, `image/png`, `image/webp`), tamaño ≤ 5 MB, dimensiones, `sha256` y texto alternativo obligatorio.
-     Ruta repetida o segunda imagen principal → `23505`.
+   - Imágenes: desde la 024 el archivo está en `imagenes_publicas` y `recursos_difusion` lo enlaza con su texto alternativo
+     (una imagen por publicación; segunda imagen o el mismo archivo en otra publicación → `23505`). Ver «Imágenes del portal (024)».
    - La API pública lee solo de `v_publicaciones_publicas`: publicada o no existe (retirada o borrador → 404).
    - RLS activo y sin acceso para `anon`/`authenticated`: todo pasa por el backend.
 
@@ -337,7 +337,7 @@
    | `contenido` | 1–20 000, texto: la API y la interfaz no lo interpretan como HTML. |
    | `autor_visible` | Autoría que ve el público (hasta 150); NULL si no se autorizó mostrarla. |
    | `autor_id` | Quién lo creó en el sistema; lo pone la base y no se publica. |
-   | `imagen_ruta`, `imagen_texto_alternativo`, `imagen_ancho`, `imagen_alto` | Opcionales. Con ruta, texto alternativo obligatorio (hasta 300); misma regla de ruta que `recursos_difusion`. Sin ruta, todo NULL. |
+   | `imagen_id`, `imagen_texto_alternativo` | Desde la 024. Opcionales: con imagen, texto alternativo obligatorio (hasta 300); sin imagen, ambos NULL. |
    | `estado` | Como difusión: se crea en `borrador`; `borrador → publicado → retirado → borrador`. Otra transición → `23514`. |
    | `publicado_en/por`, `retirado_en/por`, `creado_en`, `actualizado_en/por` | Los pone la base desde `app.usuario_id`; lo que envíe el cliente se ignora. |
 
@@ -350,7 +350,7 @@
      `fecha_publicacion`, `publicado_en`, `imagen_*`), ordenada por `publicado_en desc`. Borrador o retirado = no existe (404).
      `fecha_publicacion` es la fecha en Bolivia (`AAAA-MM-DD` de `InvestigacionPublica.fechaPublicacion`).
    - Errores para traducir: `23514` y `23502` → 400, `42501` → 403.
-   - La imagen usa el mismo bucket `difusion-publica` que difusión, que todavía no existe: hoy solo se registran los metadatos.
+   - La imagen usa `imagenes_publicas` (024), igual que difusión.
    - Cada alta, cambio y baja queda en `auditoria` con su autor.
 
    ## Pruebas de las migraciones con PostgreSQL local
@@ -445,7 +445,20 @@ Guía completa: `docs/operacion/sprint-3/actualizacion-y-recuperacion.md`.
 - Comprobar si una migración está aplicada con un objeto que **ella crea** (012 → `genograma_archivos`, no `genogramas`).
 - Revertir = restaurar el respaldo previo. Restaurar en tres secciones (`pre-data`, `data`, `post-data`);
   fuera de Supabase, llenar `auth.users` desde `perfiles` antes de `post-data`.
-- El respaldo incluye los archivos de genograma (bytea). No incluye `auth.users` ni archivos de Supabase Storage.
+- El respaldo incluye los archivos de genograma y las imágenes del portal (bytea). No incluye `auth.users`.
+
+## Imágenes del portal (024)
+
+Aplicar `024_imagenes_publicas.sql` después de la 023 y junto con la API nueva (la anterior lee columnas que se quitan).
+
+- `imagenes_publicas`: el archivo ya procesado por el backend (WebP, ≤ 1600 px, sin metadatos), con tipo, tamaño
+  (≤ 3 MB), medidas y `sha256`. No se modifica (`23514`); para cambiarla se sube otra. Sin auditoría: copiaría el archivo.
+- `recursos_difusion` y `publicaciones_foro` apuntan a ella con `imagen_id` (único). Al quitar o reemplazar la imagen,
+  o al borrar lo que la usa, un trigger borra el archivo que quedó sin uso.
+- Las vistas públicas exponen `imagen_id` en lugar de la ruta. La API pública sirve el archivo solo si lo que lo usa
+  está publicado.
+- **Datos existentes:** borra las filas de `recursos_difusion` y las rutas de imagen de los artículos: apuntaban a un
+  bucket que nunca existió. No toca nada más.
 - Ensayo automático (PostgreSQL local): `backend/scripts/ensayo-actualizacion.mjs`.
 
 ## Evaluación inicial independiente (021 · FE-126)

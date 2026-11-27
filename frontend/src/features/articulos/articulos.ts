@@ -3,7 +3,7 @@
  * Gestión: administración y marketing. Portal: visitantes sin cuenta. Nada se lee de los expedientes.
  */
 import { peticion } from '../../api/cliente'
-import { esRutaRelativa, urlImagenDifusion } from '../difusion/difusion'
+import { aImagenPublicacion, accionesImagen, type ImagenApi, type ImagenGestion } from '../publico/imagenes'
 import type { InvestigacionPublica } from '../publico/investigaciones'
 
 export type EstadoArticulo = 'borrador' | 'publicado' | 'retirado'
@@ -24,13 +24,6 @@ export const SIGUIENTE_ESTADO_ARTICULO: Record<
   retirado: { estado: 'borrador', accion: 'Volver a borrador', ayuda: 'Queda como borrador para corregirlo.' },
 }
 
-export interface ImagenArticulo {
-  ruta: string
-  textoAlternativo: string
-  ancho?: number | null
-  alto?: number | null
-}
-
 export interface Articulo {
   id: string
   titulo: string
@@ -38,7 +31,7 @@ export interface Articulo {
   contenido: string
   estado: EstadoArticulo
   autorVisible: string | null
-  imagen: ImagenArticulo | null
+  imagen: ImagenGestion | null
   creadoPor: string | null
   creadoEn: string
   actualizadoPor: string | null
@@ -49,12 +42,12 @@ export interface Articulo {
   retiradoPor: string | null
 }
 
+/** Cuerpo de POST y PUT. La imagen se gestiona aparte (`imagenArticulo`) y el PUT la conserva. */
 export interface DatosArticulo {
   titulo: string
   resumen: string | null
   contenido: string
   autorVisible: string | null
-  imagen: ImagenArticulo | null
 }
 
 export const TAMANO_PAGINA_ARTICULOS = 10
@@ -74,12 +67,14 @@ export const cambiarEstadoArticulo = (id: string, estado: EstadoArticulo) =>
   peticion<Articulo>(`${uno(id)}/estado`, { metodo: 'PATCH', cuerpo: { estado } })
 /** Solo si nunca se publicó; uno ya publicado se retira (409). */
 export const eliminarArticulo = (id: string) => peticion<void>(uno(id), { metodo: 'DELETE' })
+/** Subir, describir, quitar y ver la imagen de portada (024). */
+export const imagenArticulo = (id: string) => accionesImagen(uno(id))
 
 // ---- Portal ---------------------------------------------------------------------------
 
 interface InvestigacionApi extends Omit<InvestigacionPublica, 'imagen' | 'resumen'> {
   resumen: string | null
-  imagen: ImagenArticulo | null
+  imagen: ImagenApi | null
   contenido?: string
 }
 
@@ -87,13 +82,9 @@ export interface InvestigacionDetalle extends InvestigacionPublica {
   contenido: string
 }
 
-/** La API entrega la ruta relativa; el portal la sirve desde la carpeta pública de difusión. */
+/** La API entrega el id de la imagen; la URL se arma aquí. */
 function aPublica<T extends InvestigacionApi>(i: T) {
-  return {
-    ...i,
-    resumen: i.resumen ?? '',
-    imagen: i.imagen ? { url: urlImagenDifusion(i.imagen.ruta), textoAlternativo: i.imagen.textoAlternativo } : null,
-  }
+  return { ...i, resumen: i.resumen ?? '', imagen: aImagenPublicacion(i.imagen) }
 }
 
 export async function listarInvestigacionesPublicas(pagina: number) {
@@ -118,21 +109,17 @@ export interface FormularioArticulo {
   resumen: string
   contenido: string
   autorVisible: string
-  imagenRuta: string
-  imagenAlternativo: string
 }
 
 export type ErroresArticulo = Partial<Record<keyof FormularioArticulo, string>>
 
-export const LIMITES_ARTICULO = { titulo: 150, resumen: 500, contenido: 20_000, autor: 150, imagen: 300 }
+export const LIMITES_ARTICULO = { titulo: 150, resumen: 500, contenido: 20_000, autor: 150 }
 
 export const formularioVacio = (): FormularioArticulo => ({
   titulo: '',
   resumen: '',
   contenido: '',
   autorVisible: '',
-  imagenRuta: '',
-  imagenAlternativo: '',
 })
 
 export const aFormulario = (a: Articulo): FormularioArticulo => ({
@@ -140,8 +127,6 @@ export const aFormulario = (a: Articulo): FormularioArticulo => ({
   resumen: a.resumen ?? '',
   contenido: a.contenido,
   autorVisible: a.autorVisible ?? '',
-  imagenRuta: a.imagen?.ruta ?? '',
-  imagenAlternativo: a.imagen?.textoAlternativo ?? '',
 })
 
 export function validarArticulo(f: FormularioArticulo): ErroresArticulo {
@@ -154,11 +139,6 @@ export function validarArticulo(f: FormularioArticulo): ErroresArticulo {
     e.contenido = `Máximo ${LIMITES_ARTICULO.contenido} caracteres.`
   if (f.autorVisible.trim().length > LIMITES_ARTICULO.autor)
     e.autorVisible = `Máximo ${LIMITES_ARTICULO.autor} caracteres.`
-  const ruta = f.imagenRuta.trim()
-  if (ruta && !esRutaRelativa(ruta))
-    e.imagenRuta = 'Escribe la ruta dentro de la carpeta pública, sin «..» ni barra inicial.'
-  if (ruta && !f.imagenAlternativo.trim()) e.imagenAlternativo = 'Describe la imagen para quien no la ve.'
-  if (!ruta && f.imagenAlternativo.trim()) e.imagenRuta = 'Indica la ruta de la imagen o borra el texto alternativo.'
   return e
 }
 
@@ -167,5 +147,4 @@ export const aDatos = (f: FormularioArticulo): DatosArticulo => ({
   resumen: f.resumen.trim() || null,
   contenido: f.contenido.trim(),
   autorVisible: f.autorVisible.trim() || null,
-  imagen: f.imagenRuta.trim() ? { ruta: f.imagenRuta.trim(), textoAlternativo: f.imagenAlternativo.trim() } : null,
 })

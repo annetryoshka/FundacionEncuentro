@@ -10,6 +10,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DatabaseService } from '../../../database/database.service.js';
+import type { ImagenesPublicasService } from '../../imagenes-publicas/imagenes-publicas.service.js';
 import { ArticulosService } from '../articulos.service.js';
 import { GuardarArticuloDto } from '../dto/articulo.dto.js';
 
@@ -26,20 +27,37 @@ describe('FE-184: servicio de artículos', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     transaction.mockImplementation((_u: string, fn: (c: { query: typeof query }) => unknown) => fn({ query }));
-    servicio = new ArticulosService({ query, transaction } as unknown as DatabaseService);
+    servicio = new ArticulosService(
+      { query, transaction } as unknown as DatabaseService,
+      { guardar: vi.fn(), leer: vi.fn() } as unknown as ImagenesPublicasService,
+    );
   });
 
-  it('crea con textos recortados, autor en blanco como null y sin imagen', async () => {
-    query.mockResolvedValueOnce({ rows: [{ id }] });
-    await servicio.crear(usuario, articulo);
+  it('crea con textos recortados y autor en blanco como null; la imagen no va en el formulario', async () => {
+    query.mockResolvedValueOnce({ rows: [{ id }] }).mockResolvedValueOnce({ rows: [{ id, imagen: null }] });
+    await expect(servicio.crear(usuario, articulo)).resolves.toEqual({ id, imagen: null });
     expect(transaction).toHaveBeenCalledWith(usuario, expect.any(Function));
-    expect(query.mock.calls[0][1]).toEqual(['Título QA', 'Resumen QA', 'Contenido QA', null, null, null, null, null]);
+    expect(query.mock.calls[0][1]).toEqual(['Título QA', 'Resumen QA', 'Contenido QA', null]);
+    expect(query.mock.calls[0][0]).not.toMatch(/imagen/);
   });
 
-  it('crea con imagen y su texto alternativo', async () => {
-    query.mockResolvedValueOnce({ rows: [{ id }] });
-    await servicio.crear(usuario, { ...articulo, imagen: { ruta: 'inv/a.png', textoAlternativo: ' Portada ', ancho: 800 } });
-    expect(query.mock.calls[0][1].slice(4)).toEqual(['inv/a.png', 'Portada', 800, null]);
+  it('editar no toca la imagen', async () => {
+    query
+      .mockResolvedValueOnce({ rows: [{ estado: 'borrador' }] })
+      .mockResolvedValueOnce({ rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [{ id }] });
+    await servicio.editar(usuario, id, articulo);
+    expect(query.mock.calls[1][0]).not.toMatch(/imagen/);
+  });
+
+  it('quitar la imagen de un artículo sin imagen da 404', async () => {
+    query.mockResolvedValueOnce({ rowCount: 1 }).mockResolvedValueOnce({ rowCount: 0 });
+    await expect(servicio.quitarImagen(usuario, id)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('la vista previa de un artículo sin imagen da 404', async () => {
+    query.mockResolvedValueOnce({ rows: [{ imagenId: null }] });
+    await expect(servicio.archivoImagen(id)).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it.each([
@@ -51,7 +69,10 @@ describe('FE-184: servicio de artículos', () => {
     ['retirado', 'publicado', false],
     ['publicado', 'publicado', false],
   ])('de %s a %s: permitido=%s', async (actual, nuevo, permitido) => {
-    query.mockResolvedValueOnce({ rows: [{ estado: actual, resumen: 'R' }] }).mockResolvedValueOnce({ rows: [{ id, estado: nuevo }] });
+    query
+      .mockResolvedValueOnce({ rows: [{ estado: actual, resumen: 'R' }] })
+      .mockResolvedValueOnce({ rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [{ id, estado: nuevo }] });
     const promesa = servicio.cambiarEstado(usuario, id, nuevo as 'publicado');
     if (permitido) await expect(promesa).resolves.toMatchObject({ estado: nuevo });
     else await expect(promesa).rejects.toBeInstanceOf(ConflictException);
@@ -107,11 +128,13 @@ describe('FE-184: servicio de artículos', () => {
 
 describe('FE-184: validación del artículo', () => {
   const errores = async (cuerpo: Record<string, unknown>) =>
-    (await validate(plainToInstance(GuardarArticuloDto, cuerpo))).map((e) => e.property);
+    (await validate(plainToInstance(GuardarArticuloDto, cuerpo), { whitelist: true, forbidNonWhitelisted: true })).map(
+      (e) => e.property,
+    );
   const valido = { titulo: '[DEMO QA] Artículo', resumen: 'Resumen', contenido: 'Texto' };
 
   it('acepta el ejemplo de FE-185', async () => {
-    expect(await errores({ ...valido, autorVisible: 'Autor ficticio', imagen: null })).toEqual([]);
+    expect(await errores({ ...valido, autorVisible: 'Autor ficticio' })).toEqual([]);
   });
 
   it.each([
@@ -121,9 +144,7 @@ describe('FE-184: validación del artículo', () => {
     ['contenido vacío', { contenido: ' ' }, 'contenido'],
     ['contenido de 20001', { contenido: 'x'.repeat(20001) }, 'contenido'],
     ['autor de 151', { autorVisible: 'x'.repeat(151) }, 'autorVisible'],
-    ['imagen con ..', { imagen: { ruta: '../clinico/x.png', textoAlternativo: 'a' } }, 'imagen'],
-    ['imagen con protocolo', { imagen: { ruta: 'https://otro.test/x.png', textoAlternativo: 'a' } }, 'imagen'],
-    ['imagen sin texto alternativo', { imagen: { ruta: 'a.png', textoAlternativo: '  ' } }, 'imagen'],
+    ['una ruta de imagen (la imagen se sube aparte)', { imagen: { ruta: 'a.png', textoAlternativo: 'a' } }, 'imagen'],
   ])('rechaza %s', async (_n, cambio, propiedad) => {
     expect(await errores({ ...valido, ...cambio })).toContain(propiedad);
   });

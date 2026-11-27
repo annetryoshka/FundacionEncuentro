@@ -5,6 +5,7 @@
  * Solo se usa en desarrollo (VITE_API_SIMULADA) y en las pruebas.
  */
 import type { Rol } from '../../features/auth/tipos'
+import { registrarImagenSimulada } from '../../features/publico/imagenes'
 import type { ExpedienteSim } from './expediente'
 
 export interface CasoSprint3 {
@@ -423,18 +424,98 @@ async function cargarGenograma(ctx: Contexto3, caso: CasoSprint3) {
   return new Response(null, { status: 204 })
 }
 
-// ---- FE-143 · Difusión (administración y marketing) y portal público -----------------
+// ---- 024 · Imagen de portada de publicaciones y artículos -----------------------------
 
-interface RecursoSim {
+interface ImagenSim {
   id: string
-  ruta: string
-  tipoMime: string
-  tamanoBytes: number
   textoAlternativo: string
   ancho: number | null
   alto: number | null
-  principal: boolean
+  tamanoBytes: number
 }
+
+/** Los archivos no van a localStorage (pesan demasiado): quedan en memoria hasta recargar la página. */
+const archivosImagen = new Map<string, Blob>()
+const imagenPublicaSim = (i: ImagenSim | null) =>
+  i && { id: i.id, textoAlternativo: i.textoAlternativo, ancho: i.ancho, alto: i.alto }
+
+function esImagenAdmitida(b: Uint8Array) {
+  const texto = (desde: number, hasta: number) => String.fromCharCode(...b.subarray(desde, hasta))
+  const jpeg = b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff
+  const png = b[0] === 0x89 && texto(1, 4) === 'PNG'
+  return jpeg || png || (texto(0, 4) === 'RIFF' && texto(8, 12) === 'WEBP')
+}
+
+/** Medidas que tendría tras reducirla a 1600 px, como hace el backend. */
+async function medidasReducidas(archivo: Blob): Promise<{ ancho: number | null; alto: number | null }> {
+  if (typeof createImageBitmap !== 'function') return { ancho: null, alto: null }
+  try {
+    const mapa = await createImageBitmap(archivo)
+    const escala = Math.min(1, 1600 / Math.max(mapa.width, mapa.height))
+    const medidas = { ancho: Math.round(mapa.width * escala), alto: Math.round(mapa.height * escala) }
+    mapa.close()
+    return medidas
+  } catch {
+    return { ancho: null, alto: null }
+  }
+}
+
+/** PUT, PATCH y DELETE de …/imagen y GET …/imagen/archivo, con los mismos códigos que la API. */
+async function atenderImagen(
+  ctx: Contexto3,
+  sub: string,
+  actual: ImagenSim | null,
+  guardar: (imagen: ImagenSim | null) => void,
+): Promise<Response | null> {
+  const sinImagen = () => ctx.error(404, 'No tiene imagen')
+  if (sub === '/imagen/archivo' && ctx.metodo === 'GET') {
+    const blob = actual && archivosImagen.get(actual.id)
+    return blob
+      ? new Response(blob, { status: 200, headers: { 'Content-Type': blob.type || 'image/webp' } })
+      : sinImagen()
+  }
+  if (sub !== '/imagen') return null
+  const textoValido = (v: unknown): v is string => typeof v === 'string' && /\S/.test(v) && v.trim().length <= 300
+  if (ctx.metodo === 'PUT') {
+    const archivo = ctx.formulario?.get('archivo')
+    const texto = ctx.formulario?.get('textoAlternativo')
+    if (!textoValido(texto)) return ctx.error(400, ['Describe la imagen en una frase'])
+    if (!archivo || typeof archivo === 'string' || archivo.size === 0)
+      return ctx.error(400, 'Elige una imagen para subir')
+    if (archivo.size > 15 * 1024 * 1024) return ctx.error(413, 'La imagen pesa más de 15 MB. Elige una más liviana.')
+    if (!esImagenAdmitida(new Uint8Array(await archivo.arrayBuffer()).subarray(0, 12))) {
+      return ctx.error(415, 'El archivo no es una imagen JPEG, PNG o WebP')
+    }
+    const nueva: ImagenSim = {
+      id: crypto.randomUUID(),
+      textoAlternativo: texto.trim(),
+      tamanoBytes: archivo.size,
+      ...(await medidasReducidas(archivo)),
+    }
+    if (actual) archivosImagen.delete(actual.id)
+    archivosImagen.set(nueva.id, archivo)
+    registrarImagenSimulada(nueva.id, URL.createObjectURL(archivo))
+    guardar(nueva)
+    return ctx.json(200, nueva)
+  }
+  if (ctx.metodo === 'PATCH') {
+    const texto = ctx.cuerpo.textoAlternativo
+    if (!textoValido(texto)) return ctx.error(400, ['Describe la imagen en una frase'])
+    if (!actual) return sinImagen()
+    const cambiada = { ...actual, textoAlternativo: texto.trim() }
+    guardar(cambiada)
+    return ctx.json(200, cambiada)
+  }
+  if (ctx.metodo === 'DELETE') {
+    if (!actual) return sinImagen()
+    archivosImagen.delete(actual.id)
+    guardar(null)
+    return new Response(null, { status: 204 })
+  }
+  return null
+}
+
+// ---- FE-143 · Difusión (administración y marketing) y portal público -----------------
 
 export interface PublicacionSim {
   id: string
@@ -453,7 +534,7 @@ export interface PublicacionSim {
   publicadoEn: string | null
   retiradoEn: string | null
   actualizadoEn: string
-  recursos: RecursoSim[]
+  imagen: ImagenSim | null
 }
 
 const publicaciones = (ctx: { estado: Sprint3Sim }) => ctx.estado.publicaciones as PublicacionSim[]
@@ -480,7 +561,7 @@ semillas.push((estado, ids) => {
     publicadoEn: null,
     retiradoEn: null,
     actualizadoEn: '2026-11-20T15:00:00.000Z',
-    recursos: [],
+    imagen: null,
     ...datos,
   })
   estado.publicaciones = [
@@ -526,13 +607,13 @@ semillas.push((estado, ids) => {
   ]
 })
 
-function admin(p: PublicacionSim, conRecursos = false) {
-  const { recursos, actualizadoEn: _orden, ...resto } = p
-  return conRecursos ? { ...resto, recursos } : resto
+/** Como la API: solo GET :id trae la imagen; el listado, el PUT y el cambio de estado no. */
+function admin(p: PublicacionSim, conImagen = false) {
+  const { imagen, actualizadoEn: _orden, ...resto } = p
+  return conImagen ? { ...resto, imagen } : resto
 }
 
 function publica(p: PublicacionSim) {
-  const principal = p.recursos.find((r) => r.principal)
   return {
     id: p.id,
     tipo: p.tipo,
@@ -545,14 +626,7 @@ function publica(p: PublicacionSim) {
     lugar: p.lugar,
     contactoUrl: p.contactoUrl,
     publicadoEn: p.publicadoEn,
-    imagen: principal
-      ? {
-          ruta: principal.ruta,
-          textoAlternativo: principal.textoAlternativo,
-          ancho: principal.ancho,
-          alto: principal.alto,
-        }
-      : null,
+    imagen: imagenPublicaSim(p.imagen),
   }
 }
 
@@ -619,20 +693,19 @@ function leerPublicacion(ctx: Contexto3) {
   return {
     datos: datos as Omit<
       PublicacionSim,
-      'id' | 'estado' | 'creadoPor' | 'actualizadoPor' | 'publicadoEn' | 'retiradoEn' | 'actualizadoEn' | 'recursos'
+      'id' | 'estado' | 'creadoPor' | 'actualizadoPor' | 'publicadoEn' | 'retiradoEn' | 'actualizadoEn' | 'imagen'
     >,
   }
 }
 
 manejadores.push((ctx) => {
-  const m = ctx.ruta.match(/^\/difusion\/publicaciones(?:\/([^/]+))?(\/estado|\/recursos(?:\/([^/]+))?)?$/)
+  const m = ctx.ruta.match(/^\/difusion\/publicaciones(?:\/([^/]+))?(\/estado|\/imagen(?:\/archivo)?)?$/)
   if (!m) return null
   if (ctx.yo.rol !== 'administrador' && ctx.yo.rol !== 'marketing') {
     return ctx.error(403, 'No tienes permiso para realizar esta acción')
   }
-  const [, id, sub, recursoId] = m
-  if ((id && !UUID.test(id)) || (recursoId && !UUID.test(recursoId)))
-    return ctx.error(400, 'Validation failed (uuid is expected)')
+  const [, id, sub] = m
+  if (id && !UUID.test(id)) return ctx.error(400, 'Validation failed (uuid is expected)')
   const lista = publicaciones(ctx)
 
   if (!id) {
@@ -657,7 +730,7 @@ manejadores.push((ctx) => {
         publicadoEn: null,
         retiradoEn: null,
         actualizadoEn: ahora(),
-        recursos: [],
+        imagen: null,
       }
       lista.push(nueva)
       return ctx.json(201, admin(nueva))
@@ -692,46 +765,10 @@ manejadores.push((ctx) => {
     p.actualizadoEn = ahora()
     return ctx.json(200, admin(p))
   }
-  if (sub === '/recursos' && ctx.metodo === 'POST') {
-    const r = ctx.cuerpo as Record<string, unknown>
-    const errores: string[] = []
-    if (typeof r.ruta !== 'string' || !/^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9/_.-]*$/.test(r.ruta))
-      errores.push('ruta must match regular expression')
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(r.tipoMime as string))
-      errores.push('tipoMime must be one of the following values')
-    if (
-      !Number.isInteger(r.tamanoBytes) ||
-      (r.tamanoBytes as number) < 1 ||
-      (r.tamanoBytes as number) > 5 * 1024 * 1024
-    )
-      errores.push('tamanoBytes must not be greater than 5242880')
-    if (typeof r.textoAlternativo !== 'string' || !r.textoAlternativo.trim())
-      errores.push('textoAlternativo must match /\\S/ regular expression')
-    if (errores.length) return ctx.error(400, errores)
-    if (
-      lista.some((x) => x.recursos.some((y) => y.ruta === r.ruta)) ||
-      (r.principal && p.recursos.some((y) => y.principal))
-    ) {
-      return ctx.error(409, 'La ruta ya está registrada o ya existe una imagen principal')
-    }
-    const recurso: RecursoSim = {
-      id: crypto.randomUUID(),
-      ruta: r.ruta as string,
-      tipoMime: r.tipoMime as string,
-      tamanoBytes: r.tamanoBytes as number,
-      textoAlternativo: (r.textoAlternativo as string).trim(),
-      ancho: (r.ancho as number) ?? null,
-      alto: (r.alto as number) ?? null,
-      principal: Boolean(r.principal),
-    }
-    p.recursos.push(recurso)
-    return ctx.json(201, recurso)
-  }
-  if (sub?.startsWith('/recursos/') && ctx.metodo === 'DELETE') {
-    const i = p.recursos.findIndex((x) => x.id === recursoId)
-    if (i < 0) return ctx.error(404, 'Recurso no encontrado en la publicación')
-    p.recursos.splice(i, 1)
-    return new Response(null, { status: 204 })
+  if (sub?.startsWith('/imagen')) {
+    return atenderImagen(ctx, sub, p.imagen, (imagen) => {
+      p.imagen = imagen
+    })
   }
   return null
 })
@@ -1958,7 +1995,7 @@ interface ArticuloSim {
   contenido: string
   estado: 'borrador' | 'publicado' | 'retirado'
   autorVisible: string | null
-  imagen: { ruta: string; textoAlternativo: string; ancho?: number | null; alto?: number | null } | null
+  imagen: ImagenSim | null
   creadoPor: string | null
   creadoEn: string
   actualizadoPor: string | null
@@ -2019,7 +2056,7 @@ function investigacionPublica(a: ArticuloSim, conContenido: boolean) {
     resumen: a.resumen,
     autor: a.autorVisible,
     fechaPublicacion: a.publicadoEn ? fechaBolivia(a.publicadoEn) : null,
-    imagen: a.imagen,
+    imagen: imagenPublicaSim(a.imagen),
     ...(conContenido ? { contenido: a.contenido } : {}),
   }
 }
@@ -2046,7 +2083,8 @@ export function atenderInvestigacionesPublicas(
 
 function leerArticulo(ctx: Contexto3) {
   const c = ctx.cuerpo as Record<string, unknown>
-  const permitidos = ['titulo', 'resumen', 'contenido', 'autorVisible', 'imagen']
+  // La imagen no va en el formulario: se sube aparte con PUT :id/imagen (024).
+  const permitidos = ['titulo', 'resumen', 'contenido', 'autorVisible']
   const extra = Object.keys(c).filter((k) => !permitidos.includes(k))
   if (extra.length)
     return {
@@ -2063,13 +2101,6 @@ function leerArticulo(ctx: Contexto3) {
     errores.push('El contenido es obligatorio')
   if (!texto(c.resumen, 500)) errores.push('resumen must be shorter than or equal to 500 characters')
   if (!texto(c.autorVisible, 150)) errores.push('autorVisible must be shorter than or equal to 150 characters')
-  const imagen = c.imagen as ArticuloSim['imagen'] | undefined
-  if (imagen) {
-    if (typeof imagen.ruta !== 'string' || !/^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9/_.-]*$/.test(imagen.ruta))
-      errores.push('La ruta de la imagen no es válida')
-    if (typeof imagen.textoAlternativo !== 'string' || !/\S/.test(imagen.textoAlternativo))
-      errores.push('La imagen necesita un texto alternativo')
-  }
   if (errores.length) return { error: ctx.error(400, errores) }
   const limpio = (v: unknown) => (typeof v === 'string' ? v.trim() || null : null)
   return {
@@ -2078,13 +2109,12 @@ function leerArticulo(ctx: Contexto3) {
       contenido: (c.contenido as string).trim(),
       resumen: limpio(c.resumen),
       autorVisible: limpio(c.autorVisible),
-      imagen: imagen ? { ...imagen, ruta: imagen.ruta.trim(), textoAlternativo: imagen.textoAlternativo.trim() } : null,
     },
   }
 }
 
 manejadores.push((ctx) => {
-  const m = ctx.ruta.match(/^\/investigaciones\/articulos(?:\/([^/]+)(\/estado)?)?$/)
+  const m = ctx.ruta.match(/^\/investigaciones\/articulos(?:\/([^/]+)(\/estado|\/imagen(?:\/archivo)?)?)?$/)
   if (!m) return null
   if (ctx.yo.rol !== 'administrador' && ctx.yo.rol !== 'marketing')
     return ctx.error(403, 'No tienes permiso para realizar esta acción')
@@ -2106,6 +2136,7 @@ manejadores.push((ctx) => {
       const nuevo: ArticuloSim = {
         id: crypto.randomUUID(),
         ...leido.datos!,
+        imagen: null,
         estado: 'borrador',
         creadoPor: ctx.yo.id,
         creadoEn: momento,
@@ -2123,6 +2154,12 @@ manejadores.push((ctx) => {
   }
   if (!UUID.test(id)) return ctx.error(400, 'Validation failed (uuid is expected)')
   const a = lista.find((x) => x.id === id)
+  if (estado?.startsWith('/imagen')) {
+    if (!a) return ctx.error(404, 'Investigación no encontrada')
+    return atenderImagen(ctx, estado, a.imagen, (imagen) => {
+      Object.assign(a, { imagen, actualizadoPor: ctx.yo.id, actualizadoEn: ahora() })
+    })
+  }
   if (!estado && ctx.metodo === 'GET') return a ? ctx.json(200, a) : ctx.error(404, 'Investigación no encontrada')
   if (!estado && ctx.metodo === 'PUT') {
     const leido = leerArticulo(ctx)
@@ -2139,7 +2176,7 @@ manejadores.push((ctx) => {
     lista.splice(lista.indexOf(a), 1)
     return new Response(null, { status: 204 })
   }
-  if (estado && ctx.metodo === 'PATCH') {
+  if (estado === '/estado' && ctx.metodo === 'PATCH') {
     const nuevo = (ctx.cuerpo as { estado?: string }).estado
     if (!['borrador', 'publicado', 'retirado'].includes(nuevo ?? ''))
       return ctx.error(400, ['estado must be one of the following values: borrador, publicado, retirado'])

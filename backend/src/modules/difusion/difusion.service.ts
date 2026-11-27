@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, UnprocessableEntityException } from '@nestjs/common';
+import type { PoolClient } from 'pg';
 import { DatabaseService } from '../../database/database.service.js';
+import { ImagenesPublicasService } from '../imagenes-publicas/imagenes-publicas.service.js';
+import { procesarImagenPublica } from '../imagenes-publicas/procesar-imagen.js';
 import type { GuardarPublicacionDto } from './dto/guardar-publicacion.dto.js';
 import type { EstadoPublicacion, ListarPublicacionesAdminQuery, ListarPublicacionesQuery,} from './dto/listar-publicaciones.query.js';
-import type { CrearRecursoDifusionDto } from './dto/crear-recurso-difusion.dto.js';
 
 const CAMPOS_PUBLICOS = `
   id, tipo, titulo, resumen, contenido,
@@ -10,8 +12,8 @@ const CAMPOS_PUBLICOS = `
   to_char(fecha_fin, 'YYYY-MM-DD') as "fechaFin",
   modalidad, lugar, contacto_url as "contactoUrl",
   publicado_en as "publicadoEn",
-  case when imagen_ruta is not null then jsonb_build_object(
-    'ruta', imagen_ruta,
+  case when imagen_id is not null then jsonb_build_object(
+    'id', imagen_id,
     'textoAlternativo', imagen_texto_alternativo,
     'ancho', imagen_ancho,
     'alto', imagen_alto
@@ -33,14 +35,20 @@ const ESTADO_ANTERIOR: Record<EstadoPublicacion, EstadoPublicacion> = {
   borrador: 'retirado',
 };
 
-const CAMPOS_RECURSO = `
-  id, ruta, tipo_mime as "tipoMime", tamano_bytes as "tamanoBytes",
-  texto_alternativo as "textoAlternativo", ancho, alto, principal
+const CONSULTA_IMAGEN = `
+  select r.imagen_id as id, r.texto_alternativo as "textoAlternativo",
+         i.ancho, i.alto, i.tamano_bytes as "tamanoBytes"
+    from public.recursos_difusion r
+    join public.imagenes_publicas i on i.id = r.imagen_id
+   where r.publicacion_id = $1
 `;
 
 @Injectable()
 export class DifusionService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly imagenes: ImagenesPublicasService,
+  ) {}
 
   async listarPublicadas({ tipo, pagina, tamano }: ListarPublicacionesQuery) {
     const filtro = 'where ($1::text is null or tipo = $1)';
@@ -131,7 +139,7 @@ export class DifusionService {
       }
 
       throw error;
-    } 
+    }
   }
 
     async listarAdmin({ tipo, estado, pagina, tamano }: ListarPublicacionesAdminQuery) {
@@ -163,14 +171,8 @@ export class DifusionService {
     );
 
     if (!publicacion) throw new NotFoundException('Publicación no encontrada');
-        const { rows: recursos } = await this.db.query(
-      `select ${CAMPOS_RECURSO}
-         from public.recursos_difusion
-        where publicacion_id = $1
-        order by principal desc, creado_en, id`,
-      [id],
-    );
-    return { ...publicacion, recursos };
+    const { rows: [imagen] } = await this.db.query(CONSULTA_IMAGEN, [id]);
+    return { ...publicacion, imagen: imagen ?? null };
   }
 
   async cambiarEstado(id: string, estado: EstadoPublicacion, usuarioId: string) {
@@ -209,47 +211,69 @@ export class DifusionService {
     });
   }
 
-    async agregarRecurso(id: string, dto: CrearRecursoDifusionDto, usuarioId: string) {
-    try {
-      return await this.db.transaction(usuarioId, async (client) => {
-        const { rows: [recurso] } = await client.query(
-          `insert into public.recursos_difusion
-             (publicacion_id, ruta, tipo_mime, tamano_bytes,
-              texto_alternativo, ancho, alto, principal, creado_por)
-           select id, $2, $3, $4, $5, $6, $7, $8,
-                  nullif(current_setting('app.usuario_id', true), '')::uuid
-             from public.publicaciones_difusion
-            where id = $1
-           returning ${CAMPOS_RECURSO}`,
-          [
-            id, dto.ruta, dto.tipoMime, dto.tamanoBytes,
-            dto.textoAlternativo.trim(), dto.ancho ?? null, dto.alto ?? null,
-            dto.principal ?? false,
-          ],
-        );
-
-        if (!recurso) throw new NotFoundException('Publicación no encontrada');
-        return recurso;
-      });
-    } catch (error) {
-      if (error instanceof Error && 'code' in error && error.code === '23505') {
-        throw new ConflictException('La ruta ya está registrada o ya existe una imagen principal');
-      }
-      throw error;
-    }
+  /** Sube o reemplaza la imagen de portada. La anterior se borra (trigger de 024). */
+  async subirImagen(id: string, archivo: Buffer | undefined, textoAlternativo: string, usuarioId: string) {
+    await this.existe(id);
+    const procesada = await procesarImagenPublica(archivo);
+    return this.db.transaction(usuarioId, async (client) => {
+      await this.bloquear(client, id);
+      const imagenId = await this.imagenes.guardar(client, procesada);
+      await client.query(
+        `insert into public.recursos_difusion (publicacion_id, imagen_id, texto_alternativo, creado_por)
+         values ($1, $2, $3, nullif(current_setting('app.usuario_id', true), '')::uuid)
+         on conflict (publicacion_id) do update
+           set imagen_id = excluded.imagen_id, texto_alternativo = excluded.texto_alternativo,
+               creado_por = excluded.creado_por, creado_en = now()`,
+        [id, imagenId, textoAlternativo.trim()],
+      );
+      const { rows: [imagen] } = await client.query(CONSULTA_IMAGEN, [id]);
+      return imagen;
+    });
   }
 
-  async quitarRecurso(id: string, recursoId: string, usuarioId: string): Promise<void> {
-    await this.db.transaction(usuarioId, async (client) => {
-      const resultado = await client.query(
-        `delete from public.recursos_difusion
-          where publicacion_id = $1 and id = $2`,
-        [id, recursoId],
+  async cambiarTextoImagen(id: string, textoAlternativo: string, usuarioId: string) {
+    return this.db.transaction(usuarioId, async (client) => {
+      await this.bloquear(client, id);
+      const { rowCount } = await client.query(
+        'update public.recursos_difusion set texto_alternativo = $2 where publicacion_id = $1',
+        [id, textoAlternativo.trim()],
       );
-
-      if (resultado.rowCount === 0) {
-        throw new NotFoundException('Recurso no encontrado en la publicación');
-      }
+      if (!rowCount) throw new NotFoundException('La publicación no tiene imagen');
+      const { rows: [imagen] } = await client.query(CONSULTA_IMAGEN, [id]);
+      return imagen;
     });
+  }
+
+  async quitarImagen(id: string, usuarioId: string): Promise<void> {
+    await this.db.transaction(usuarioId, async (client) => {
+      await this.bloquear(client, id);
+      const { rowCount } = await client.query('delete from public.recursos_difusion where publicacion_id = $1', [id]);
+      if (!rowCount) throw new NotFoundException('La publicación no tiene imagen');
+    });
+  }
+
+  /** Archivo para la vista previa de gestión, también en borrador. */
+  async archivoImagen(id: string) {
+    const { rows: [recurso] } = await this.db.query<{ imagenId: string }>(
+      'select imagen_id as "imagenId" from public.recursos_difusion where publicacion_id = $1',
+      [id],
+    );
+    const archivo = recurso ? await this.imagenes.leer(recurso.imagenId) : null;
+    if (!archivo) throw new NotFoundException('La publicación no tiene imagen');
+    return archivo;
+  }
+
+  /** Antes de procesar la foto: no se gasta trabajo en una publicación que no existe. */
+  private async existe(id: string) {
+    const { rowCount } = await this.db.query('select 1 from public.publicaciones_difusion where id = $1', [id]);
+    if (!rowCount) throw new NotFoundException('Publicación no encontrada');
+  }
+
+  private async bloquear(client: PoolClient, id: string) {
+    const { rowCount } = await client.query(
+      'select 1 from public.publicaciones_difusion where id = $1 for update',
+      [id],
+    );
+    if (!rowCount) throw new NotFoundException('Publicación no encontrada');
   }
 }

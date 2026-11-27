@@ -40,7 +40,6 @@ describe('Artículos de investigación (gestión)', () => {
       resumen: null,
       contenido: 'Texto ficticio del artículo, sin datos de pacientes.',
       autorVisible: 'Equipo QA',
-      imagen: null,
     })
 
     // Publicar sin resumen → 422: se enfoca el resumen.
@@ -71,28 +70,44 @@ describe('Artículos de investigación (gestión)', () => {
     expect(llamadas(fetchEspia, 'DELETE', `/api/investigaciones/articulos/${I2}`)).toHaveLength(1)
   })
 
-  it('la imagen exige texto alternativo; con cambios sin guardar no se cambia el estado; un fallo conserva lo escrito', async () => {
+  it('con cambios sin guardar no se cambia el estado; un fallo conserva lo escrito', async () => {
     const { usuario, fetchEspia } = await montarApp(`/articulos/${I3}`, 'apoyo')
-    await usuario.type(await screen.findByLabelText('Ruta de la imagen'), 'investigaciones/portada.jpg')
+    await usuario.type(await screen.findByLabelText('Título'), ' (editado)')
     expect(screen.getByRole('button', { name: 'Volver a borrador' })).toBeDisabled()
-    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }))
-    expect(screen.getByText('Describe la imagen para quien no la ve.')).toBeInTheDocument()
-    await usuario.type(screen.getByLabelText('Texto alternativo de la imagen'), 'Portada ficticia')
     fallarUnaVez(fetchEspia, 'PUT', `/api/investigaciones/articulos/${I3}`, 'red')
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     expect(await screen.findByText(/No se guardó/)).toBeInTheDocument()
-    expect(screen.getByLabelText('Ruta de la imagen')).toHaveValue('investigaciones/portada.jpg')
+    expect(screen.getByLabelText('Título')).toHaveValue('[DEMO QA] Artículo ficticio retirado (editado)')
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await screen.findByText('Cambios guardados.')
-    expect(cuerpo(fetchEspia, 'PUT', `/api/investigaciones/articulos/${I3}`).imagen).toEqual({
-      ruta: 'investigaciones/portada.jpg',
-      textoAlternativo: 'Portada ficticia',
+    expect(cuerpo(fetchEspia, 'PUT', `/api/investigaciones/articulos/${I3}`)).not.toHaveProperty('imagen')
+  })
+
+  it('la portada se sube como archivo, exige descripción, se ve en la vista previa y editar el artículo la conserva', async () => {
+    const { usuario, fetchEspia } = await montarApp(`/articulos/${I2}`, 'apoyo')
+    await screen.findByRole('heading', { name: 'Imagen de portada' })
+    const jpg = new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...new Array(500).fill(0)])], 'portada.jpg', {
+      type: 'image/jpeg',
     })
-    expect(
-      within(screen.getByRole('complementary', { name: 'Vista previa' })).getByRole('img', {
-        name: 'Portada ficticia',
-      }),
-    ).toHaveAttribute('src', '/imagenes/difusion/investigaciones/portada.jpg')
+    await usuario.upload(screen.getByLabelText('Elegir imagen'), jpg)
+    await usuario.click(screen.getByRole('button', { name: 'Guardar imagen' }))
+    expect(screen.getByText('Describe la imagen en una frase.')).toBeInTheDocument()
+    await usuario.type(screen.getByLabelText('Describe la imagen en una frase'), 'Portada ficticia')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar imagen' }))
+    expect(await screen.findByText('Imagen guardada. Se verá en el portal al publicar.')).toBeInTheDocument()
+    const enviado = (
+      llamadas(fetchEspia, 'PUT', `/api/investigaciones/articulos/${I2}/imagen`).at(-1)![1] as RequestInit
+    ).body as FormData
+    expect((enviado.get('archivo') as File).name).toBe('portada.jpg')
+    expect(enviado.get('textoAlternativo')).toBe('Portada ficticia')
+    const vista = within(screen.getByRole('complementary', { name: 'Vista previa' }))
+    expect(vista.getByRole('img', { name: 'Portada ficticia' })).toHaveAttribute('src', expect.stringMatching(/^blob:/))
+
+    await usuario.type(screen.getByLabelText('Título'), ' (editado)')
+    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await screen.findByText('Cambios guardados.')
+    expect(screen.getByRole('button', { name: 'Editar descripción' })).toBeInTheDocument()
+    expect(vista.getByRole('img', { name: 'Portada ficticia' })).toBeInTheDocument()
   })
 
   it('una terapeuta no tiene artículos', async () => {
@@ -106,12 +121,13 @@ describe('Artículos de investigación (gestión)', () => {
   it('reglas del formulario', () => {
     const base = { ...formularioVacio(), titulo: 'T', contenido: 'C' }
     expect(validarArticulo(base)).toEqual({})
-    expect(validarArticulo({ ...base, imagenRuta: '../x.png', imagenAlternativo: 'a' }).imagenRuta).toBeTruthy()
     expect(validarArticulo({ ...base, contenido: '   ' }).contenido).toBeTruthy()
-    expect(aDatos({ ...base, resumen: '  ', autorVisible: '' })).toMatchObject({
+    // La imagen no viaja en el formulario: se sube aparte.
+    expect(aDatos({ ...base, resumen: '  ', autorVisible: '' })).toEqual({
+      titulo: 'T',
       resumen: null,
+      contenido: 'C',
       autorVisible: null,
-      imagen: null,
     })
   })
 })

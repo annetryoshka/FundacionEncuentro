@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import type { PoolClient } from 'pg';
 import { DatabaseService } from '../../database/database.service.js';
+import { ImagenesPublicasService } from '../imagenes-publicas/imagenes-publicas.service.js';
+import { procesarImagenPublica } from '../imagenes-publicas/procesar-imagen.js';
 import type {
   EstadoArticulo,
   GuardarArticuloDto,
@@ -15,27 +17,34 @@ import type {
   ListarArticulosQuery,
 } from './dto/articulo.dto.js';
 
-const IMAGEN = `case when imagen_ruta is not null then jsonb_build_object(
-    'ruta', imagen_ruta,
-    'textoAlternativo', imagen_texto_alternativo,
-    'ancho', imagen_ancho,
-    'alto', imagen_alto
-  ) end as imagen`;
-
 const CAMPOS_PUBLICOS_LISTADO = `
   id, titulo, resumen, autor,
   to_char(fecha_publicacion, 'YYYY-MM-DD') as "fechaPublicacion",
-  ${IMAGEN}
+  case when imagen_id is not null then jsonb_build_object(
+    'id', imagen_id,
+    'textoAlternativo', imagen_texto_alternativo,
+    'ancho', imagen_ancho,
+    'alto', imagen_alto
+  ) end as imagen
 `;
 
-const CAMPOS_ADMIN = `
-  id, titulo, resumen, contenido, estado,
-  autor_visible as "autorVisible",
-  ${IMAGEN},
-  autor_id as "creadoPor", creado_en as "creadoEn",
-  actualizado_por as "actualizadoPor", actualizado_en as "actualizadoEn",
-  publicado_en as "publicadoEn", publicado_por as "publicadoPor",
-  retirado_en as "retiradoEn", retirado_por as "retiradoPor"
+/** Artículo con su imagen (024): el archivo está en imagenes_publicas. */
+const SELECT_ADMIN = `
+  select f.id, f.titulo, f.resumen, f.contenido, f.estado,
+         f.autor_visible as "autorVisible",
+         case when f.imagen_id is not null then jsonb_build_object(
+           'id', f.imagen_id,
+           'textoAlternativo', f.imagen_texto_alternativo,
+           'ancho', i.ancho,
+           'alto', i.alto,
+           'tamanoBytes', i.tamano_bytes
+         ) end as imagen,
+         f.autor_id as "creadoPor", f.creado_en as "creadoEn",
+         f.actualizado_por as "actualizadoPor", f.actualizado_en as "actualizadoEn",
+         f.publicado_en as "publicadoEn", f.publicado_por as "publicadoPor",
+         f.retirado_en as "retiradoEn", f.retirado_por as "retiradoPor"
+    from public.publicaciones_foro f
+    left join public.imagenes_publicas i on i.id = f.imagen_id
 `;
 
 const ESTADO_ANTERIOR: Record<EstadoArticulo, EstadoArticulo> = {
@@ -46,7 +55,10 @@ const ESTADO_ANTERIOR: Record<EstadoArticulo, EstadoArticulo> = {
 
 @Injectable()
 export class ArticulosService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly imagenes: ImagenesPublicasService,
+  ) {}
 
   async listarPublicados({ pagina, tamano }: ListarArticulosPublicosQuery) {
     const { rows: [conteo] } = await this.db.query<{ total: string }>(
@@ -75,16 +87,14 @@ export class ArticulosService {
 
   listar(usuarioId: string, { estado, pagina, tamano }: ListarArticulosQuery) {
     return this.ejecutar(usuarioId, async (client) => {
-      const filtro = 'where ($1::text is null or estado = $1)';
       const { rows: [conteo] } = await client.query<{ total: string }>(
-        `select count(*) as total from public.publicaciones_foro ${filtro}`,
+        'select count(*) as total from public.publicaciones_foro where ($1::text is null or estado = $1)',
         [estado ?? null],
       );
       const { rows } = await client.query(
-        `select ${CAMPOS_ADMIN}
-           from public.publicaciones_foro
-           ${filtro}
-          order by actualizado_en desc, id
+        `${SELECT_ADMIN}
+          where ($1::text is null or f.estado = $1)
+          order by f.actualizado_en desc, f.id
           limit $2 offset $3`,
         [estado ?? null, tamano, (pagina - 1) * tamano],
       );
@@ -93,31 +103,23 @@ export class ArticulosService {
   }
 
   obtener(usuarioId: string, id: string) {
-    return this.ejecutar(usuarioId, async (client) => {
-      const { rows: [articulo] } = await client.query(
-        `select ${CAMPOS_ADMIN} from public.publicaciones_foro where id = $1`,
-        [id],
-      );
-      if (!articulo) throw new NotFoundException('Investigación no encontrada');
-      return articulo;
-    });
+    return this.ejecutar(usuarioId, (client) => this.leer(client, id));
   }
 
   crear(usuarioId: string, dto: GuardarArticuloDto) {
     const valores = this.valores(dto);
     return this.ejecutar(usuarioId, async (client) => {
-      const { rows } = await client.query(
-        `insert into public.publicaciones_foro
-           (titulo, resumen, contenido, autor_visible,
-            imagen_ruta, imagen_texto_alternativo, imagen_ancho, imagen_alto)
-         values ($1, $2, $3, $4, $5, $6, $7, $8)
-         returning ${CAMPOS_ADMIN}`,
+      const { rows: [{ id }] } = await client.query<{ id: string }>(
+        `insert into public.publicaciones_foro (titulo, resumen, contenido, autor_visible)
+         values ($1, $2, $3, $4)
+         returning id`,
         valores,
       );
-      return rows[0];
+      return this.leer(client, id);
     });
   }
 
+  /** La imagen no viaja en el formulario: se gestiona con PUT/PATCH/DELETE :id/imagen y se conserva aquí. */
   editar(usuarioId: string, id: string, dto: GuardarArticuloDto) {
     const valores = this.valores(dto);
     return this.ejecutar(usuarioId, async (client) => {
@@ -132,15 +134,13 @@ export class ArticulosService {
           camposFaltantes: ['resumen'],
         });
       }
-      const { rows } = await client.query(
+      await client.query(
         `update public.publicaciones_foro
-            set titulo = $2, resumen = $3, contenido = $4, autor_visible = $5,
-                imagen_ruta = $6, imagen_texto_alternativo = $7, imagen_ancho = $8, imagen_alto = $9
-          where id = $1
-          returning ${CAMPOS_ADMIN}`,
+            set titulo = $2, resumen = $3, contenido = $4, autor_visible = $5
+          where id = $1`,
         [id, ...valores],
       );
-      return rows[0];
+      return this.leer(client, id);
     });
   }
 
@@ -160,11 +160,8 @@ export class ArticulosService {
           camposFaltantes: ['resumen'],
         });
       }
-      const { rows } = await client.query(
-        `update public.publicaciones_foro set estado = $2 where id = $1 returning ${CAMPOS_ADMIN}`,
-        [id, estado],
-      );
-      return rows[0];
+      await client.query('update public.publicaciones_foro set estado = $2 where id = $1', [id, estado]);
+      return this.leer(client, id);
     });
   }
 
@@ -182,19 +179,72 @@ export class ArticulosService {
     });
   }
 
+  /** Sube o reemplaza la imagen de portada. La anterior se borra (trigger de 024). */
+  async subirImagen(usuarioId: string, id: string, archivo: Buffer | undefined, textoAlternativo: string) {
+    const { rowCount } = await this.db.query('select 1 from public.publicaciones_foro where id = $1', [id]);
+    if (!rowCount) throw new NotFoundException('Investigación no encontrada');
+    const procesada = await procesarImagenPublica(archivo);
+    return this.ejecutar(usuarioId, async (client) => {
+      await this.bloquear(client, id);
+      const imagenId = await this.imagenes.guardar(client, procesada);
+      await client.query(
+        'update public.publicaciones_foro set imagen_id = $2, imagen_texto_alternativo = $3 where id = $1',
+        [id, imagenId, textoAlternativo.trim()],
+      );
+      return (await this.leer(client, id)).imagen;
+    });
+  }
+
+  cambiarTextoImagen(usuarioId: string, id: string, textoAlternativo: string) {
+    return this.ejecutar(usuarioId, async (client) => {
+      await this.bloquear(client, id);
+      const { rowCount } = await client.query(
+        `update public.publicaciones_foro set imagen_texto_alternativo = $2
+          where id = $1 and imagen_id is not null`,
+        [id, textoAlternativo.trim()],
+      );
+      if (!rowCount) throw new NotFoundException('El artículo no tiene imagen');
+      return (await this.leer(client, id)).imagen;
+    });
+  }
+
+  quitarImagen(usuarioId: string, id: string) {
+    return this.ejecutar(usuarioId, async (client) => {
+      await this.bloquear(client, id);
+      const { rowCount } = await client.query(
+        `update public.publicaciones_foro set imagen_id = null, imagen_texto_alternativo = null
+          where id = $1 and imagen_id is not null`,
+        [id],
+      );
+      if (!rowCount) throw new NotFoundException('El artículo no tiene imagen');
+    });
+  }
+
+  /** Archivo para la vista previa de gestión, también en borrador. */
+  async archivoImagen(id: string) {
+    const { rows: [fila] } = await this.db.query<{ imagenId: string | null }>(
+      'select imagen_id as "imagenId" from public.publicaciones_foro where id = $1',
+      [id],
+    );
+    const archivo = fila?.imagenId ? await this.imagenes.leer(fila.imagenId) : null;
+    if (!archivo) throw new NotFoundException('El artículo no tiene imagen');
+    return archivo;
+  }
+
+  private async leer(client: PoolClient, id: string) {
+    const { rows: [articulo] } = await client.query(`${SELECT_ADMIN} where f.id = $1`, [id]);
+    if (!articulo) throw new NotFoundException('Investigación no encontrada');
+    return articulo;
+  }
+
+  private async bloquear(client: PoolClient, id: string) {
+    const { rowCount } = await client.query('select 1 from public.publicaciones_foro where id = $1 for update', [id]);
+    if (!rowCount) throw new NotFoundException('Investigación no encontrada');
+  }
+
   private valores(dto: GuardarArticuloDto) {
     const limpiar = (texto?: string | null) => texto?.trim() || null;
-    const imagen = dto.imagen ?? null;
-    return [
-      dto.titulo.trim(),
-      limpiar(dto.resumen),
-      dto.contenido.trim(),
-      limpiar(dto.autorVisible),
-      imagen?.ruta ?? null,
-      imagen ? imagen.textoAlternativo.trim() : null,
-      imagen?.ancho ?? null,
-      imagen?.alto ?? null,
-    ];
+    return [dto.titulo.trim(), limpiar(dto.resumen), dto.contenido.trim(), limpiar(dto.autorVisible)];
   }
 
   private async ejecutar<T>(usuarioId: string, fn: (client: PoolClient) => Promise<T>): Promise<T> {

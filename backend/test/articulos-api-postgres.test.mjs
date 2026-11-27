@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { after, before, test } from 'node:test';
+import { createCanvas } from '@napi-rs/canvas';
 import { DatabaseService } from '../dist/database/database.service.js';
 import { ArticulosModule } from '../dist/modules/articulos/articulos.module.js';
 import { servidor } from './helpers/casos.mjs';
@@ -36,7 +37,8 @@ async function pedir(ruta, { token = 'mkt', metodo = 'GET', cuerpo } = {}) {
   const texto = await r.text();
   return { status: r.status, cuerpo: texto ? JSON.parse(texto) : null };
 }
-const cuerpoDe = (a) => ({ titulo: a.titulo, resumen: a.resumen, contenido: a.contenido, autorVisible: a.autor, imagen: a.imagen });
+// La imagen no va en el formulario (024): se sube aparte con PUT :id/imagen.
+const cuerpoDe = (a) => ({ titulo: a.titulo, resumen: a.resumen, contenido: a.contenido, autorVisible: a.autor });
 const crear = (cuerpo, token = 'mkt') => pedir('/investigaciones/articulos', { token, metodo: 'POST', cuerpo });
 const estado = (id, nuevo, token = 'mkt') => pedir(`/investigaciones/articulos/${id}/estado`, { token, metodo: 'PATCH', cuerpo: { estado: nuevo } });
 const publico = (id) => pedir(`/publico/investigaciones${id ? `/${id}` : ''}`, { token: null });
@@ -127,8 +129,7 @@ test('A7 · (FE-185 #8) texto inválido o excesivo se rechaza sin publicarse', o
     ['contenido vacío', { contenido: '' }],
     ['contenido de 20001', { contenido: 'x'.repeat(20001) }],
     ['autor de 151', { autorVisible: 'x'.repeat(151) }],
-    ['imagen con ruta peligrosa', { imagen: { ruta: '../clinico/genograma.png', textoAlternativo: 'x' } }],
-    ['imagen sin texto alternativo', { imagen: { ruta: 'portada.png', textoAlternativo: '' } }],
+    ['una ruta de imagen en el formulario', { imagen: { ruta: '../clinico/genograma.png', textoAlternativo: 'x' } }],
     ['estado enviado por el cliente', { estado: 'publicado' }],
     ['autoría enviada por el cliente', { creadoPor: PERFILES.admin }],
   ]) {
@@ -195,4 +196,74 @@ test('A13 · cada cambio queda en auditoría con su autor', opciones, async () =
     `select usuario_id from auditoria where tabla = 'publicaciones_foro' and registro_id = $1`, [ids.I1]);
   assert.ok(rows.length >= 3, 'Alta, publicación y edición');
   assert.ok(rows.every((r) => [PERFILES.marketing, PERFILES.admin].includes(r.usuario_id)));
+});
+
+/** PUT multipart de la imagen de portada (024). */
+async function subirImagen(id, datos, { texto = 'Portada ficticia', token = 'mkt' } = {}) {
+  const formulario = new FormData();
+  formulario.append('archivo', new Blob([datos], { type: 'image/jpeg' }), 'portada.jpg');
+  formulario.append('textoAlternativo', texto);
+  const r = await fetch(`${api.base}/api/investigaciones/articulos/${id}/imagen`, {
+    method: 'PUT', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formulario,
+  });
+  return { status: r.status, cuerpo: await r.json() };
+}
+function jpeg(ancho, alto) {
+  const lienzo = createCanvas(ancho, alto);
+  lienzo.getContext('2d').fillRect(0, 0, ancho, alto);
+  return lienzo.encodeSync('jpeg', 90);
+}
+const imagenPublica = (id) => fetch(`${api.base}/api/publico/imagenes/${id}`);
+const archivos = async () => (await sql.query('select count(*)::int as n from imagenes_publicas')).rows[0].n;
+
+test('A14 · imagen de portada: se sube, se ve al publicar, editar la conserva, se reemplaza y se quita', opciones, async () => {
+  const { cuerpo: a } = await crear({ ...cuerpoDe(demo.I2), titulo: '[DEMO QA] Con portada' });
+  for (const [token, esperado] of [['t1', 403], [null, 401]]) {
+    assert.equal((await subirImagen(a.id, jpeg(900, 600), { token })).status, esperado);
+  }
+  const subida = await subirImagen(a.id, jpeg(3000, 2000));
+  assert.equal(subida.status, 200, JSON.stringify(subida.cuerpo));
+  assert.deepEqual([subida.cuerpo.ancho, subida.cuerpo.alto, subida.cuerpo.textoAlternativo], [1600, 1067, 'Portada ficticia']);
+  assert.equal((await imagenPublica(subida.cuerpo.id)).status, 404, 'En borrador no se sirve al público');
+  const vista = await fetch(`${api.base}/api/investigaciones/articulos/${a.id}/imagen/archivo`, { headers: { Authorization: 'Bearer mkt' } });
+  assert.equal(vista.status, 200);
+  assert.equal(vista.headers.get('content-type'), 'image/webp');
+
+  // Editar el formulario no toca la imagen.
+  const editado = await pedir(`/investigaciones/articulos/${a.id}`, { metodo: 'PUT', cuerpo: { ...cuerpoDe(demo.I2), titulo: '[DEMO QA] Con portada (editado)' } });
+  assert.equal(editado.status, 200, JSON.stringify(editado.cuerpo));
+  assert.equal(editado.cuerpo.imagen.id, subida.cuerpo.id);
+
+  assert.equal((await estado(a.id, 'publicado')).status, 200);
+  const detalle = (await publico(a.id)).cuerpo;
+  assert.deepEqual(detalle.imagen, { id: subida.cuerpo.id, textoAlternativo: 'Portada ficticia', ancho: 1600, alto: 1067 });
+  assert.ok((await publico()).cuerpo.investigaciones.find((i) => i.id === a.id).imagen);
+  const servida = await imagenPublica(subida.cuerpo.id);
+  assert.equal(servida.status, 200);
+  assert.equal(servida.headers.get('content-type'), 'image/webp');
+
+  const texto = await pedir(`/investigaciones/articulos/${a.id}/imagen`, { metodo: 'PATCH', cuerpo: { textoAlternativo: 'Portada ilustrada ficticia' } });
+  assert.equal(texto.status, 200);
+  assert.equal((await publico(a.id)).cuerpo.imagen.textoAlternativo, 'Portada ilustrada ficticia');
+
+  const antes = await archivos();
+  const reemplazo = await subirImagen(a.id, jpeg(800, 800));
+  assert.equal(reemplazo.status, 200);
+  assert.equal(await archivos(), antes, 'El archivo anterior se borra');
+  assert.equal((await imagenPublica(subida.cuerpo.id)).status, 404);
+
+  assert.equal((await pedir(`/investigaciones/articulos/${a.id}/imagen`, { metodo: 'DELETE' })).status, 204);
+  assert.equal((await publico(a.id)).cuerpo.imagen, null);
+  assert.equal((await imagenPublica(reemplazo.cuerpo.id)).status, 404);
+  assert.equal((await pedir(`/investigaciones/articulos/${a.id}/imagen`, { metodo: 'DELETE' })).status, 404);
+  assert.equal((await pedir(`/investigaciones/articulos/${a.id}/imagen/archivo`)).status, 404);
+});
+
+test('A15 · eliminar un borrador con imagen borra también el archivo', opciones, async () => {
+  const { cuerpo: a } = await crear({ ...cuerpoDe(demo.I2), titulo: '[DEMO QA] Borrador con portada' });
+  const antes = await archivos();
+  assert.equal((await subirImagen(a.id, jpeg(600, 400))).status, 200);
+  assert.equal(await archivos(), antes + 1);
+  assert.equal((await pedir(`/investigaciones/articulos/${a.id}`, { metodo: 'DELETE' })).status, 204);
+  assert.equal(await archivos(), antes);
 });
