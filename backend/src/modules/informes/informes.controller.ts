@@ -47,7 +47,13 @@ export class InformesController {
     return this.informes.revisar(casoId, versionId, usuario, dto.secciones);
   }
 
-    @Get(':versionId')
+  @Get()
+  @Header('Cache-Control', 'private, no-store')
+  listar(@Param('id', ParseUUIDPipe) casoId: string, @UsuarioActual() usuario: Usuario) {
+    return this.informes.listar(casoId, usuario);
+  }
+
+  @Get(':versionId')
   @Header('Cache-Control', 'private, no-store')
   consultar(
     @Param('id', ParseUUIDPipe) casoId: string,

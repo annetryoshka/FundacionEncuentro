@@ -1,0 +1,38 @@
+{
+  "aviso": "ARTÍCULOS FICTICIOS PARA QA. No son investigaciones de la Fundación ni contenido autorizado para publicación. Sin datos de pacientes. Alcance ratificado en FE-182: artículos públicos sin comentarios.",
+  "articulos": [
+    {
+      "alias": "I1",
+      "proposito": "Publicado: debe verse en el listado y en el detalle públicos.",
+      "titulo": "[DEMO QA] Artículo ficticio publicado",
+      "resumen": "Resumen de prueba de un artículo inventado.",
+      "contenido": "Texto de ejemplo sin datos de pacientes ni conclusiones clínicas.",
+      "autor": "Autor ficticio",
+      "imagen": null,
+      "fechaPublicacion": "2026-12-02",
+      "estado": "publicado"
+    },
+    {
+      "alias": "I2",
+      "proposito": "Borrador: no debe aparecer en el listado ni por URL pública.",
+      "titulo": "[DEMO QA] Artículo ficticio en borrador",
+      "resumen": "Resumen de prueba.",
+      "contenido": "Texto de ejemplo.",
+      "autor": null,
+      "imagen": null,
+      "fechaPublicacion": null,
+      "estado": "borrador"
+    },
+    {
+      "alias": "I3",
+      "proposito": "Retirado: se oculta del listado y su URL pública responde no encontrado.",
+      "titulo": "[DEMO QA] Artículo ficticio retirado",
+      "resumen": "Resumen de prueba.",
+      "contenido": "Texto de ejemplo.",
+      "autor": "Autor ficticio",
+      "imagen": null,
+      "fechaPublicacion": "2026-11-10",
+      "estado": "retirado"
+    }
+  ]
+}

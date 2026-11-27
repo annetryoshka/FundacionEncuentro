@@ -25,6 +25,7 @@ function ListaSesiones({ carpeta }: { carpeta: CarpetaDetalle }) {
         {!sinTerapeuta && (
           <Link
             to={`/carpetas/${carpeta.id}/sesiones/nueva`}
+            data-recorrido="registrar-sesion"
             className="inline-flex items-center justify-center rounded-full bg-verde px-5 py-2.5 font-semibold text-white transition-colors hover:bg-verde-oscuro focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
           >
             Registrar sesión
@@ -54,7 +55,7 @@ function ListaSesiones({ carpeta }: { carpeta: CarpetaDetalle }) {
         ) : sesiones.datos.length === 0 ? (
           <p className="py-4 text-suave">Aún no hay sesiones registradas en esta carpeta.</p>
         ) : (
-          <ul className="divide-y divide-linea">
+          <ul className="divide-y divide-linea" data-recorrido="lista-sesiones">
             {sesiones.datos.map((s) => {
               const suyas = tareas.datos?.filter((t) => t.sesionId === s.id) ?? []
               const pendientes = suyas.filter((t) => t.estado === 'pendiente').length

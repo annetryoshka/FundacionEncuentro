@@ -1,3 +1,4 @@
+import { contextoFamiliar, seguimientoSeleccionado } from './contenido-contexto.js';
 import type { EntradaBorrador } from './informe-borrador.js';
 import type { FotografiaInforme } from './informe-fotografia.js';
 
@@ -10,16 +11,14 @@ export function definirPlantillaJudicial(
 
   return {
     tipo: 'judicial',
-    versionPlantilla: 'fe151-judicial-v2',
+    versionPlantilla: 'fe151-judicial-v3',
     comprobaciones: [
       { campo: 'paciente.nombreCompleto', presente: Boolean(origen.paciente.nombreCompleto.trim()) },
       { campo: 'judicial.juzgado', presente: Boolean(juzgado) },
       { campo: 'objeto', presente: Boolean(objetoInforme) },
     ],
-    generarSecciones: ({ paciente, responsable, judicial, sesiones, diagnostico }) => {
-      const seguimiento = sesiones.map(({ fecha, nroSesion, evolucion }) =>
-        `${fecha} · Sesión ${nroSesion}\n${evolucion?.trim() || 'Sin evolución registrada.'}`,
-      ).join('\n\n');
+    generarSecciones: ({ paciente, responsable, judicial, sesiones, diagnostico, familia }) => {
+      const seguimiento = seguimientoSeleccionado(sesiones);
 
       return [
         { titulo: 'Destinatario', contenido: juzgado },
@@ -32,6 +31,7 @@ export function definirPlantillaJudicial(
           titulo: 'Profesional responsable',
           contenido: responsable?.nombreCompleto ?? 'Sin responsable registrado.',
         },
+        ...contextoFamiliar(familia),
         { titulo: 'Objeto del informe', contenido: objetoInforme },
         ...(diagnostico.evaluacionInicial
           ? [{ titulo: 'Evaluación inicial', contenido: diagnostico.evaluacionInicial }]

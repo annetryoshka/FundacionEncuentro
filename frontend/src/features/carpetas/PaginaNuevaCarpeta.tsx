@@ -107,39 +107,44 @@ export function PaginaNuevaCarpeta() {
           <fieldset disabled={guardando} className="space-y-5">
             <legend className="sr-only">Datos del paciente</legend>
 
-            <CampoTexto
-              ref={refNombre}
-              etiqueta="Nombre completo del paciente"
-              name="nombreCompleto"
-              autoComplete="off"
-              value={form.nombreCompleto}
-              onChange={(e) => cambiar('nombreCompleto', e.target.value)}
-              error={errores.nombreCompleto}
-              ayuda="Para una familia puedes escribir, por ejemplo, «Familia Quispe Mamani»."
-            />
+            <div data-recorrido="nombre-paciente">
+              <CampoTexto
+                ref={refNombre}
+                etiqueta="Nombre completo del paciente"
+                name="nombreCompleto"
+                autoComplete="off"
+                value={form.nombreCompleto}
+                onChange={(e) => cambiar('nombreCompleto', e.target.value)}
+                error={errores.nombreCompleto}
+                ayuda="Para una familia puedes escribir, por ejemplo, «Familia Quispe Mamani»."
+              />
+            </div>
 
-            <CampoTexto
-              ref={refFecha}
-              etiqueta="Fecha de ingreso"
-              name="fechaIngreso"
-              type="date"
-              max={hoyIso()}
-              value={form.fechaIngreso}
-              onChange={(e) => cambiar('fechaIngreso', e.target.value)}
-              error={errores.fechaIngreso}
-              className="sm:max-w-xs"
-            />
+            <div data-recorrido="fecha-ingreso" className="sm:max-w-xs">
+              <CampoTexto
+                ref={refFecha}
+                etiqueta="Fecha de ingreso"
+                name="fechaIngreso"
+                type="date"
+                max={hoyIso()}
+                value={form.fechaIngreso}
+                onChange={(e) => cambiar('fechaIngreso', e.target.value)}
+                error={errores.fechaIngreso}
+              />
+            </div>
 
-            <GrupoOpciones
-              leyenda="¿Cómo llegó el paciente?"
-              nombre="tipo"
-              opciones={TIPOS}
-              valor={form.tipo as TipoCaso | ''}
-              alCambiar={(tipo) => cambiar('tipo', tipo)}
-              error={errores.tipo}
-            />
+            <div data-recorrido="tipo-ingreso">
+              <GrupoOpciones
+                leyenda="¿Cómo llegó el paciente?"
+                nombre="tipo"
+                opciones={TIPOS}
+                valor={form.tipo as TipoCaso | ''}
+                alCambiar={(tipo) => cambiar('tipo', tipo)}
+                error={errores.tipo}
+              />
+            </div>
 
-            <div ref={refResidencia}>
+            <div ref={refResidencia} data-recorrido="residencia">
               <SelectorResidencia
                 valor={residencia}
                 errores={erroresResidencia}
@@ -167,7 +172,13 @@ export function PaginaNuevaCarpeta() {
               >
                 Cancelar
               </Link>
-              <Boton type="submit" icono="carpeta" cargando={guardando} textoCargando="Registrando…">
+              <Boton
+                type="submit"
+                icono="carpeta"
+                cargando={guardando}
+                textoCargando="Registrando…"
+                data-recorrido="registrar-carpeta"
+              >
                 Registrar y abrir carpeta
               </Boton>
             </div>

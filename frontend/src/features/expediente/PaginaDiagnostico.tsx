@@ -43,7 +43,7 @@ function VistaDiagnostico({ carpeta }: { carpeta: CarpetaDetalle }) {
         <Tarjeta className="max-w-3xl">
           <p className="text-lg font-semibold text-verde-oscuro">Sin ficha de diagnóstico</p>
           <p className="mt-1 text-suave">Esta carpeta todavía no tiene una ficha de diagnóstico registrada.</p>
-          <Boton className="mt-4" onClick={() => setEditando(true)}>
+          <Boton className="mt-4" onClick={() => setEditando(true)} data-recorrido="crear-ficha">
             Crear ficha
           </Boton>
         </Tarjeta>
@@ -71,7 +71,7 @@ function VistaDiagnostico({ carpeta }: { carpeta: CarpetaDetalle }) {
           Ficha de diagnóstico guardada.
         </Aviso>
       )}
-      <Tarjeta>
+      <Tarjeta data-recorrido="ficha-diagnostico">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-verde-oscuro">Evaluación del {fechaLarga(ficha.fecha)}</h2>
@@ -86,6 +86,7 @@ function VistaDiagnostico({ carpeta }: { carpeta: CarpetaDetalle }) {
               setExito(false)
               setEditando(true)
             }}
+            data-recorrido="editar-ficha"
           >
             Editar ficha
           </Boton>
@@ -187,21 +188,23 @@ function FormularioDiagnostico({
         {actual && !actual.evaluacionInicial && (
           <Aviso tipo="info">Completa la evaluación inicial para guardar los cambios.</Aviso>
         )}
-        <AreaTexto
-          ref={refEvaluacion}
-          etiqueta="Evaluación inicial"
-          required
-          value={evaluacionInicial}
-          maxLength={LIMITE_TEXTO_LARGO}
-          onChange={(e) => {
-            const texto = e.target.value
-            setEvaluacionInicial(texto)
-            if (errores.evaluacionInicial && tieneTexto(texto)) {
-              setErrores((anteriores) => ({ ...anteriores, evaluacionInicial: undefined }))
-            }
-          }}
-          error={errores.evaluacionInicial}
-        />
+        <div data-recorrido="evaluacion-inicial">
+          <AreaTexto
+            ref={refEvaluacion}
+            etiqueta="Evaluación inicial"
+            required
+            value={evaluacionInicial}
+            maxLength={LIMITE_TEXTO_LARGO}
+            onChange={(e) => {
+              const texto = e.target.value
+              setEvaluacionInicial(texto)
+              if (errores.evaluacionInicial && tieneTexto(texto)) {
+                setErrores((anteriores) => ({ ...anteriores, evaluacionInicial: undefined }))
+              }
+            }}
+            error={errores.evaluacionInicial}
+          />
+        </div>
         <AreaTexto
           etiqueta="Diagnóstico de ingreso (opcional)"
           value={diagnosticoIngreso}
@@ -229,7 +232,7 @@ function FormularioDiagnostico({
           <Boton variante="texto" onClick={alCancelar} disabled={guardando}>
             Cancelar
           </Boton>
-          <Boton type="submit" cargando={guardando} textoCargando="Guardando…">
+          <Boton type="submit" cargando={guardando} textoCargando="Guardando…" data-recorrido="guardar-ficha">
             Guardar ficha
           </Boton>
         </div>

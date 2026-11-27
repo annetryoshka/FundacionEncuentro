@@ -84,3 +84,7 @@ Documentación primaria consultada de nuevo el 26/11/2026:
 - [Fast Save oficial](https://genopro.com/help/fast-save/): distingue el XML comprimido y el formato binario rápido; no basta renombrar `.gno`.
 
 No están disponibles el número de versión ni una muestra ficticia salida de la instalación de la Fundación. Por tanto **FE-129 conserva solo ese bloqueo externo**: ejecutar el guion del apartado 5 y registrar versión, archivo, legibilidad y procedimiento. El visor del sistema ya puede probarse con archivos ficticios y no debe rehacerse por esta ausencia.
+
+## Aceptación del alcance técnico por la PO · 26/11/2026
+
+Andrea aprobó el cierre del alcance técnico de Sprint 3: importación visual PDF/PNG/JPEG, visor privado e incorporación en documentos; no importación nativa .gno/XML. La validación externa permanece pendiente y se traslada por su decisión expresa a [FE-213](https://andreanarvaezort-1786202493806.atlassian.net/browse/FE-213), prevista en Sprint 4. Este apartado sustituye el pendiente de cierre de Sprint 3 de las secciones anteriores, sin acreditar ensayos en la instalación de la Fundación, una muestra histórica real ni un catálogo/perfil institucional aprobado. No se registran horas reales ni reuniones.

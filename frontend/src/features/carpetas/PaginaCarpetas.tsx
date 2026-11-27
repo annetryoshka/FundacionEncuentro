@@ -85,7 +85,7 @@ export function PaginaCarpetas() {
         descripcion={esAdmin ? 'Todas las carpetas del centro.' : 'Solo ves las carpetas que la dirección te asignó.'}
         accion={
           esAdmin && (
-            <Link to="/carpetas/nueva" className={claseBoton()}>
+            <Link to="/carpetas/nueva" className={claseBoton()} data-recorrido="registrar-paciente">
               <Icono nombre="pacienteNuevo" className="size-[1.125rem]" />
               Registrar paciente
             </Link>
@@ -140,7 +140,7 @@ function FormularioBusqueda({
       onSubmit={buscar}
       className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,1fr)_10rem_10rem_10rem_auto] lg:items-end"
     >
-      <div className="col-span-2 lg:col-span-1">
+      <div className="col-span-2 lg:col-span-1" data-recorrido="buscar-carpetas">
         <label htmlFor="busqueda-carpetas" className="block text-sm font-semibold text-texto">
           Buscar por nombre o número de carpeta
         </label>
@@ -154,7 +154,7 @@ function FormularioBusqueda({
           className={claseCampo(false)}
         />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0" data-recorrido="filtros-carpetas">
         <label htmlFor="filtro-clasificacion" className="block text-sm font-semibold text-texto">
           Clasificación
         </label>
@@ -172,7 +172,7 @@ function FormularioBusqueda({
           ))}
         </select>
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0" data-recorrido="filtros-carpetas">
         <label htmlFor="filtro-estado" className="block text-sm font-semibold text-texto">
           Estado
         </label>
@@ -190,7 +190,7 @@ function FormularioBusqueda({
           ))}
         </select>
       </div>
-      <div className="col-span-2 lg:col-span-1">
+      <div className="col-span-2 lg:col-span-1" data-recorrido="filtros-carpetas">
         <FiltroResidenciaCarpetas valor={inicial.residencia} alCambiar={(residencia) => filtrar({ residencia })} />
       </div>
       <div className="col-span-2 flex gap-2 lg:col-span-1">
@@ -294,7 +294,10 @@ function Resultados({
         {hayFiltros && ` · Filtro: ${filtros}`}
       </p>
 
-      <ul className="divide-y divide-linea/70 overflow-hidden rounded-3xl border border-linea bg-white">
+      <ul
+        data-recorrido="lista-carpetas"
+        className="divide-y divide-linea/70 overflow-hidden rounded-3xl border border-linea bg-white"
+      >
         {datos.carpetas.map((c) => (
           <li key={c.id}>
             <Link
@@ -329,7 +332,11 @@ function Resultados({
       </ul>
 
       {totalPaginas > 1 && (
-        <nav aria-label="Paginación" className="mt-5 flex items-center justify-between gap-3">
+        <nav
+          aria-label="Paginación"
+          data-recorrido="paginacion"
+          className="mt-5 flex items-center justify-between gap-3"
+        >
           <Boton
             variante="secundario"
             icono="anterior"

@@ -776,7 +776,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
   const terapeuta = ctx.perfiles.find((p) => p.id === caso.asignacion?.perfilId)?.nombreCompleto ?? 'Sin asignar'
   const diag = ctx.expediente.diagnosticos.find((d) => d.casoId === caso.id)
-  const seguimiento = sesiones.map((s) => `Sesión ${s.numero} (${s.fecha}): ${s.evolucion}`).join('\n')
+  const seguimiento = sesiones.map((s) => [`Sesión ${s.numero} (${s.fecha}): ${s.evolucion}`, ...ctx.expediente.tareas.filter((t) => t.sesionId === s.id).map((t) => `• ${t.descripcion}`)].join('\n')).join('\n')
   const familia = c.incluirFamilia
     ? (ctx.estado.familias[caso.id]?.familiares ?? [])
         .map((f) => `${f.parentesco}: ${f.nombreCompleto ?? 'sin nombre'}`)
@@ -797,6 +797,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
       { titulo: 'Destinatario', contenido: juzgado },
       { titulo: 'Identificación', contenido: caso.paciente.nombreCompleto },
       { titulo: 'Profesional responsable', contenido: terapeuta },
+      ...(c.incluirFamilia ? [{ titulo: 'Contexto familiar', contenido: familia || 'Sin integrantes familiares registrados.' }] : []),
       { titulo: 'Objeto del informe', contenido: objeto },
       ...(diag?.evaluacionInicial ? [{ titulo: 'Evaluación inicial', contenido: diag.evaluacionInicial }] : []),
       { titulo: 'Intervención y observaciones', contenido: seguimiento || 'Sin sesiones seleccionadas.' },
@@ -806,7 +807,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
     secciones = [
       { titulo: 'Identificación', contenido: caso.paciente.nombreCompleto },
       { titulo: 'Profesional responsable', contenido: terapeuta },
-      ...(familia ? [{ titulo: 'Composición familiar', contenido: familia }] : []),
+      ...(c.incluirFamilia ? [{ titulo: 'Contexto familiar', contenido: familia || 'Sin integrantes familiares registrados.' }] : []),
       { titulo: 'Evaluación', contenido: [diag?.evaluacionInicial, diag?.diagnosticoIngreso, diag?.hipotesisRelacional].filter(Boolean).join('\n') || 'Sin datos registrados.' },
       { titulo: 'Intervención y evolución', contenido: seguimiento || 'Sin sesiones seleccionadas.' },
       { titulo: 'Conclusiones y recomendaciones', contenido: 'Pendiente de redacción profesional.' },
@@ -818,7 +819,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
     casoId: caso.id,
     tipo: c.tipo,
     nroVersion: 1,
-    versionPlantilla: c.tipo === 'judicial' ? 'fe151-judicial-v2' : 'fe151-sistemica-v2',
+    versionPlantilla: c.tipo === 'judicial' ? 'fe151-judicial-v3' : 'fe151-sistemica-v3',
     estado: 'borrador',
     secciones,
     creadoPor: ctx.yo.id,
@@ -846,6 +847,13 @@ manejadores.push((ctx) => {
   const caso = casoAccesible(ctx, casoId)
   if (!caso) return ctx.error(404, 'Caso no encontrado')
   if (!versionId && ctx.metodo === 'POST') return generarInformeSim(ctx, caso)
+  if (!versionId && ctx.metodo === 'GET') {
+    const lista = informes(ctx)
+      .filter((v) => v.casoId === caso.id)
+      .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn))
+      .map(({ casoId: _caso, secciones: _s, versionPlantilla: _p, ...resto }) => resto)
+    return ctx.json(200, { informes: lista })
+  }
   const version = informes(ctx).find((v) => v.id === versionId && v.casoId === caso.id)
   if (versionId && !revision && ctx.metodo === 'GET') {
     if (!version) return ctx.error(404, 'Versión de informe no encontrada')
@@ -1725,13 +1733,21 @@ manejadores.push((ctx) => {
   if (!p) return ctx.error(404, 'Exportación no encontrada')
   const contenido = contenidoPaquete(ctx, p)
   if (m[2] === 'manifiesto' && ctx.metodo === 'GET') return ctx.json(200, contenido.manifiesto)
-  if (m[2] === 'revision' && ctx.metodo === 'GET') return ctx.json(200, contenido)
+  if (m[2] === 'revision' && ctx.metodo === 'GET')
+    return ctx.json(200, {
+      ...contenido,
+      revisadoEn: p.revisadoEn,
+      revisionVigente: p.revisadoEn !== null && p.huellaRevisada === contenido.huella,
+    })
   if (m[2] === 'revision' && ctx.metodo === 'PATCH') {
     const huella = (ctx.cuerpo as { huella?: string }).huella
     if (typeof huella !== 'string' || !/^[0-9a-f]{64}$/.test(huella))
       return ctx.error(400, ['huella must match /^[0-9a-f]{64}$/ regular expression'])
     if (huella !== contenido.huella) return ctx.error(409, 'El contenido cambió. Revisa la vista actualizada.')
-    if (p.revisadoEn) return ctx.error(409, 'No se puede registrar la revisión del paquete')
+    if (p.revisadoEn) {
+      if (p.huellaRevisada === huella) return ctx.json(200, { revisadoEn: p.revisadoEn })
+      return ctx.error(409, 'Este paquete ya se revisó y su contenido cambió después. Prepara un paquete nuevo.')
+    }
     p.huellaRevisada = huella
     p.revisadoEn = ahora()
     return ctx.json(200, { revisadoEn: p.revisadoEn })

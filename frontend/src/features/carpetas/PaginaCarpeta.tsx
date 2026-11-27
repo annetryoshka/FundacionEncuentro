@@ -25,6 +25,8 @@ import {
   type EstadoCaso,
 } from './tipos'
 
+const EN_CONTEXTO = ['familia', 'genograma', 'diagnostico']
+
 /**
  * Resumen de la carpeta del paciente.
  * FE-31: Consulta de carpeta.
@@ -69,7 +71,8 @@ export function PaginaCarpeta() {
   // se la asignaron; el backend lo vuelve a comprobar en cada guardado.
   const puedeClasificar = tieneRol('administrador', 'terapeuta')
   const cambioVigente = useRef(0)
-  const apartados = apartadosVisibles(tieneRol)
+  // Familia, genograma y diagnóstico ya tienen su acceso en «Contexto del paciente».
+  const apartados = apartadosVisibles(tieneRol).filter((a) => !EN_CONTEXTO.includes(a.ruta))
 
   const refExito = useRef<HTMLDivElement>(null)
   const refEdicionExitosa = useRef<HTMLDivElement>(null)
@@ -196,7 +199,10 @@ export function PaginaCarpeta() {
           )}
 
           {/* Encabezado de carpeta */}
-          <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <header
+            data-recorrido="encabezado-carpeta"
+            className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+          >
             <div>
               <p className="text-lg font-semibold text-naranja-texto">
                 Carpeta {numeroCarpeta(carpeta.numero)}
@@ -218,7 +224,13 @@ export function PaginaCarpeta() {
 
               {/* Solo administración puede editar */}
               {esAdministrador && !editando && (
-                <Boton type="button" variante="secundario" icono="editar" onClick={iniciarEdicion}>
+                <Boton
+                  type="button"
+                  variante="secundario"
+                  icono="editar"
+                  onClick={iniciarEdicion}
+                  data-recorrido="editar-datos"
+                >
                   Editar datos
                 </Boton>
               )}
@@ -274,10 +286,12 @@ export function PaginaCarpeta() {
           </Tarjeta>
 
           {/* FE-127 · Contexto del paciente (familia, genograma, diagnóstico) antes del historial (FE-123 §1) */}
-          <ResumenFicha carpeta={carpeta} />
+          <div data-recorrido="contexto-paciente">
+            <ResumenFicha carpeta={carpeta} />
+          </div>
 
           {/* Sprint 2 · Expediente clínico: lo más usado, justo bajo el encabezado */}
-          <Tarjeta>
+          <Tarjeta data-recorrido="expediente">
             <h2 className="text-lg font-semibold text-verde-oscuro">Expediente clínico</h2>
             <ul
               className={`mt-4 grid gap-3 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2 lg:[&>li:last-child:nth-child(odd)]:col-span-1 ${
@@ -301,20 +315,24 @@ export function PaginaCarpeta() {
           {/* Acciones de administración y exportación, después de la lectura del contexto. */}
           <div className="space-y-6">
             <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-              <ClasificacionYEstado
-                carpeta={carpeta}
-                puedeEditar={puedeClasificar}
-                alGuardar={aplicarClasificacionOEstado}
-              />
+              <div data-recorrido="clasificacion-estado">
+                <ClasificacionYEstado
+                  carpeta={carpeta}
+                  puedeEditar={puedeClasificar}
+                  alGuardar={aplicarClasificacionOEstado}
+                />
+              </div>
 
-              <AsignacionTerapeuta
-                carpeta={carpeta}
-                puedeAsignar={esAdministrador}
-                alActualizar={actualizarAsignacion}
-              />
+              <div data-recorrido="terapeuta">
+                <AsignacionTerapeuta
+                  carpeta={carpeta}
+                  puedeAsignar={esAdministrador}
+                  alActualizar={actualizarAsignacion}
+                />
+              </div>
 
               {/* FE-160 · Exportar ficha o historial */}
-              <Tarjeta>
+              <Tarjeta data-recorrido="exportar">
                 <ExportarDocumento
                   carpetaId={carpeta.id}
                   numeroCarpeta={carpeta.numero}

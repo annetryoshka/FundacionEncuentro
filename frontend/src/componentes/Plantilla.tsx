@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { useSesion } from '../features/auth/sesion'
+import { BotonAyuda } from '../features/recorridos/BotonAyuda'
 import type { Rol } from '../features/auth/tipos'
 import { nombreRol } from '../features/usuarios/tipos'
 import { Icono } from './iconos'
@@ -66,6 +67,7 @@ export function Plantilla() {
               type="button"
               onClick={salir}
               disabled={saliendo}
+              data-recorrido="cerrar-sesion"
               className="inline-flex items-center gap-1.5 rounded-full border border-verde px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-verde hover:bg-verde hover:text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
             >
               <Icono nombre="salir" className="size-4" />
@@ -75,7 +77,7 @@ export function Plantilla() {
         </div>
 
         {secciones.length > 1 && (
-          <nav aria-label="Secciones" className="mx-auto max-w-6xl overflow-x-auto px-4 sm:px-8">
+          <nav aria-label="Secciones" data-recorrido="menu" className="mx-auto max-w-6xl overflow-x-auto px-4 sm:px-8">
             <ul className="flex gap-1">
               {secciones.map((s) => (
                 <li key={s.ruta}>
@@ -103,6 +105,7 @@ export function Plantilla() {
       </main>
 
       <PieContacto />
+      <BotonAyuda />
     </div>
   )
 }

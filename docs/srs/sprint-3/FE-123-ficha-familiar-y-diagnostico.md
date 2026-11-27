@@ -6,7 +6,7 @@
 
 **Base revisada:** `main` en `37ed16bcca9bb3d6842c62f41b58a1bf17f7616f`.
 
-**Estado del entregable:** contrato de análisis preparado; las validaciones pendientes se indican expresamente. No acredita implementación ni pruebas del producto.
+**Estado vigente:** contrato aceptado por Andrea como PO para la entrega de Sprint 3, el 26/11/2026. La validación externa se conserva en FE-212 (Sprint 4); no equivale a conformidad de la Fundación.
 
 HU FE-110 · RF-02/RF-08/RF-11. Entrega para Alejandro (FE-125), Adriana (FE-126), Jorge (FE-127), Emilia (FE-128) y el componente de Andrea (FE-124).
 
@@ -135,3 +135,11 @@ La decisión de mínimo clínico ya tiene implementación en `main` por PR #73 (
 FE-124 completa el resumen con parentesco, edad/referencia temporal, ocupación y lugar de trabajo/estudio, datos desconocidos y acceso a todos los integrantes. Los datos generales de la carpeta preceden a familia, genograma y evaluación/historial. No hay una carpeta nueva por cada familiar ni sincronización automática con una imagen de GenoPro.
 
 La revisión técnica y las fichas ficticias A/B permiten probar el contrato. **Sigue pendiente recibir/contrastar la ficha de referencia de la Fundación y registrar su validación externa.** No se vuelve a solicitar la decisión de evaluación/diagnóstico ya confirmada. Esa única validación documental pendiente se conserva en FE-123 sin pedir rehacer FE-126/127/128.
+
+## Aceptación de la PO y seguimiento externo · 26/11/2026
+
+Andrea respondió expresamente: «Los apruebo como PO para esta entrega; la validación de la Fundación queda pendiente». La aprobación cubre los campos consultados: parentesco, nombre, nacimiento o edad con fecha de referencia, ocupación, trabajo/estudio y convivencia; evaluación inicial obligatoria y diagnóstico opcional.
+
+El contrato implementado, el resumen y los ejemplos ficticios quedan aceptados para Sprint 3. El contraste con una ficha institucional y la conformidad externa se siguen en [FE-212](https://andreanarvaezort-1786202493806.atlassian.net/browse/FE-212), prevista en FE Sprint 4. Esta separación sustituye el pendiente de cierre de Sprint 3 de los apartados anteriores: no se afirma que la Fundación haya validado los campos ni se borra esa obligación.
+
+No se modifican campos ni reglas a raíz de esta aceptación. Se conservan la evidencia de implementación y los permisos existentes; cualquier diferencia que detecte la Fundación debe quedar documentada antes de ajustar código.

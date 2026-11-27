@@ -52,14 +52,14 @@ export function PaginaDifusion() {
         titulo="Difusión"
         descripcion="Campañas, actividades y cursos de la Fundación. Solo lo publicado se ve en el portal público."
         accion={
-          <Link to="/difusion/nueva" className={claseBoton()}>
+          <Link to="/difusion/nueva" className={claseBoton()} data-recorrido="nueva-publicacion">
             <Icono nombre="mas" className="size-[1.125rem]" />
             Nueva publicación
           </Link>
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:max-w-xl">
+      <div className="grid grid-cols-2 gap-3 sm:max-w-xl" data-recorrido="filtros-difusion">
         <CampoSeleccion
           etiqueta="Estado"
           value={estado}
@@ -107,7 +107,10 @@ export function PaginaDifusion() {
           <p role="status" className="mb-3 text-sm text-suave">
             {datos.total} {datos.total === 1 ? 'publicación' : 'publicaciones'}
           </p>
-          <ul className="divide-y divide-linea/70 overflow-hidden rounded-3xl border border-linea bg-white">
+          <ul
+            data-recorrido="lista-publicaciones"
+            className="divide-y divide-linea/70 overflow-hidden rounded-3xl border border-linea bg-white"
+          >
             {datos.publicaciones.map((p) => {
               const fechas = textoFechas(p.fechaInicio, p.fechaFin)
               return (
@@ -133,7 +136,11 @@ export function PaginaDifusion() {
             })}
           </ul>
           {totalPaginas > 1 && (
-            <nav aria-label="Paginación" className="mt-5 flex items-center justify-between gap-3">
+            <nav
+              aria-label="Paginación"
+              data-recorrido="paginacion"
+              className="mt-5 flex items-center justify-between gap-3"
+            >
               <Boton
                 variante="secundario"
                 icono="anterior"

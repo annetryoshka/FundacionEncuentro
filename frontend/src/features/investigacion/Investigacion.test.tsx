@@ -94,9 +94,48 @@ describe('Investigación', () => {
     )
     await usuario.click(screen.getByRole('checkbox', { name: /Leí todos los documentos/ }))
     await usuario.click(screen.getByRole('button', { name: 'Confirmar revisión' }))
-    expect(await screen.findByText(/El contenido cambió.*Vuelve a leer/)).toBeInTheDocument()
+    expect(await screen.findByText('El contenido cambió. Revisa la vista actualizada.')).toBeInTheDocument()
     await usuario.click(screen.getByRole('button', { name: 'Volver a leer el contenido' }))
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /Leí todos los documentos/ })).not.toBeChecked())
+  })
+
+  /** Abre la revisión de un paquete nuevo con la respuesta de GET /revision retocada. */
+  async function abrirRevisionCon(cambios: { revisadoEn: string | null; revisionVigente: boolean }) {
+    const montado = await montarApp('/investigacion', 'sofia')
+    const simulado = montado.fetchEspia.getMockImplementation()!
+    montado.fetchEspia.mockImplementation(async (u, i) => {
+      // Revisión vigente de otra visita: el backend ya permite descargar.
+      if (/\/descarga$/.test(String(u)) && cambios.revisionVigente)
+        return new Response('PK', {
+          headers: { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="investigacion.zip"' },
+        })
+      const r = await simulado(u, i)
+      if (!/\/revision$/.test(String(u)) || (i as RequestInit | undefined)?.method === 'PATCH') return r
+      return Response.json({ ...(await r.json()), ...cambios }, { status: r.status })
+    })
+    await screen.findByText(/Casos \(0 de 5 elegidos\)/)
+    await montado.usuario.click(screen.getByRole('button', { name: 'Elegir todos' }))
+    await montado.usuario.click(screen.getByRole('button', { name: /Preparar y revisar/ }))
+    await screen.findByRole('heading', { name: 'Revisar paquete para Atlas.ti' })
+    return montado
+  }
+
+  it('un paquete ya revisado en otra visita se descarga sin volver a confirmar', async () => {
+    const guardar = vi.spyOn(archivos, 'guardarArchivo').mockImplementation(() => undefined)
+    const { usuario } = await abrirRevisionCon({ revisadoEn: '2026-11-20T15:00:00.000Z', revisionVigente: true })
+    expect(screen.getByText('Revisado el 20 de noviembre de 2026.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Confirmar revisión' })).not.toBeInTheDocument()
+    await usuario.click(screen.getByRole('button', { name: 'Descargar paquete (.zip)' }))
+    expect(await screen.findByText(/Paquete descargado/)).toBeInTheDocument()
+    expect(guardar).toHaveBeenCalledOnce()
+  })
+
+  it('si el contenido cambió después de revisarlo, pide preparar un paquete nuevo', async () => {
+    await abrirRevisionCon({ revisadoEn: '2026-11-20T15:00:00.000Z', revisionVigente: false })
+    expect(screen.getByText(/se revisó el 20 de noviembre de 2026, pero su contenido cambió/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Prepara un paquete nuevo' })).toHaveAttribute('href', '/investigacion')
+    expect(screen.queryByRole('button', { name: 'Confirmar revisión' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Descargar/ })).not.toBeInTheDocument()
   })
 
   it('asigna una categoría al diagnóstico de un caso con fragmento y nota', async () => {

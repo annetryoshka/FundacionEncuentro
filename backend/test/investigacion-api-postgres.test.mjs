@@ -168,6 +168,8 @@ test('FE-169: selección y conteos respetan el alcance del perfil', opciones, as
   const anterior = await consultarRevision();
   assert.match(anterior.huella, /^[0-9a-f]{64}$/);
   assert.equal(anterior.documentos[0].idExportacion, 'INV-001');
+  assert.equal(anterior.revisadoEn, null);
+  assert.equal(anterior.revisionVigente, false);
 
   await comoUsuario(base.cliente, PERFILES.t1, () =>
     base.cliente.query(
@@ -203,6 +205,15 @@ test('FE-169: selección y conteos respetan el alcance del perfil', opciones, as
   assert.equal(guardada.revisado_por, PERFILES.t1);
   assert.equal(guardada.huella_revision_investigacion, actual.huella);
 
+  // Al volver a abrir el paquete se sabe que ya está revisado; confirmar otra vez lo mismo no falla.
+  const reabierta = await consultarRevision();
+  assert.equal(reabierta.revisionVigente, true);
+  assert.equal(Date.parse(reabierta.revisadoEn), Date.parse(revision.revisadoEn));
+  const confirmadaOtraVez = await confirmar(actual.huella);
+  const revisionRepetida = await confirmadaOtraVez.json();
+  assert.equal(confirmadaOtraVez.status, 200, JSON.stringify(revisionRepetida));
+  assert.equal(Date.parse(revisionRepetida.revisadoEn), Date.parse(revision.revisadoEn));
+
     const rutaDescarga = `${rutaPaquete}/descarga`;
   const descargar = () => api.solicitar(rutaDescarga, { token: 'terapeuta' });
 
@@ -231,6 +242,14 @@ test('FE-169: selección y conteos respetan el alcance del perfil', opciones, as
   const modificada = await descargar();
   assert.equal(modificada.status, 409, await modificada.text());
   assert.equal(modificada.headers.get('content-disposition'), null);
+
+  const caducada = await consultarRevision();
+  assert.equal(caducada.revisionVigente, false);
+  assert.ok(caducada.revisadoEn);
+  const reconfirmada = await confirmar(caducada.huella);
+  const errorReconfirmada = await reconfirmada.json();
+  assert.equal(reconfirmada.status, 409);
+  assert.match(errorReconfirmada.message, /ya se revisó.*Prepara un paquete nuevo/);
 
     const rutaCategorias = '/investigacion/categorias';
   const nuevaCategoria = { codigo: 'QA-CAT-02', nombre: 'Categoría ficticia nueva' };

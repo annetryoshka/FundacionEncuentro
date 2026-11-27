@@ -78,26 +78,29 @@ function FormularioSesion({ carpeta }: { carpeta: CarpetaDetalle }) {
           Responsable: <span className="font-semibold text-texto">{carpeta.terapeuta.nombreCompleto}</span> (terapeuta
           asignada). El número de sesión lo asigna el sistema.
         </p>
-        <CampoTexto
-          ref={refFecha}
-          etiqueta="Fecha de la sesión"
-          type="date"
-          value={fecha}
-          max="9999-12-31"
-          onChange={(e) => setFecha(e.target.value)}
-          error={errores.fecha}
-          className="max-w-xs"
-        />
-        <AreaTexto
-          ref={refEvolucion}
-          etiqueta="Evolución"
-          value={evolucion}
-          rows={8}
-          maxLength={LIMITE_TEXTO_LARGO}
-          onChange={(e) => setEvolucion(e.target.value)}
-          error={errores.evolucion}
-          ayuda="Qué se trabajó en la sesión y cómo evolucionó el caso."
-        />
+        <div data-recorrido="fecha-sesion" className="max-w-xs">
+          <CampoTexto
+            ref={refFecha}
+            etiqueta="Fecha de la sesión"
+            type="date"
+            value={fecha}
+            max="9999-12-31"
+            onChange={(e) => setFecha(e.target.value)}
+            error={errores.fecha}
+          />
+        </div>
+        <div data-recorrido="evolucion">
+          <AreaTexto
+            ref={refEvolucion}
+            etiqueta="Evolución"
+            value={evolucion}
+            rows={8}
+            maxLength={LIMITE_TEXTO_LARGO}
+            onChange={(e) => setEvolucion(e.target.value)}
+            error={errores.evolucion}
+            ayuda="Qué se trabajó en la sesión y cómo evolucionó el caso."
+          />
+        </div>
 
         {fallo && (
           <Aviso ref={refFallo} tipo="error">
@@ -112,7 +115,7 @@ function FormularioSesion({ carpeta }: { carpeta: CarpetaDetalle }) {
           >
             Cancelar
           </Link>
-          <Boton type="submit" cargando={guardando} textoCargando="Guardando sesión…">
+          <Boton type="submit" cargando={guardando} textoCargando="Guardando sesión…" data-recorrido="guardar-sesion">
             Guardar sesión
           </Boton>
         </div>

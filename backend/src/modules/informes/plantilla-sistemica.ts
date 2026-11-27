@@ -1,3 +1,4 @@
+import { contextoFamiliar, seguimientoSeleccionado } from './contenido-contexto.js';
 import type { EntradaBorrador } from './informe-borrador.js';
 import type { FotografiaInforme } from './informe-fotografia.js';
 
@@ -6,23 +7,21 @@ export function definirPlantillaSistemica(
 ): Omit<EntradaBorrador<FotografiaInforme>, 'origen'> {
   return {
     tipo: 'intervencion_sistemica',
-    versionPlantilla: 'fe151-sistemica-v2',
+    versionPlantilla: 'fe151-sistemica-v3',
     comprobaciones: [
       {
         campo: 'paciente.nombreCompleto',
         presente: Boolean(origen.paciente.nombreCompleto.trim()),
       },
     ],
-    generarSecciones: ({ paciente, responsable, diagnostico, sesiones }) => {
+    generarSecciones: ({ paciente, responsable, diagnostico, sesiones, familia }) => {
       const evaluacion = [
         diagnostico.evaluacionInicial,
         diagnostico.diagnosticoIngreso,
         diagnostico.hipotesisRelacional,
       ].filter((texto) => texto?.trim()).join('\n');
 
-      const seguimiento = sesiones.map(({ fecha, nroSesion, evolucion }) =>
-        `${fecha} · Sesión ${nroSesion}\n${evolucion?.trim() || 'Sin evolución registrada.'}`,
-      ).join('\n\n');
+      const seguimiento = seguimientoSeleccionado(sesiones);
 
       return [
         { titulo: 'Identificación', contenido: paciente.nombreCompleto },
@@ -30,6 +29,7 @@ export function definirPlantillaSistemica(
           titulo: 'Profesional responsable',
           contenido: responsable?.nombreCompleto ?? 'Sin responsable registrado.',
         },
+        ...contextoFamiliar(familia),
         { titulo: 'Evaluación', contenido: evaluacion || 'Sin datos registrados.' },
         { titulo: 'Intervención y evolución', contenido: seguimiento || 'Sin sesiones seleccionadas.' },
         {

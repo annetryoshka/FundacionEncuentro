@@ -25,7 +25,7 @@ export function PaginaInicio() {
           <p className="mt-1.5 text-suave">Entraste como {nombreRol(usuario.rol)}.</p>
         </div>
         {esAdmin && (
-          <Link to="/carpetas/nueva" className={claseBoton()}>
+          <Link to="/carpetas/nueva" className={claseBoton()} data-recorrido="registrar-paciente">
             <Icono nombre="pacienteNuevo" className="size-[1.125rem]" />
             Registrar paciente
           </Link>
@@ -35,7 +35,7 @@ export function PaginaInicio() {
       {veCarpetas ? <BuscarCarpeta esAdmin={esAdmin} /> : <SinAccesoClinico />}
 
       {esAdmin && (
-        <section aria-labelledby="inicio-administracion">
+        <section aria-labelledby="inicio-administracion" data-recorrido="administracion">
           <h2 id="inicio-administracion" className="text-lg font-semibold text-verde-oscuro">
             Administración
           </h2>
@@ -91,7 +91,7 @@ function BuscarCarpeta({ esAdmin }: { esAdmin: boolean }) {
   }
 
   return (
-    <Tarjeta>
+    <Tarjeta data-recorrido="buscar-carpeta">
       <div>
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold text-verde-oscuro">
@@ -138,7 +138,7 @@ function BuscarCarpeta({ esAdmin }: { esAdmin: boolean }) {
 /** Marketing (FE-144): no ve información clínica; su trabajo es la difusión. */
 function SinAccesoClinico() {
   return (
-    <section aria-labelledby="inicio-difusion" className="space-y-3">
+    <section aria-labelledby="inicio-difusion" className="space-y-3" data-recorrido="inicio-difusion">
       <p className="max-w-prose text-suave">Tu cuenta no tiene acceso a la información clínica de los pacientes.</p>
       <h2 id="inicio-difusion" className="text-lg font-semibold text-verde-oscuro">
         Difusión

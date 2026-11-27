@@ -78,6 +78,7 @@ test('FE-65: un caso sin constancia responde constancia null', opciones, async (
 
 test('FE-65: campos exigidos por estado responden 400 y la constancia sigue Pendiente', opciones, async () => {
   assert.equal((await guardar(casoA.id, PENDIENTE)).status, 200);
+  const antes = await constanciaGuardada(casoA.id);
   const invalidos = {
     'registrado sin referencia': { ...REGISTRADA, referenciaEvidencia: undefined },
     'registrado con referencia en blanco': { ...REGISTRADA, referenciaEvidencia: '   ' },
@@ -95,11 +96,13 @@ test('FE-65: campos exigidos por estado responden 400 y la constancia sigue Pend
     'contexto judicial sin juzgado': { ...REGISTRADA, contextoJudicial: { nroExpediente: 'EXP-QA-1' } },
     'intenta cambiar el número': { ...PENDIENTE, numeroCorrelativo: 999 },
     'intenta cambiar el origen': { ...PENDIENTE, tipo: 'derivado' },
+    'pendiente con evidencia': { ...PENDIENTE, referenciaEvidencia: 'EVIDENCIA-DEMO' },
+    'no aplica con fecha': { ...NO_APLICA, fechaConsentimiento: '2026-10-09' },
   };
   for (const [motivo, cuerpo] of Object.entries(invalidos)) {
     assert.equal((await guardar(casoA.id, cuerpo)).status, 400, motivo);
   }
-  assert.equal((await constanciaGuardada(casoA.id)).estado, 'pendiente');
+  assert.deepEqual(await constanciaGuardada(casoA.id), antes);
   assert.equal(await auditoria(), 1);
 });
 

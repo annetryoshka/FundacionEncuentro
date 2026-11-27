@@ -42,7 +42,7 @@ export function TareasDeSesion({ carpeta, sesion, nombre }: Props) {
         ) : tareas.length === 0 ? (
           <p className="text-suave">Esta sesión todavía no tiene tareas.</p>
         ) : (
-          <ul className="divide-y divide-linea">
+          <ul className="divide-y divide-linea" data-recorrido="lista-tareas">
             {tareas.map((t) => (
               <FilaTarea key={t.id} carpetaId={carpeta.id} tarea={t} nombre={nombre} alCambiar={guardarLocal} />
             ))}
@@ -149,7 +149,7 @@ function NuevaTarea({
   }
 
   return (
-    <form onSubmit={enviar} noValidate className="mt-5 border-t border-linea pt-5">
+    <form onSubmit={enviar} noValidate className="mt-5 border-t border-linea pt-5" data-recorrido="nueva-tarea">
       <AreaTexto
         ref={refCampo}
         etiqueta="Nueva tarea"
