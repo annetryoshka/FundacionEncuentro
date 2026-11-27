@@ -26,7 +26,9 @@ export function TarjetaPublicacion({ publicacion, aDetalle }: Props) {
   const donde = [modalidad && NOMBRE_MODALIDAD[modalidad], lugar].filter(Boolean).join(' · ')
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-linea bg-white">
+    <article
+      className={`flex h-full flex-col overflow-hidden rounded-3xl border border-t-4 border-linea bg-white transition-shadow hover:shadow-lg ${tipo === 'campana' ? 'border-t-naranja' : 'border-t-verde'}`}
+    >
       {imagen && <ImagenPublica imagen={imagen} />}
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div>

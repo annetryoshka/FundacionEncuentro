@@ -233,7 +233,10 @@ export function PaginaLogin() {
               ¿Olvidaste tu contraseña o necesitas una cuenta? Pídesela a la dirección del centro.
             </p>
             {/* FE-149: el visitante sin cuenta encuentra el portal público. */}
-            <p className="mt-3 text-sm">
+            <p className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+              <Link to="/" className="font-semibold text-naranja-texto underline underline-offset-4">
+                Conocer la Fundación
+              </Link>
               <Link to="/publicaciones" className="font-semibold text-naranja-texto underline underline-offset-4">
                 Ver campañas, actividades y cursos
               </Link>

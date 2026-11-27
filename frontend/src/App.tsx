@@ -28,6 +28,7 @@ import { PlantillaPublica } from './features/publico/PlantillaPublica'
 import { PaginaFundacion } from './features/publico/PaginaFundacion'
 import { PaginaPublicaciones } from './features/publico/PaginaPublicaciones'
 import { PaginaDetallePublicacion, PaginaPublicaNoEncontrada } from './features/publico/PaginaDetallePublicacion'
+import { SoloVisitantes } from './features/publico/SoloVisitantes'
 import { PaginaUsuarios } from './features/usuarios/PaginaUsuarios'
 import { PaginaInicio } from './paginas/PaginaInicio'
 import { PaginaNoEncontrada } from './paginas/PaginaNoEncontrada'
@@ -40,15 +41,28 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<PaginaLogin />} />
-      <Route path="/fundacion" element={<PlantillaPublica />}>
+      {/* Página de inicio pública; con sesión iniciada, la raíz lleva al panel */}
+      <Route
+        path="/"
+        element={
+          <SoloVisitantes>
+            <PlantillaPublica anchoCompleto />
+          </SoloVisitantes>
+        }
+      >
         <Route index element={<PaginaFundacion />} />
       </Route>
+      <Route path="/fundacion" element={<Navigate to="/" replace />} />
 
       {/* FE-149 · Portal público: sin sesión y sin navegación clínica */}
-      <Route path="/publicaciones" element={<PlantillaPublica />}>
-        <Route index element={<PaginaPublicaciones />} />
-        <Route path=":id" element={<PaginaDetallePublicacion />} />
-        <Route path="*" element={<PaginaPublicaNoEncontrada />} />
+      <Route path="/publicaciones">
+        <Route element={<PlantillaPublica anchoCompleto />}>
+          <Route index element={<PaginaPublicaciones />} />
+        </Route>
+        <Route element={<PlantillaPublica />}>
+          <Route path=":id" element={<PaginaDetallePublicacion />} />
+          <Route path="*" element={<PaginaPublicaNoEncontrada />} />
+        </Route>
       </Route>
 
       <Route
@@ -58,7 +72,6 @@ export default function App() {
           </RutaProtegida>
         }
       >
-        <Route index element={<Navigate to="/inicio" replace />} />
         <Route path="inicio" element={<PaginaInicio />} />
         <Route
           path="carpetas"
