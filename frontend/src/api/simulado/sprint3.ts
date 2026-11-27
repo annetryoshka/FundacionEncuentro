@@ -922,10 +922,9 @@ manejadores.push((ctx) => {
   if (p.incluirPagos && ctx.yo.rol !== 'administrador')
     return ctx.error(403, 'No tienes permiso para esta exportación.')
   if (!caso) return ctx.error(404, 'Caso o versión del informe no disponible.')
-  if (p.incluirGenograma) return ctx.error(409, 'El genograma aún no está disponible para exportar.')
   if (p.documento === 'informe') {
     const v = informes(ctx).find((x) => x.id === p.informeVersionId && x.casoId === casoId)
-    if (!v || p.secciones?.length || p.incluirPagos)
+    if (!v || p.secciones !== undefined || p.incluirPagos !== undefined || p.incluirGenograma !== undefined)
       return ctx.error(
         v ? 400 : 404,
         v ? 'La selección de exportación es inválida.' : 'Caso o versión del informe no disponible.',

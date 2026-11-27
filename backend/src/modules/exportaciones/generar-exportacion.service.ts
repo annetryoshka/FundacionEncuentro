@@ -6,6 +6,7 @@ import {
   type ParametrosExportacion,
 } from './exportaciones-registro.service.js';
 import { ExportacionesService } from './exportaciones.service.js';
+import { ExportarGenogramaService } from './exportar-genograma.service.js';
 
 @Injectable()
 export class GenerarExportacionService {
@@ -15,6 +16,7 @@ export class GenerarExportacionService {
     private readonly registro: ExportacionesRegistroService,
     private readonly generador: ExportacionesService,
     private readonly almacen: ExportacionesAlmacenService,
+    private readonly genogramas: ExportarGenogramaService,
   ) {}
 
   async generar(
@@ -37,6 +39,7 @@ export class GenerarExportacionService {
         exportacion.documento,
         exportacion.datos,
       );
+      documento.genograma = await this.genogramas.preparar(casoId, usuarioId, exportacion.datos);
       const contenido = await this.generador.generarArchivo(
         exportacion.formato,
         documento,
