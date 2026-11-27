@@ -85,6 +85,18 @@ fallar al menos una prueba.
 - **FE-174:** rutas de FE-172 §4 sobre este flujo (README «Gastos de funcionamiento»), validación en DTO y traducción de errores.
 - **FE-175:** formulario, selector de mes y totales con `consultar_gastos_mes`; anulados marcados en la tabla.
 - **FE-176:** reproducir el ejemplo de FE-172 por API y pantalla.
-- Supabase: 021 no aplicada. Antes, comprobar que `movimientos_contables` no tenga filas `egreso` que incumplan las reglas
-  nuevas (hoy no hay código que escriba en la tabla). No se probó con Supabase Auth real: el usuario se simula con
-  `app.usuario_id`, como el backend.
+- No se probó con Supabase Auth real: el usuario se simula con `app.usuario_id`, como el backend.
+
+## Aplicación en Supabase (26/11/2026)
+
+La 022 se aplicó sola: no depende de la 019 ni de la 021, que siguen sin aplicar en Supabase.
+
+| Paso | Resultado |
+|---|---|
+| Comprobación previa (solo lectura) | `movimientos_contables` vacía; sin funciones, índice ni columnas con los nombres nuevos |
+| Respaldo del esquema `public` (`pg_dump` 17) | `fundacion-public-20261126-2101.dump`, fuera del repositorio |
+| Ensayo sobre el respaldo restaurado (`ensayo-actualizacion.mjs --desde-respaldo … --aplicar 022`) | Sin error, filas previas sin cambios, RLS activo, `anon` sin filas; respaldo, restauración y reversión idénticos |
+| Prueba en seco con `rollback` y aplicación en una transacción | 31 tablas, RLS en todas, 6/6 funciones, ninguna `security definer` para `anon`, conteos iguales |
+| Prueba de humo con `rollback` | Registrar internet 120.00 → total `120.00`; anular → `0.00`; otro rol → `42501`; después, 0 filas y auditoría sin cambios |
+
+`anon` puede ejecutar la función de trigger `controlar_gasto`, como en la 012 y la 020: PostgreSQL no permite llamarla fuera de un trigger.
