@@ -62,6 +62,7 @@ export interface DocumentoInvestigacion {
   categorias: EtiquetaEnDocumento[]
   diagnostico?: {
     origen: string
+    evaluacionInicial?: string | null
     diagnosticoIngreso: string | null
     hipotesisRelacional: string | null
     comentariosClinicos: string | null

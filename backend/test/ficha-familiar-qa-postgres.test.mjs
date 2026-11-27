@@ -145,6 +145,7 @@ test('Q3 · dos ediciones parciales conservan los demás campos; null explícito
 test('Q4 · regresión: editar la familia no cambia el diagnóstico y viceversa', opciones, async () => {
   const fichaDiag = {
     fecha: '2026-11-20',
+    evaluacionInicial: 'Evaluación familiar ficticia QA',
     diagnosticoIngreso: 'Diagnóstico ficticio QA',
     hipotesisRelacional: 'Hipótesis ficticia QA',
     comentariosClinicos: null,
@@ -185,6 +186,7 @@ test('Q5 · fuente vigente: sin datos → alta → ficha, sin borrar el alta', o
   assert.equal(alta.diagnosticoIngreso, 'Diagnóstico del alta QA');
 
   await ok(guardarDiagnostico(casoSinFicha, {
+    evaluacionInicial: 'Evaluación inicial ficticia QA',
     fecha: '2026-11-21', diagnosticoIngreso: 'Diagnóstico de la ficha QA', hipotesisRelacional: null,
   }));
   const ficha = await ok(vigente(casoSinFicha));

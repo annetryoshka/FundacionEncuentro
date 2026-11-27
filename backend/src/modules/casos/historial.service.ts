@@ -74,6 +74,7 @@ export class HistorialService {
         `select json_build_object(
            'id', id,
            'fecha', to_char(fecha, 'YYYY-MM-DD'),
+           'evaluacionInicial', contenido ->> 'evaluacionInicial',
            'diagnosticoIngreso', contenido ->> 'diagnosticoIngreso',
            'hipotesisRelacional', contenido ->> 'hipotesisRelacional',
            'comentariosClinicos', contenido ->> 'comentariosClinicos',

@@ -35,7 +35,8 @@ export interface DiagnosticoSim {
   id: string
   casoId: string
   fecha: string
-  diagnosticoIngreso: string
+  evaluacionInicial?: string | null
+  diagnosticoIngreso: string | null
   hipotesisRelacional: string | null
   comentariosClinicos: string | null
   creadoPor: string
@@ -317,18 +318,25 @@ function cambiarCumplimiento(ctx: Contexto, caso: CasoVisible, id: string) {
 const diagnosticoDe = (ctx: Contexto, casoId: string) => ctx.expediente.diagnosticos.find((d) => d.casoId === casoId)
 
 function guardarDiagnostico(ctx: Contexto, caso: CasoVisible) {
-  const { fecha, diagnosticoIngreso, hipotesisRelacional, comentariosClinicos } = ctx.cuerpo
+  const { fecha, evaluacionInicial, diagnosticoIngreso, hipotesisRelacional, comentariosClinicos } = ctx.cuerpo
   const errores: string[] = []
   if (!fechaValida(fecha)) errores.push('fecha must be a valid ISO 8601 date string')
-  if (!conTexto(diagnosticoIngreso)) errores.push('El diagnóstico de ingreso es obligatorio')
+  if (!conTexto(evaluacionInicial)) errores.push('La evaluación inicial es obligatoria')
+  for (const valor of [evaluacionInicial, diagnosticoIngreso, hipotesisRelacional, comentariosClinicos]) {
+    if (valor !== undefined && valor !== null && (typeof valor !== 'string' || valor.length > 10000)) {
+      errores.push('Los textos deben tener hasta 10000 caracteres')
+    }
+  }
   if (errores.length) return ctx.error(400, errores)
   const texto = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
   const previo = diagnosticoDe(ctx, caso.id)
   const ficha: DiagnosticoSim = {
+    ...previo,
     id: previo?.id ?? crypto.randomUUID(),
     casoId: caso.id,
     fecha: fecha as string,
-    diagnosticoIngreso: (diagnosticoIngreso as string).trim(),
+    evaluacionInicial: (evaluacionInicial as string).trim(),
+    diagnosticoIngreso: texto(diagnosticoIngreso),
     hipotesisRelacional: texto(hipotesisRelacional),
     comentariosClinicos: texto(comentariosClinicos),
     creadoPor: previo?.creadoPor ?? ctx.yo.id,
@@ -583,6 +591,7 @@ export function expedienteInicial(ids: { caso1: string; sofia: string; direccion
         id: '50000000-0000-4000-8000-000000000001',
         casoId: ids.caso1,
         fecha: '2026-10-12',
+        evaluacionInicial: 'Entrevista inicial ficticia con la familia.',
         diagnosticoIngreso: 'Dificultades de comunicación en el sistema familiar.',
         hipotesisRelacional: null,
         comentariosClinicos: null,

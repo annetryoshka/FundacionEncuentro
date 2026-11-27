@@ -356,6 +356,7 @@ function diagnosticoVigente(ctx: Contexto3, caso: CasoSprint3) {
       origen: 'sin_datos',
       fichaId: null,
       fichaFecha: null,
+      evaluacionInicial: null,
       diagnosticoIngreso: null,
       hipotesisRelacional: null,
       comentariosClinicos: null,
@@ -366,6 +367,7 @@ function diagnosticoVigente(ctx: Contexto3, caso: CasoSprint3) {
     origen: 'ficha',
     fichaId: ficha.id,
     fichaFecha: ficha.fecha,
+    evaluacionInicial: ficha.evaluacionInicial ?? null,
     diagnosticoIngreso: ficha.diagnosticoIngreso,
     hipotesisRelacional: ficha.hipotesisRelacional,
     comentariosClinicos: ficha.comentariosClinicos,
@@ -796,6 +798,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
       { titulo: 'Identificación', contenido: caso.paciente.nombreCompleto },
       { titulo: 'Profesional responsable', contenido: terapeuta },
       { titulo: 'Objeto del informe', contenido: objeto },
+      ...(diag?.evaluacionInicial ? [{ titulo: 'Evaluación inicial', contenido: diag.evaluacionInicial }] : []),
       { titulo: 'Intervención y observaciones', contenido: seguimiento || 'Sin sesiones seleccionadas.' },
       { titulo: 'Conclusiones', contenido: 'Pendiente de redacción profesional.' },
     ]
@@ -804,7 +807,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
       { titulo: 'Identificación', contenido: caso.paciente.nombreCompleto },
       { titulo: 'Profesional responsable', contenido: terapeuta },
       ...(familia ? [{ titulo: 'Composición familiar', contenido: familia }] : []),
-      { titulo: 'Evaluación', contenido: diag?.diagnosticoIngreso || 'Sin datos registrados.' },
+      { titulo: 'Evaluación', contenido: [diag?.evaluacionInicial, diag?.diagnosticoIngreso, diag?.hipotesisRelacional].filter(Boolean).join('\n') || 'Sin datos registrados.' },
       { titulo: 'Intervención y evolución', contenido: seguimiento || 'Sin sesiones seleccionadas.' },
       { titulo: 'Conclusiones y recomendaciones', contenido: 'Pendiente de redacción profesional.' },
     ]
@@ -815,7 +818,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
     casoId: caso.id,
     tipo: c.tipo,
     nroVersion: 1,
-    versionPlantilla: c.tipo === 'judicial' ? 'fe151-judicial-v1' : 'fe151-sistemica-v1',
+    versionPlantilla: c.tipo === 'judicial' ? 'fe151-judicial-v2' : 'fe151-sistemica-v2',
     estado: 'borrador',
     secciones,
     creadoPor: ctx.yo.id,
@@ -1501,6 +1504,7 @@ function contenidoPaquete(ctx: Contexto3, p: PaqueteSim) {
       doc.diagnostico = diag
         ? {
             origen: 'ficha',
+            ...(diag.evaluacionInicial ? { evaluacionInicial: diag.evaluacionInicial } : {}),
             diagnosticoIngreso: diag.diagnosticoIngreso,
             hipotesisRelacional: diag.hipotesisRelacional,
             comentariosClinicos: diag.comentariosClinicos,

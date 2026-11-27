@@ -16,6 +16,7 @@ const casoId = '10000000-0000-4000-8000-000000000013';
 
 const datos = (): GuardarDiagnosticoDto => ({
   fecha: '2026-11-11',
+  evaluacionInicial: 'Evaluación inicial ficticia de QA.',
   diagnosticoIngreso: 'Evaluación ficticia de QA.',
   hipotesisRelacional: null,
   comentariosClinicos: null,
@@ -26,6 +27,7 @@ const ficha = () => ({
   caso_id: casoId,
   fecha: '2026-11-11',
   contenido: {
+    evaluacionInicial: 'Evaluación inicial ficticia de QA.',
     diagnosticoIngreso: 'Evaluación ficticia de QA.',
     hipotesisRelacional: null,
     comentariosClinicos: null,
@@ -126,6 +128,7 @@ describe('FE-68: servicio de diagnóstico', () => {
     expect(parametros[0]).toBe(casoId);
     expect(parametros[1]).toBe('2026-11-11');
     expect(JSON.parse(parametros[2])).toEqual({
+      evaluacionInicial: 'Evaluación inicial ficticia de QA.',
       diagnosticoIngreso: 'Evaluación ficticia de QA.',
       hipotesisRelacional: null,
       comentariosClinicos: 'Comentario ficticio.',
@@ -186,17 +189,27 @@ describe('FE-68: validación de diagnóstico', () => {
 
   it('acepta omitir campos opcionales', async () => {
     expect(await errores({
+      diagnosticoIngreso: undefined,
       hipotesisRelacional: undefined,
       comentariosClinicos: undefined,
     })).toHaveLength(0);
   });
 
-  for (const diagnosticoIngreso of [undefined, null, '', '   ', 123]) {
-    it(`rechaza diagnóstico inválido: ${String(diagnosticoIngreso)}`, async () => {
-      expect((await errores({ diagnosticoIngreso })).length)
+  for (const evaluacionInicial of [undefined, null, '', '   ', 123]) {
+    it(`rechaza evaluación inválida: ${String(evaluacionInicial)}`, async () => {
+      expect((await errores({ evaluacionInicial })).length)
         .toBeGreaterThan(0);
     });
   }
+
+  for (const diagnosticoIngreso of [undefined, null, '', '   ']) {
+    it(`permite diagnóstico ausente: ${String(diagnosticoIngreso)}`, async () => {
+      expect(await errores({ diagnosticoIngreso })).toHaveLength(0);
+    });
+  }
+  it('rechaza un diagnóstico no textual aunque sea opcional', async () => {
+    expect((await errores({ diagnosticoIngreso: 123 })).length).toBeGreaterThan(0);
+  });
 
   for (const fecha of [undefined, null, '2026-02-30', '11/11/2026']) {
     it(`rechaza fecha inválida: ${String(fecha)}`, async () => {
@@ -210,7 +223,7 @@ describe('FE-68: validación de diagnóstico', () => {
   });
 
   for (const campo of [
-    'diagnosticoIngreso', 'hipotesisRelacional', 'comentariosClinicos',
+    'evaluacionInicial', 'diagnosticoIngreso', 'hipotesisRelacional', 'comentariosClinicos',
   ]) {
     it(`rechaza ${campo} con más de 10000 caracteres`, async () => {
       expect((await errores({ [campo]: 'a'.repeat(10001) })).length)

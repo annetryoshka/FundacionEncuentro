@@ -220,6 +220,11 @@ function Documento({ documento: d }: { documento: DocumentoInvestigacion }) {
       {d.diagnostico && (
         <section className="mt-4">
           <h3 className="text-sm font-semibold text-texto">Diagnóstico de ingreso</h3>
+          {d.diagnostico.evaluacionInicial && (
+            <p className="mt-1 whitespace-pre-line">
+              <span className="font-semibold">Evaluación inicial:</span> {d.diagnostico.evaluacionInicial}
+            </p>
+          )}
           <p className="mt-1 whitespace-pre-line">{d.diagnostico.diagnosticoIngreso ?? 'Sin dato.'}</p>
           {d.diagnostico.hipotesisRelacional && (
             <p className="mt-1 whitespace-pre-line text-texto">

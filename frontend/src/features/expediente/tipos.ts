@@ -60,6 +60,7 @@ export interface Diagnostico {
   id: string
   casoId: string
   fecha: string
+  evaluacionInicial: string | null
   diagnosticoIngreso: string | null
   hipotesisRelacional: string | null
   comentariosClinicos: string | null
@@ -71,7 +72,8 @@ export interface Diagnostico {
 
 export interface DiagnosticoAGuardar {
   fecha: string
-  diagnosticoIngreso: string
+  evaluacionInicial: string
+  diagnosticoIngreso: string | null
   hipotesisRelacional: string | null
   comentariosClinicos: string | null
 }
