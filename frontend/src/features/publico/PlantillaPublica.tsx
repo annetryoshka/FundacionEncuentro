@@ -45,6 +45,9 @@ export function PlantillaPublica({ anchoCompleto = false }: { anchoCompleto?: bo
             <NavLink to="/publicaciones" className={claseEnlace}>
               Actividades
             </NavLink>
+            <NavLink to="/investigaciones" className={claseEnlace}>
+              Investigaciones
+            </NavLink>
             <Link to={{ pathname: '/', hash: '#contacto' }} className={claseEnlace({ isActive: false })}>
               Contacto
             </Link>

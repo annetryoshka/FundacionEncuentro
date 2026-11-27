@@ -85,6 +85,26 @@ describe('Origen y consentimiento', () => {
     })
   })
 
+  it('FE-190 · con el consentimiento pendiente avisa que la atención continúa, sin presentarlo como registrado', async () => {
+    const { usuario } = await abrirFormulario()
+    expect(screen.getByText(/La atención puede continuar mientras tanto/)).toBeInTheDocument()
+    await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(
+      await screen.findByText(/El consentimiento todavía no está registrado\. La atención puede continuar/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Fecha del consentimiento')).not.toBeInTheDocument()
+    expect(screen.queryByText('Registrada')).not.toBeInTheDocument()
+  })
+
+  it('FE-190 · con el consentimiento pendiente se puede registrar una sesión (no bloquea la atención)', async () => {
+    const { usuario } = await abrirFormulario()
+    await usuario.click(screen.getByRole('button', { name: 'Guardar' }))
+    await screen.findByText(/El consentimiento todavía no está registrado/)
+    await usuario.click(screen.getByRole('link', { name: /Sesiones y tareas/ }))
+    await usuario.click(await screen.findByRole('link', { name: 'Registrar sesión' }))
+    expect(await screen.findByLabelText('Fecha de la sesión')).toBeEnabled()
+  })
+
   it('origen judicial exige el juzgado y no envía nada sin él (hallazgo de QA en #35)', async () => {
     const { usuario, fetchEspia } = await abrirFormulario()
     await usuario.click(screen.getByLabelText('El caso proviene de un juzgado'))

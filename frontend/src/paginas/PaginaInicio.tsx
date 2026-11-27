@@ -50,6 +50,14 @@ export function PaginaInicio() {
             </li>
             <li>
               <EnlaceAcceso
+                a="/gastos"
+                icono="pago"
+                titulo="Gastos del mes"
+                descripcion="Internet, electricidad, alquiler y otros gastos, con el total mensual."
+              />
+            </li>
+            <li>
+              <EnlaceAcceso
                 a="/difusion"
                 icono="megafono"
                 titulo="Difusión"
@@ -143,7 +151,15 @@ function SinAccesoClinico() {
       <h2 id="inicio-difusion" className="text-lg font-semibold text-verde-oscuro">
         Difusión
       </h2>
-      <ul className="grid gap-3 sm:grid-cols-2">
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <li>
+          <EnlaceAcceso
+            a="/articulos"
+            icono="informe"
+            titulo="Artículos de investigación"
+            descripcion="Artículos autorizados para la sección «Investigaciones» del portal."
+          />
+        </li>
         <li>
           <EnlaceAcceso
             a="/difusion"

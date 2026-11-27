@@ -15,11 +15,11 @@ describe('FE-150 · navegación pública sin sesión', () => {
     expect(document.getElementById('contenido')?.tagName).toBe('MAIN')
   })
 
-  it('con el teclado se llega, en orden, al logo, Ingreso del personal e Inicio, Actividades y Contacto', async () => {
+  it('con el teclado se llega, en orden, al logo, Ingreso del personal e Inicio, Actividades, Investigaciones y Contacto', async () => {
     const { usuario } = montarSinSesion('/publicaciones')
     await screen.findByRole('heading', { level: 1 })
     const orden: string[] = []
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       await usuario.tab()
       orden.push((document.activeElement?.textContent ?? '').trim())
     }
@@ -28,13 +28,14 @@ describe('FE-150 · navegación pública sin sesión', () => {
     expect(posicion('Fundación Encuentro')).toBeLessThan(posicion('Ingreso del personal'))
     expect(posicion('Ingreso del personal')).toBeLessThan(orden.indexOf('Inicio'))
     expect(orden.indexOf('Inicio')).toBeLessThan(orden.indexOf('Actividades'))
-    expect(orden.indexOf('Actividades')).toBeLessThan(orden.indexOf('Contacto'))
+    expect(orden.indexOf('Actividades')).toBeLessThan(orden.indexOf('Investigaciones'))
+    expect(orden.indexOf('Investigaciones')).toBeLessThan(orden.indexOf('Contacto'))
   })
 
   it('la navegación del portal no ofrece ninguna sección del personal', async () => {
     montarSinSesion('/publicaciones')
     const nav = within(await screen.findByRole('navigation', { name: 'Portal' }))
-    expect(nav.getAllByRole('link').map((a) => a.textContent?.trim())).toEqual(['Inicio', 'Actividades', 'Contacto'])
+    expect(nav.getAllByRole('link').map((a) => a.textContent?.trim())).toEqual(['Inicio', 'Actividades', 'Investigaciones', 'Contacto'])
     expect(screen.getByRole('link', { name: /Ingreso del personal/ })).toHaveAttribute('href', '/login')
     for (const privado of [/Carpetas/, /Indicadores/, /Difusión/, /Importaci/, /Gastos/, /Cerrar sesión/]) {
       expect(screen.queryByRole('link', { name: privado })).not.toBeInTheDocument()

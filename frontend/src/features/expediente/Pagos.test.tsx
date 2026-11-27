@@ -95,4 +95,28 @@ describe('Pagos', () => {
     expect((await pagar({ monto: '80' })).status).toBe(409)
     expect((await pagar({ monto: '-5' })).status).toBe(400)
   })
+
+  it('FE-190 · explica las reglas ratificadas: un pago completo por sesión, solo QR o transferencia', async () => {
+    await montarApp(`/carpetas/${CARPETA_DE_SOFIA}/pagos`)
+    expect(await screen.findByText(/Cada sesión lleva un solo pago, completo: sin cuotas/)).toBeInTheDocument()
+    expect(screen.getByText('Solo QR o transferencia: el pago en efectivo no está habilitado.')).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: /Efectivo/i })).not.toBeInTheDocument()
+  })
+
+  it('FE-190 · un 409 (la sesión ya tiene otro pago) se explica con la regla, sin duplicar', async () => {
+    const { usuario, fetchEspia } = await montarApp(`/carpetas/${CARPETA_DE_SOFIA}/pagos`)
+    await usuario.selectOptions(await screen.findByLabelText('Sesión'), SESION_2)
+    await usuario.type(screen.getByLabelText('Monto (Bs)'), '75')
+    await usuario.click(screen.getByRole('radio', { name: 'QR' }))
+    const simulado = fetchEspia.getMockImplementation()!
+    fetchEspia.mockImplementationOnce((url, init) =>
+      (init as RequestInit)?.method === 'POST'
+        ? Promise.resolve(
+            Response.json({ message: 'La sesión ya tiene un pago registrado con otros datos' }, { status: 409 }),
+          )
+        : simulado(url, init),
+    )
+    await usuario.click(screen.getByRole('button', { name: 'Registrar pago' }))
+    expect(await screen.findByText(/Cada sesión lleva un solo pago: no se suma ni se reemplaza/)).toBeInTheDocument()
+  })
 })

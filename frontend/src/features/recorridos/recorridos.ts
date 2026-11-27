@@ -56,12 +56,13 @@ const INICIO: PasoRecorrido[] = [
   {
     elemento: 'administracion',
     titulo: 'Administración',
-    texto: 'Indicadores, difusión, registros antiguos y cuentas del personal. Pulsa la que necesites.',
+    texto: 'Indicadores, gastos del mes, difusión, registros antiguos y cuentas del personal. Pulsa la que necesites.',
   },
   {
     elemento: 'inicio-difusion',
     titulo: 'Difusión',
-    texto: 'Tu trabajo está aquí: las publicaciones de la Fundación y el portal público que ven los visitantes.',
+    texto:
+      'Tu trabajo está aquí: las publicaciones, los artículos de investigación y el portal público que ven los visitantes.',
   },
   {
     elemento: 'cerrar-sesion',
@@ -438,6 +439,66 @@ const HISTORIAL: PasoRecorrido[] = [
   },
 ]
 
+const ARTICULOS: PasoRecorrido[] = [
+  {
+    titulo: 'Artículos de investigación',
+    texto:
+      'Aquí se preparan los artículos que la Fundación comparte en «Investigaciones» del portal público. No llevan datos de pacientes ni comentarios.',
+  },
+  {
+    elemento: 'nuevo-articulo',
+    titulo: 'Escribir uno nuevo',
+    texto: 'Pulsa «Nuevo artículo». Se guarda como borrador: nadie de afuera lo ve hasta que lo publiques.',
+  },
+  {
+    elemento: 'filtro-articulos',
+    titulo: 'Filtrar',
+    texto: 'Elige un estado para ver solo los borradores, los publicados o los retirados.',
+  },
+  {
+    elemento: 'lista-articulos',
+    titulo: 'Abrir un artículo',
+    texto: 'Pulsa un artículo para corregirlo, publicarlo o retirarlo del portal.',
+  },
+  PAGINACION,
+  MENU,
+]
+
+const GASTOS: PasoRecorrido[] = [
+  {
+    titulo: 'Gastos del mes',
+    texto: 'Aquí se anotan los gastos de funcionamiento de la Fundación: internet, electricidad, alquiler y otros.',
+  },
+  {
+    elemento: 'gastos-mes',
+    titulo: 'Elegir el mes',
+    texto: 'Con las flechas o el calendario pasas de un mes a otro. Todo lo de abajo es del mes elegido.',
+  },
+  {
+    elemento: 'gastos-totales',
+    titulo: 'Totales',
+    texto: 'Lo gastado en el mes y cuánto fue en cada tipo de gasto. Los gastos anulados no suman.',
+  },
+  {
+    elemento: 'gastos-registrar',
+    titulo: 'Registrar un gasto',
+    texto:
+      'Elige el tipo, la fecha y el monto en bolivianos, y pulsa «Guardar gasto». En «Otros gastos» escribe también qué fue.',
+  },
+  {
+    elemento: 'gastos-lista',
+    titulo: 'Gastos del mes',
+    texto: 'Cada gasto anotado, con su fecha y monto.',
+  },
+  {
+    elemento: 'gastos-acciones',
+    titulo: 'Corregir o anular',
+    texto:
+      'Si un gasto se anotó mal, pulsa «Corregir». Si no debía estar, pulsa «Anular»: queda a la vista como anulado y deja de sumar.',
+  },
+  MENU,
+]
+
 /**
  * Todas las pantallas internas de App.tsx. Están todas (también las que aún no tienen recorrido) para que
  * una ruta fija como /carpetas/nueva no se confunda con /carpetas/:id.
@@ -467,6 +528,10 @@ export const RECORRIDOS: Record<string, PasoRecorrido[] | null> = {
   '/investigacion': null,
   '/investigacion/exportaciones/:id': null,
   '/indicadores': null,
+  '/gastos': GASTOS,
+  '/articulos': ARTICULOS,
+  '/articulos/nuevo': null,
+  '/articulos/:id': null,
   '/usuarios': null,
 }
 
