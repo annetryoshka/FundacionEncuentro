@@ -247,6 +247,28 @@ export function PaginaCarpeta() {
             />
           )}
 
+          {/* Sprint 2 · Expediente clínico: lo más usado, arriba de todo, antes del resumen */}
+          <Tarjeta data-recorrido="expediente">
+            <h2 className="text-lg font-semibold text-verde-oscuro">Expediente clínico</h2>
+            <ul
+              className={`mt-4 grid gap-3 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2 lg:[&>li:last-child:nth-child(odd)]:col-span-1 ${
+                apartados.length % 4 === 0 ? 'lg:grid-cols-4' : 'lg:grid-cols-4 xl:grid-cols-5'
+              }`}
+            >
+              {apartados.map((a) => (
+                <li key={a.ruta}>
+                  <EnlaceAcceso
+                    a={`/carpetas/${carpeta.id}/${a.ruta}`}
+                    icono={a.icono}
+                    titulo={a.nombre}
+                    descripcion={a.descripcion}
+                    apilado
+                  />
+                </li>
+              ))}
+            </ul>
+          </Tarjeta>
+
           {/* FE-124 · Datos generales antes del contexto familiar y del historial. */}
           <Tarjeta>
             <h2 className="text-lg font-semibold text-verde-oscuro">Resumen</h2>
@@ -289,28 +311,6 @@ export function PaginaCarpeta() {
           <div data-recorrido="contexto-paciente">
             <ResumenFicha carpeta={carpeta} />
           </div>
-
-          {/* Sprint 2 · Expediente clínico: lo más usado, justo bajo el encabezado */}
-          <Tarjeta data-recorrido="expediente">
-            <h2 className="text-lg font-semibold text-verde-oscuro">Expediente clínico</h2>
-            <ul
-              className={`mt-4 grid gap-3 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2 lg:[&>li:last-child:nth-child(odd)]:col-span-1 ${
-                apartados.length % 4 === 0 ? 'lg:grid-cols-4' : 'lg:grid-cols-4 xl:grid-cols-5'
-              }`}
-            >
-              {apartados.map((a) => (
-                <li key={a.ruta}>
-                  <EnlaceAcceso
-                    a={`/carpetas/${carpeta.id}/${a.ruta}`}
-                    icono={a.icono}
-                    titulo={a.nombre}
-                    descripcion={a.descripcion}
-                    apilado
-                  />
-                </li>
-              ))}
-            </ul>
-          </Tarjeta>
 
           {/* Acciones de administración y exportación, después de la lectura del contexto. */}
           <div className="space-y-6">

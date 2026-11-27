@@ -24,13 +24,13 @@ const padre: Familiar = {
 }
 
 describe('FE-124 · resumen familiar', () => {
-  it('sitúa los datos generales antes del contexto y el historial', async () => {
+  it('sitúa el expediente clínico arriba, luego los datos generales y después el contexto', async () => {
     await montarApp(`/carpetas/${CARPETA_DE_SOFIA}`, 'sofia')
     const generales = await screen.findByRole('heading', { name: 'Resumen' })
     const contexto = screen.getByRole('heading', { name: 'Contexto del paciente' })
     const historial = screen.getByRole('link', { name: /^Historial/ })
+    expect(historial.compareDocumentPosition(generales) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(generales.compareDocumentPosition(contexto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(contexto.compareDocumentPosition(historial) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('muestra edad con referencia, ocupación y lugar sin exponer observaciones del detalle', () => {

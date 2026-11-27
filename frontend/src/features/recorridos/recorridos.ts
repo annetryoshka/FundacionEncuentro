@@ -123,14 +123,14 @@ const CARPETA: PasoRecorrido[] = [
     texto: 'Si un dato del paciente está mal, pulsa «Editar datos». El número de carpeta nunca cambia.',
   },
   {
-    elemento: 'contexto-paciente',
-    titulo: 'Contexto del paciente',
-    texto: 'Familia, genograma y diagnóstico. Pulsa en cada uno para verlo o completarlo.',
-  },
-  {
     elemento: 'expediente',
     titulo: 'Expediente clínico',
     texto: 'Cada botón abre una parte del expediente: sesiones, historial, constancia y las demás.',
+  },
+  {
+    elemento: 'contexto-paciente',
+    titulo: 'Contexto del paciente',
+    texto: 'Familia, genograma y diagnóstico. Pulsa en cada uno para verlo o completarlo.',
   },
   {
     elemento: 'clasificacion-estado',

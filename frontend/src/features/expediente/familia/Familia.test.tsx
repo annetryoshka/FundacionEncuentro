@@ -163,7 +163,7 @@ describe('Composición familiar', () => {
     expect(await screen.findByRole('heading', { name: 'No encontramos esta carpeta' })).toBeInTheDocument()
   })
 
-  it('el resumen de la carpeta muestra familia, genograma y diagnóstico antes de los apartados', async () => {
+  it('el resumen de la carpeta muestra familia, genograma y diagnóstico después de los apartados', async () => {
     await montarApp(`/carpetas/${CARPETA_DE_SOFIA}`, 'sofia')
     const contexto = within((await screen.findByRole('heading', { name: 'Contexto del paciente' })).closest('div')!)
     expect(await contexto.findByText('Padre QA', { exact: false })).toBeInTheDocument()
@@ -172,12 +172,12 @@ describe('Composición familiar', () => {
       'href',
       `/carpetas/${CARPETA_DE_SOFIA}/familia`,
     )
-    // Orden de la ficha: la familia va antes que el historial.
+    // Los botones del expediente van arriba; el contexto familiar, después.
     const enlaces = screen.getAllByRole('link').map((a) => a.textContent ?? '')
     const familia = enlaces.findIndex((t) => t.startsWith('Ver composición familiar'))
     const historial = enlaces.findIndex((t) => t.startsWith('Historial'))
-    expect(familia).toBeGreaterThan(-1)
-    expect(familia).toBeLessThan(historial)
+    expect(historial).toBeGreaterThan(-1)
+    expect(historial).toBeLessThan(familia)
   })
 })
 
