@@ -97,7 +97,7 @@ function VistaFamilia({ carpeta }: { carpeta: CarpetaDetalle }) {
         <Tarjeta>
           <p className="text-lg font-semibold text-verde-oscuro">Sin composición familiar registrada</p>
           <p className="mt-1 text-suave">Todavía no se anotó quiénes forman la familia del paciente.</p>
-          <Boton className="mt-4" icono="mas" onClick={empezar}>
+          <Boton className="mt-4" icono="mas" onClick={empezar} data-recorrido="registrar-familia">
             Registrar composición familiar
           </Boton>
         </Tarjeta>
@@ -109,7 +109,7 @@ function VistaFamilia({ carpeta }: { carpeta: CarpetaDetalle }) {
                 ? 'Registrada sin integrantes'
                 : `${ficha.familiares.length} ${ficha.familiares.length === 1 ? 'integrante' : 'integrantes'}`}
             </h2>
-            <Boton variante="secundario" icono="editar" onClick={empezar}>
+            <Boton variante="secundario" icono="editar" onClick={empezar} data-recorrido="editar-familia">
               Editar composición
             </Boton>
           </div>
@@ -118,7 +118,7 @@ function VistaFamilia({ carpeta }: { carpeta: CarpetaDetalle }) {
               <p className="text-suave">La ficha familiar se guardó sin integrantes. Puedes agregarlos al editarla.</p>
             </Tarjeta>
           ) : (
-            <ul className="grid gap-3 md:grid-cols-2">
+            <ul className="grid gap-3 md:grid-cols-2" data-recorrido="lista-familia">
               {ficha.familiares.map((f) => (
                 <li key={f.id}>
                   <Tarjeta className="h-full">
@@ -270,7 +270,7 @@ function EditorFamilia({ carpetaId, ficha, alGuardar, alCancelar, alRecargar }: 
           ),
         )}
 
-        <Boton variante="secundario" icono="mas" onClick={agregar}>
+        <Boton variante="secundario" icono="mas" onClick={agregar} data-recorrido="agregar-integrante">
           Agregar integrante
         </Boton>
       </fieldset>
@@ -296,7 +296,13 @@ function EditorFamilia({ carpetaId, ficha, alGuardar, alCancelar, alRecargar }: 
         <Boton variante="secundario" icono="cerrar" onClick={alCancelar} disabled={guardando}>
           Cancelar
         </Boton>
-        <Boton type="submit" icono="guardar" cargando={guardando} textoCargando="Guardando…">
+        <Boton
+          type="submit"
+          icono="guardar"
+          cargando={guardando}
+          textoCargando="Guardando…"
+          data-recorrido="guardar-familia"
+        >
           Guardar composición
         </Boton>
       </div>

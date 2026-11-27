@@ -51,7 +51,7 @@ function VistaGenograma({ carpeta }: { carpeta: CarpetaDetalle }) {
         </Aviso>
       )}
       {datos ? (
-        <Tarjeta>
+        <Tarjeta data-recorrido="genograma-actual">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <h2 className="text-lg font-semibold break-words text-verde-oscuro">{datos.nombre}</h2>
@@ -165,7 +165,7 @@ function Visor({ carpetaId, info, paciente }: { carpetaId: string; info: Genogra
           </p>
         </object>
       )}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" data-recorrido="genograma-acciones">
         {esImagen(info.tipo) && (
           <Boton ref={refAmpliar} variante="secundario" icono="buscar" onClick={() => setAmpliado(true)}>
             Ampliar
@@ -276,7 +276,7 @@ function FormularioCarga({
   }
 
   return (
-    <Tarjeta>
+    <Tarjeta data-recorrido="subir-genograma">
       <h2 className="text-lg font-semibold text-verde-oscuro">
         {reemplaza ? 'Reemplazar genograma' : 'Subir genograma'}
       </h2>

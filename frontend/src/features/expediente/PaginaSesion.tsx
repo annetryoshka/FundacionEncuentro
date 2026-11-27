@@ -32,6 +32,7 @@ function DetalleSesion({ carpeta }: { carpeta: CarpetaDetalle }) {
   const volver = (
     <Link
       to={`/carpetas/${carpeta.id}/sesiones`}
+      data-recorrido="ver-sesiones"
       className="text-sm font-semibold text-naranja-texto underline-offset-4 hover:underline"
     >
       Ver todas las sesiones
@@ -61,7 +62,7 @@ function DetalleSesion({ carpeta }: { carpeta: CarpetaDetalle }) {
         </Aviso>
       )}
 
-      <Tarjeta>
+      <Tarjeta data-recorrido="detalle-sesion">
         <h2 className="text-xl font-semibold text-verde-oscuro">
           Sesión {sesion.numero} · {fechaLarga(sesion.fecha)}
         </h2>

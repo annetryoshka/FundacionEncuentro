@@ -85,6 +85,11 @@ src/
     auth/                 login (FE-21), sesión, rutas protegidas
     usuarios/             cuentas del personal (FE-28)
     carpetas/             búsqueda (FE-39), registro (FE-31), resumen y asignación (FE-36)
+    recorridos/           recorridos guiados del botón «?»
   paginas/                inicio, sin permiso, no encontrada
   test/montarApp.tsx      monta la app completa contra la API simulada
 ```
+
+## Recorridos guiados
+
+Las pantallas con recorrido muestran un botón «?» abajo a la derecha. Si cambias una de ellas, actualiza su recorrido en el mismo cambio: ver `AGENTS.md` en la raíz del repositorio.

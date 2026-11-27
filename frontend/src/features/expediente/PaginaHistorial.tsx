@@ -37,7 +37,7 @@ function VistaHistorial({ carpeta }: { carpeta: CarpetaDetalle }) {
 
   return (
     <div className="space-y-6">
-      <Seccion numero={1} titulo="Identificación">
+      <Seccion numero={1} titulo="Identificación" recorrido="historial-identificacion">
         <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
           <Dato titulo="Paciente">{caso.paciente.nombreCompleto}</Dato>
           <Dato titulo="Carpeta">
@@ -54,7 +54,12 @@ function VistaHistorial({ carpeta }: { carpeta: CarpetaDetalle }) {
         </dl>
       </Seccion>
 
-      <Seccion numero={2} titulo="Contexto y constancia" enlace={`/carpetas/${carpeta.id}/constancia`}>
+      <Seccion
+        numero={2}
+        titulo="Contexto y constancia"
+        enlace={`/carpetas/${carpeta.id}/constancia`}
+        recorrido="historial-constancia"
+      >
         {!constancia && !contexto ? (
           <SinRegistro />
         ) : (
@@ -110,7 +115,9 @@ function VistaHistorial({ carpeta }: { carpeta: CarpetaDetalle }) {
               Evaluación del {fechaLarga(diagnostico.fecha)} · Última actualización por{' '}
               {nombre(diagnostico.actualizadoPor)} el {fechaLarga(diagnostico.actualizadoEn)}
             </p>
-            <Texto titulo="Evaluación inicial">{diagnostico.evaluacionInicial ?? 'Sin evaluación inicial registrada'}</Texto>
+            <Texto titulo="Evaluación inicial">
+              {diagnostico.evaluacionInicial ?? 'Sin evaluación inicial registrada'}
+            </Texto>
             <Texto titulo="Diagnóstico de ingreso">{diagnostico.diagnosticoIngreso}</Texto>
             <Texto titulo="Hipótesis relacional">{diagnostico.hipotesisRelacional}</Texto>
             <Texto titulo="Comentarios clínicos">{diagnostico.comentariosClinicos}</Texto>
@@ -118,7 +125,12 @@ function VistaHistorial({ carpeta }: { carpeta: CarpetaDetalle }) {
         )}
       </Seccion>
 
-      <Seccion numero={4} titulo="Sesiones y tareas" enlace={`/carpetas/${carpeta.id}/sesiones`}>
+      <Seccion
+        numero={4}
+        titulo="Sesiones y tareas"
+        enlace={`/carpetas/${carpeta.id}/sesiones`}
+        recorrido="historial-sesiones"
+      >
         {sesiones.length === 0 ? (
           <SinRegistro />
         ) : (
@@ -194,15 +206,18 @@ function Seccion({
   numero,
   titulo,
   enlace,
+  recorrido,
   children,
 }: {
   numero: number
   titulo: string
   enlace?: string
+  /** Marca para el recorrido guiado (data-recorrido). */
+  recorrido?: string
   children: ReactNode
 }) {
   return (
-    <Tarjeta>
+    <Tarjeta data-recorrido={recorrido}>
       <div className="mb-4 flex items-baseline justify-between gap-3">
         <h2 className="text-lg font-semibold text-verde-oscuro">
           <span className="text-naranja-texto">{numero}.</span> {titulo}

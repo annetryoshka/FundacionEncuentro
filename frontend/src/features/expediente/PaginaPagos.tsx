@@ -32,7 +32,7 @@ function VistaPagos({ carpeta }: { carpeta: CarpetaDetalle }) {
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[3fr_2fr]">
-      <Tarjeta>
+      <Tarjeta data-recorrido="pagos-registrados">
         <h2 className="text-lg font-semibold text-verde-oscuro">Pagos registrados</h2>
         <div className="mt-4">
           {pagos.error !== undefined ? (
@@ -191,7 +191,7 @@ function FormularioPago({
     <Tarjeta>
       <form ref={refFormulario} onSubmit={enviar} noValidate className="space-y-5">
         <h2 className="text-lg font-semibold text-verde-oscuro">Registrar pago</h2>
-        <div>
+        <div data-recorrido="pago-sesion">
           <label htmlFor="pago-sesion" className="block text-sm font-semibold text-texto">
             Sesión
           </label>
@@ -216,15 +216,17 @@ function FormularioPago({
             </p>
           )}
         </div>
-        <CampoTexto
-          etiqueta="Monto (Bs)"
-          inputMode="decimal"
-          autoComplete="off"
-          placeholder="75,50"
-          value={monto}
-          onChange={(e) => setMonto(e.target.value)}
-          error={errores.monto}
-        />
+        <div data-recorrido="pago-monto">
+          <CampoTexto
+            etiqueta="Monto (Bs)"
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="75,50"
+            value={monto}
+            onChange={(e) => setMonto(e.target.value)}
+            error={errores.monto}
+          />
+        </div>
         <CampoTexto
           etiqueta="Fecha del pago"
           type="date"
@@ -233,17 +235,19 @@ function FormularioPago({
           onChange={(e) => setFecha(e.target.value)}
           error={errores.fecha}
         />
-        <GrupoOpciones<MetodoPago>
-          leyenda="Método"
-          nombre="metodo-pago"
-          valor={metodo}
-          alCambiar={setMetodo}
-          error={errores.metodo}
-          opciones={[
-            { valor: 'qr', nombre: 'QR' },
-            { valor: 'transferencia', nombre: 'Transferencia' },
-          ]}
-        />
+        <div data-recorrido="pago-metodo">
+          <GrupoOpciones<MetodoPago>
+            leyenda="Método"
+            nombre="metodo-pago"
+            valor={metodo}
+            alCambiar={setMetodo}
+            error={errores.metodo}
+            opciones={[
+              { valor: 'qr', nombre: 'QR' },
+              { valor: 'transferencia', nombre: 'Transferencia' },
+            ]}
+          />
+        </div>
         <CampoTexto
           etiqueta="Referencia (opcional)"
           value={referencia}
@@ -256,7 +260,13 @@ function FormularioPago({
             {resultado.texto}
           </Aviso>
         )}
-        <Boton type="submit" className="w-full" cargando={guardando} textoCargando="Registrando…">
+        <Boton
+          type="submit"
+          className="w-full"
+          cargando={guardando}
+          textoCargando="Registrando…"
+          data-recorrido="registrar-pago"
+        >
           Registrar pago
         </Boton>
       </form>

@@ -53,7 +53,11 @@ export function SeccionCarpeta({ titulo, children }: Props) {
         <h1 className="mt-1 text-2xl font-semibold text-verde-oscuro sm:text-3xl">{titulo}</h1>
       </div>
 
-      <nav aria-label="Apartados de la carpeta" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <nav
+        aria-label="Apartados de la carpeta"
+        data-recorrido="apartados"
+        className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+      >
         <ul className="flex min-w-max gap-2 border-b border-linea">
           {apartados.map((a) => (
             <li key={a.ruta}>

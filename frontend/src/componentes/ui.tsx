@@ -9,6 +9,7 @@ import {
   forwardRef,
   useId,
   type ButtonHTMLAttributes,
+  type HTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
   type Ref,
@@ -366,8 +367,13 @@ export function Insignia({ color = 'gris', children }: { color?: ColorInsignia; 
   )
 }
 
-export function Tarjeta({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded-3xl border border-linea bg-white p-5 sm:p-7 ${className}`}>{children}</section>
+/** Admite atributos extra, p. ej. data-recorrido para el recorrido guiado. */
+export function Tarjeta({ children, className = '', ...resto }: HTMLAttributes<HTMLElement>) {
+  return (
+    <section {...resto} className={`rounded-3xl border border-linea bg-white p-5 sm:p-7 ${className}`}>
+      {children}
+    </section>
+  )
 }
 
 export function EncabezadoPagina({
