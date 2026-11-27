@@ -1,61 +1,96 @@
-# FE-172 · Gastos y distribución básica de ingresos
+# FE-172 · Registro sencillo de gastos mensuales
 
-**Responsable:** Andrea Carolina Narváez Ortega.
+Responsable: Andrea Carolina Narváez Ortega.
 
-**Fecha:** 23/11/2026.
+Actualización de alcance: 26/11/2026, a partir de la indicación de Andrea para HU5/FE-5. Sustituye la propuesta anterior de distribución de ingresos. Base de código revisada: main e6c89bd.
 
-**Base revisada:** `main` en `37ed16bcca9bb3d6842c62f41b58a1bf17f7616f`.
+## 1. Alcance acordado
 
-**Estado:** propuesta funcional preparada; ratificación de alcance pendiente.
+Administración registra los gastos de funcionamiento de la Fundación y consulta cuánto se gastó en un mes. Se usa un formulario por gasto; internet, electricidad y alquiler son opciones de un selector, no tres importes que deban completarse juntos.
 
-HU FE-5 · RF-25. El detalle de la SRS deja este alcance por validar. Desbloquea FE-173/174/175/176 cuando se ratifique.
+Categorías iniciales:
 
-## 1. Decisión de apertura
+| Valor de API | Etiqueta visible |
+|---|---|
+| `internet` | Internet / Wi-Fi |
+| `electricidad` | Electricidad |
+| `alquiler` | Alquiler |
+| `otros` | Otros gastos |
 
-| Pregunta | Propuesta de trabajo | Estado |
+«Otros gastos» requiere una descripción breve. Se permiten varios gastos de una misma categoría en el mes. El resumen suma los registros vigentes; no presume que cada servicio se paga una única vez.
+
+Esta entrega incluye registro, consulta mensual, corrección y anulación de un gasto equivocado. La distribución de ingresos entre personas sale del alcance de HU5; no existe porcentaje ni cálculo de reparto que el equipo deba esperar para empezar. Tampoco se implementan pagos de servicios ni una contabilidad general.
+
+## 2. Campos mínimos
+
+| Campo | Regla |
+|---|---|
+| Tipo de gasto (`categoria`) | Obligatorio: internet, electricidad, alquiler u otros. |
+| Fecha del gasto (`fecha`) | Obligatoria, calendario válido AAAA-MM-DD, no futura; el mes se deriva de esta fecha. |
+| Monto (`monto`) | BOB, positivo, hasta dos decimales, máximo 99999999.99 según numeric(10,2). No redondear silenciosamente un tercer decimal. |
+| Descripción (`descripcion`) | Opcional hasta 200 caracteres; obligatoria y distinta de espacios para otros. |
+| ID, registrado por y fechas de auditoría | Los asigna el servidor; no se confían al cliente. |
+| Estado de anulación | Interno, con autor/fecha; un gasto anulado se conserva pero no suma en el total. |
+
+El formulario muestra moneda fija «Bs». No exige factura, proveedor, cuenta bancaria, número de paciente ni aprobación de una regla de reparto. Guardar desactiva el botón mientras se procesa la solicitud y Cancelar no escribe cambios.
+
+## 3. Pantalla y consulta
+
+Una pantalla de administración contiene «Registrar gasto», selector de mes, tabla (fecha, tipo, descripción, monto y acciones), total del mes y totales por categoría. Un mes sin movimientos muestra lista vacía y Bs 0,00. La confirmación de anulación explica que el registro dejará de sumar; los anulados siguen identificables en la consulta.
+
+La corrección conserva trazabilidad y recalcula el mes afectado; si cambia la fecha a otro mes, el gasto sale del total anterior y entra en el nuevo. El total nunca suma dos veces un mismo ID. Administración es el único rol autorizado, también mediante acceso directo a la API.
+
+## 4. Contrato técnico propuesto para el equipo
+
+Estas rutas todavía no existen en main y se acordarán en FE-173/174:
+
+| Método y ruta | Operación |
+|---|---|
+| POST `/api/gastos` | Registrar categoría, fecha, monto y descripción. |
+| GET `/api/gastos?mes=2026-11` | Devolver lista del mes, totalMes y totalesPorCategoria; por defecto, mes actual en Bolivia. |
+| PATCH `/api/gastos/:id` | Corregir los campos de un gasto vigente con auditoría. |
+| POST `/api/gastos/:id/anular` | Anular con confirmación; repetir la anulación no vuelve a restar. |
+
+Alejandro parte de `movimientos_contables`: usar `tipo = egreso`, monto, fecha, descripción, categoría y autoría; preparar la ampliación mínima para anular y validar categorías. Un gasto de funcionamiento no lleva pago_id de una sesión. No se transforma en un ingreso ni se registran pagos clínicos duplicados.
+
+Ejemplo de registro ficticio:
+
+```json
+{
+  "categoria": "internet",
+  "fecha": "2026-11-20",
+  "monto": "120.00",
+  "descripcion": "Servicio mensual ficticio"
+}
+```
+
+Conservar montos exactos como decimal en API y numeric en SQL. Los detalles de serialización y corrección se revisan entre Alejandro, Emilia y Jorge antes de conectar la pantalla. Usar la auditoría existente; no crear un flujo adicional de aprobaciones.
+
+## 5. Ejemplo de aceptación, completamente ficticio
+
+| Fecha | Tipo | Monto BOB |
+|---|---|---:|
+| 2026-11-20 | Internet / Wi-Fi | 120.00 |
+| 2026-11-21 | Electricidad | 80.00 |
+| 2026-11-22 | Alquiler | 1500.00 |
+| Total de noviembre | | 1700.00 |
+
+- Corregir electricidad a 85.00 cambia el total a 1705.00.
+- Anular internet deja el total en 1585.00; repetir la anulación conserva ese total.
+- Consultar diciembre sin gastos muestra 0.00.
+- Rechazar monto cero, negativo o con tres decimales, fecha inválida/futura, categoría desconocida y «otros» sin descripción. No dejar escrituras parciales.
+- Terapeuta, marketing y visitante no pueden registrar, corregir, anular ni consultar los gastos.
+
+Los importes son inventados para QA: no son costos reales de la Fundación.
+
+## 6. Subtareas y cierre
+
+| Subtarea | Responsable | Entregable |
 |---|---|---|
-| ¿Se requiere registrar gastos en esta entrega? | Registro administrativo mínimo por período. | Pendiente de la Fundación. |
-| ¿Cómo se distribuyen ingresos? | Aplicar solo una regla documentada: destinatarios/base/porcentajes o montos y vigencia. | No definida; no inventar reparto entre personas. |
-| ¿Se necesita corregir/anular? | Corrección con trazabilidad, sin borrar evidencia. | Por confirmar. |
-| ¿Se maneja efectivo? | Coordinar con DEC-P02 de FE-188; no añadirlo solo en contabilidad. | Pendiente. |
+| FE-172 | Andrea | Campos, categorías, reglas y ejemplo de aceptación de este contrato. |
+| FE-173 | Alejandro | Persistencia mínima y suma mensual exacta, conservando auditoría. |
+| FE-174 | Emilia, revisión de Adriana | API administrativa de registro, consulta, corrección y anulación. |
+| FE-175 | Jorge | Formulario, lista mensual y totales con estados de carga/error/vacío. |
+| FE-176 | Gemina, revisión de Emilia | Comprobar el ejemplo ficticio, permisos y totales; registrar evidencia. |
 
-Si se descarta el alcance, documentar la exclusión y retirar FE-5 del compromiso. No cerrar como implementado.
-
-## 2. Contrato mínimo propuesto
-
-Gasto: id servidor, fecha válida, concepto requerido, monto BOB positivo de hasta dos decimales, categoría opcional y autoría. El período y la fecha de pago/gasto determinan la conciliación.
-
-Ingresos: derivar de pagos existentes, sin registrar un segundo “ingreso” contable que duplique el mismo pago. Mantener separados ingreso, gasto y saldo.
-
-`saldoPeriodo = ingresosPeriodo - gastosPeriodo`. No confundir saldo con importe distribuible hasta acordar su base.
-
-Propuesta de API nueva: registro/listado de gastos, consulta de totales por período y distribución solo si existe regla vigente. Administración exclusivamente. No facturación, impuestos ni conciliación bancaria automática.
-
-## 3. Ejemplo completamente ficticio
-
-Período 20–21/11/2026, consistente con FE-134:
-
-| Concepto | BOB |
-|---|---:|
-| Pago A | 75.50 |
-| Pago B | 100.00 |
-| Ingresos | 175.50 |
-| Gasto QA 1 | 25.00 |
-| Gasto QA 2 | 10.00 |
-| Gastos | 35.00 |
-| Saldo | 140.50 |
-| Distribución | Sin regla definida. |
-
-Los montos no son tarifas ni gastos reales de la Fundación. Sin regla, la interfaz muestra “Distribución pendiente de definir”; nunca divide el saldo entre tres personas por defecto.
-
-## 4. Aceptación
-
-- Registrar un gasto válido y recargar conserva fecha, monto, concepto y autor.
-- Cero, negativo, fecha imposible y tres decimales se rechazan sin redondeo silencioso.
-- Cambiar de período cambia las mismas fuentes de detalle y totales.
-- Reintentar una petición no debe duplicar el gasto: acordar identificador de solicitud antes de codificar.
-- Una corrección conserva evidencia y deja claro su efecto en totales.
-- Terapeuta/marketing no obtienen datos financieros por API.
-- Una fórmula de reparto se aplica solo tras registrar su aprobación y vigencia.
-
-**Para completar FE-172:** obtener decisión de alcance y regla de distribución verificable. Este documento ya permite preparar modelo, pantalla y conciliación ficticia sin inventar esa regla.
+La PO ya confirmó el alcance básico. Cada implementación y su verificación siguen pendientes de los entregables respectivos; este documento no certifica la API ni la pantalla como terminadas.
