@@ -558,12 +558,13 @@ frontend puede consultar de nuevo los metadatos para refrescar la ficha.
 
 ## Borradores de informes (FE-153)
 
-Las tres rutas requieren una terapeuta autenticada y asignada al caso.
+Las cuatro rutas requieren una terapeuta autenticada y asignada al caso.
 `versionId` es el `id` de la versión devuelta por el POST.
 
 | Método y ruta | Cuerpo | Respuesta |
 | --- | --- | --- |
 | `POST /api/carpetas/:id/informes` | `tipo` (`intervencion_sistemica` o `judicial`). Opcionales: `sesionesIds`, `incluirFamilia`, `incluirGenograma` y `objeto`. | `201` con `id`, `informeId`, `nroVersion`, `estado` y `creadoPor`. |
+| `GET /api/carpetas/:id/informes` | Sin cuerpo. | `200` con `informes`: las versiones del caso, la más reciente primero, con `id`, `informeId`, `tipo`, `nroVersion`, `estado`, `creadoPor`, `creadoEn`, `revisadoPor` y `revisadoEn` (sin las secciones). |
 | `GET /api/carpetas/:id/informes/:versionId` | Sin cuerpo. | `200` con las secciones, el estado y la autoría de la versión. |
 | `PATCH /api/carpetas/:id/informes/:versionId/revision` | `secciones`, una lista de objetos con `titulo` y `contenido`. | `200` con `id`, `estado`, `revisadoPor` y `revisadoEn`. |
 
