@@ -1,8 +1,9 @@
 import type { DocumentoExportable } from './generar-docx.js';
 import type { ParametrosExportacion } from './exportaciones-registro.service.js';
+import { type Catalogo, formatearFecha, nombrar } from './etiquetas-exportacion.js';
 
 type Datos = Record<string, unknown>;
-type Campo = readonly [clave: string, etiqueta: string];
+type Campo = readonly [clave: string, etiqueta: string, formato?: Catalogo | 'fecha'];
 
 function objeto(valor: unknown): Datos {
   if (valor && typeof valor === 'object' && !Array.isArray(valor)) {
@@ -21,9 +22,11 @@ export function armarDocumentoExportable(
 ): DocumentoExportable {
   const filas: { campo: string; valor: string }[] = [];
 
-  function agregar(campo: string, valor: unknown) {
+  function agregar(campo: string, valor: unknown, formato?: Campo[2]) {
     if (typeof valor === 'string' && valor.trim()) {
-      filas.push({ campo, valor });
+      const texto = !formato ? valor
+        : formato === 'fecha' ? formatearFecha(valor) : nombrar(formato, valor);
+      filas.push({ campo, valor: texto });
     } else if (typeof valor === 'number') {
       filas.push({ campo, valor: String(valor) });
     } else if (typeof valor === 'boolean') {
@@ -33,8 +36,8 @@ export function armarDocumentoExportable(
 
   function agregarCampos(prefijo: string, fuente: unknown, campos: readonly Campo[]) {
     const valores = objeto(fuente);
-    for (const [clave, etiqueta] of campos) {
-      agregar(`${prefijo}${etiqueta}`, valores[clave]);
+    for (const [clave, etiqueta, formato] of campos) {
+      agregar(`${prefijo}${etiqueta}`, valores[clave], formato);
     }
   }
 
@@ -50,21 +53,21 @@ export function armarDocumentoExportable(
 
   agregarCampos('', datos.caso, [
     ['numeroCorrelativo', 'Número de caso'],
-    ['tipo', 'Tipo de caso'],
-    ['estado', 'Estado'],
-    ['clasificacion', 'Clasificación'],
-    ['fechaIngreso', 'Fecha de ingreso'],
+    ['tipo', 'Tipo de caso', 'tipo'],
+    ['estado', 'Estado', 'estado'],
+    ['clasificacion', 'Clasificación', 'clasificacion'],
+    ['fechaIngreso', 'Fecha de ingreso', 'fecha'],
   ]);
   agregarCampos('', datos.paciente, [
     ['nombreCompleto', 'Paciente'],
-    ['fechaNacimiento', 'Fecha de nacimiento'],
+    ['fechaNacimiento', 'Fecha de nacimiento', 'fecha'],
     ['edadAlIngreso', 'Edad al ingreso'],
   ]);
   agregarCampos('', datos.responsable, [['nombreCompleto', 'Terapeuta responsable']]);
   agregarCampos('', datos.judicial, [
     ['juzgado', 'Juzgado'],
     ['nroExpediente', 'Número de expediente'],
-    ['fechaDerivacion', 'Fecha de derivación'],
+    ['fechaDerivacion', 'Fecha de derivación', 'fecha'],
     ['observaciones', 'Observaciones judiciales'],
   ]);
   agregarCampos('', datos.diagnostico, [
@@ -77,11 +80,11 @@ export function armarDocumentoExportable(
   lista(objeto(datos.familia).integrantes).forEach((integrante, indice) => {
     agregarCampos(`Familiar ${indice + 1} · `, integrante, [
       ['nombreCompleto', 'Nombre'],
-      ['parentesco', 'Parentesco'],
+      ['parentesco', 'Parentesco', 'parentesco'],
       ['parentescoDetalle', 'Detalle del parentesco'],
-      ['fechaNacimiento', 'Fecha de nacimiento'],
+      ['fechaNacimiento', 'Fecha de nacimiento', 'fecha'],
       ['edadReferida', 'Edad referida'],
-      ['fechaReferencia', 'Fecha de referencia'],
+      ['fechaReferencia', 'Fecha de referencia', 'fecha'],
       ['ocupacion', 'Ocupación'],
       ['lugarTrabajoEstudio', 'Lugar de trabajo o estudio'],
       ['conviveConPaciente', 'Convive con el paciente'],
@@ -92,14 +95,14 @@ export function armarDocumentoExportable(
   for (const sesion of lista(datos.sesiones)) {
     const prefijo = `Sesión ${sesion.nroSesion} · `;
     agregarCampos(prefijo, sesion, [
-      ['fecha', 'Fecha'],
+      ['fecha', 'Fecha', 'fecha'],
       ['evolucion', 'Evolución'],
     ]);
     lista(sesion.tareas).forEach((tarea, indice) => {
       agregarCampos(`${prefijo}Tarea ${indice + 1} · `, tarea, [
         ['descripcion', 'Descripción'],
-        ['fechaAsignada', 'Fecha asignada'],
-        ['fechaLimite', 'Fecha límite'],
+        ['fechaAsignada', 'Fecha asignada', 'fecha'],
+        ['fechaLimite', 'Fecha límite', 'fecha'],
         ['completada', 'Completada'],
       ]);
     });
@@ -108,10 +111,10 @@ export function armarDocumentoExportable(
   lista(datos.pagos).forEach((pago, indice) => {
     agregarCampos(`Pago ${indice + 1} · `, pago, [
       ['nroSesion', 'Número de sesión'],
-      ['fecha', 'Fecha'],
+      ['fecha', 'Fecha', 'fecha'],
       ['monto', 'Monto'],
-      ['moneda', 'Moneda'],
-      ['metodo', 'Método'],
+      ['moneda', 'Moneda', 'moneda'],
+      ['metodo', 'Método', 'metodo'],
       ['referencia', 'Referencia'],
     ]);
   });
