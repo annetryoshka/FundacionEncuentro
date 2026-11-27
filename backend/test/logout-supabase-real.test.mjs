@@ -139,11 +139,13 @@ before(async () => {
   base = (await app.getUrl()).replace('[::1]', '127.0.0.1');
 
   const url = process.env.DATABASE_URL;
-  db = new pg.Client({
+  db = new pg.Pool({
     connectionString: url,
     ssl: /@(localhost|127\.0\.0\.1)/.test(url) ? false : { rejectUnauthorized: false },
+    max: 2,
+    idleTimeoutMillis: 1_000,
   });
-  await db.connect();
+  db.on('error', () => {});
 });
 
 after(async () => {

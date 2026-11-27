@@ -471,7 +471,10 @@ async function atenderImagen(
   if (sub === '/imagen/archivo' && ctx.metodo === 'GET') {
     const blob = actual && archivosImagen.get(actual.id)
     return blob
-      ? new Response(blob, { status: 200, headers: { 'Content-Type': blob.type || 'image/webp' } })
+      ? new Response(new Uint8Array(await blob.arrayBuffer()), {
+          status: 200,
+          headers: { 'Content-Type': blob.type || 'image/webp' },
+        })
       : sinImagen()
   }
   if (sub !== '/imagen') return null
