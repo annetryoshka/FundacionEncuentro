@@ -60,7 +60,7 @@ export function PaginaFundacion() {
 
   // Los enlaces del encabezado (p. ej. «/#contacto») llevan a la sección al venir de otra página.
   useEffect(() => {
-    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView()
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView?.()
   }, [hash])
 
   return (
