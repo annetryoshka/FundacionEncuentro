@@ -355,3 +355,47 @@ test('PATCH revisión: valida permisos, guarda y rechaza una segunda revisión',
     await api.close();
   }
 });
+test('GET informes: lista las versiones del caso para la terapeuta asignada', opciones, async () => {
+  const caso = await crearCaso(base.cliente, { terapeuta: autora.id });
+  const otroCaso = await crearCaso(base.cliente, { terapeuta: autora.id });
+  const primero = await servicio.generar(caso.id, autora, seleccion, definirPlantillaSistemica);
+  const segundo = await servicio.generar(caso.id, autora, seleccion, definirPlantillaSistemica);
+  await servicio.generar(otroCaso.id, autora, seleccion, definirPlantillaSistemica);
+  await servicio.revisar(caso.id, primero.id, autora, [{ titulo: 'Conclusiones', contenido: 'Texto ficticio.' }]);
+
+  const api = await servidor(
+    { query: db.query.bind(db), transaction: db.transaction.bind(db) },
+    { fixture: autora.id, ajena: PERFILES.t2 },
+    [InformesModule],
+  );
+
+  try {
+    const ruta = `/carpetas/${caso.id}/informes`;
+    const respuesta = await api.solicitar(ruta);
+    const cuerpo = await respuesta.json();
+    assert.equal(respuesta.status, 200, JSON.stringify(cuerpo));
+    assert.equal(respuesta.headers.get('cache-control'), 'private, no-store');
+
+    // Solo los del caso, el más reciente primero; cada generación es un informe propio.
+    assert.deepEqual(cuerpo.informes.map((i) => i.id), [segundo.id, primero.id]);
+    assert.notEqual(cuerpo.informes[0].informeId, cuerpo.informes[1].informeId);
+    assert.deepEqual(cuerpo.informes.map((i) => i.estado), ['borrador', 'revisado']);
+    const revisado = cuerpo.informes[1];
+    assert.equal(revisado.tipo, 'intervencion_sistemica');
+    assert.equal(revisado.nroVersion, 1);
+    assert.equal(revisado.creadoPor, autora.id);
+    assert.equal(revisado.revisadoPor, autora.id);
+    assert.ok(Number.isFinite(Date.parse(revisado.revisadoEn)));
+    assert.equal(revisado.secciones, undefined);
+
+    const ajena = await api.solicitar(ruta, { token: 'ajena' });
+    assert.equal(ajena.status, 404);
+    await ajena.json();
+
+    const vacio = await crearCaso(base.cliente, { terapeuta: autora.id });
+    const sinInformes = await api.solicitar(`/carpetas/${vacio.id}/informes`);
+    assert.deepEqual(await sinInformes.json(), { informes: [] });
+  } finally {
+    await api.close();
+  }
+});

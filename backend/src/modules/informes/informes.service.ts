@@ -9,7 +9,12 @@ import {
   type SeleccionInforme,
   type FotografiaInforme,
 } from './informe-fotografia.js';
-import { guardarPrimerBorradorInforme, guardarRevisionInforme, consultarVersionInforme } from './informe-persistencia.js';
+import {
+  guardarPrimerBorradorInforme,
+  guardarRevisionInforme,
+  consultarVersionInforme,
+  listarVersionesInforme,
+} from './informe-persistencia.js';
 
 type AccesoCasos = Pick<CasosService, 'obtenerCarpetaAutorizada'>;
 type CarpetaAutorizada = Awaited<
@@ -73,6 +78,13 @@ export class InformesService {
       );
 
       return guardarPrimerBorradorInforme(client, borrador);
+    });
+  }
+
+  async listar(casoId: string, usuario: Usuario) {
+    return this.db.transaction(usuario.id, async (client) => {
+      await this.casos.obtenerCarpetaAutorizada(casoId, usuario, client);
+      return { informes: await listarVersionesInforme(client, casoId) };
     });
   }
 
