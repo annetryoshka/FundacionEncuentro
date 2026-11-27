@@ -92,3 +92,17 @@ El cliente no envía usuario autor, moneda libre, caso de otra sesión ni indica
 - Andrea: registrar respuesta, responsable, fecha y evidencia de cada DEC.
 
 **Para completar FE-188:** añadir las decisiones reales de la Fundación y actualizar el contrato. Preparar este Markdown no equivale a haberlas obtenido.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+Andrea indicó en esta sesión que la Fundación **sí confirmó exactamente** las reglas consultadas: un pago por sesión, QR o transferencia y registro de atención con consentimiento pendiente. Se registra su declaración como enlace de la contraparte, sin atribuir una reunión, fecha de ratificación anterior o firma a otra persona.
+
+| Decisión | Estado vigente |
+|---|---|
+| DEC-C02, atención con consentimiento pendiente | Ratificada por la Fundación según confirmación de Andrea del 26/11/2026. No afirmar que el consentimiento está registrado ni imponer bloqueo de atención por estar pendiente. |
+| DEC-P01, cardinalidad | Ratificado: un pago por sesión, sin cuotas ni segundo pago que sustituya al anterior. |
+| DEC-P02, métodos | Ratificado para esta entrega: QR o transferencia. Efectivo no se habilita en este alcance. |
+
+Las validaciones ya integradas conservan los tres estados y los campos condicionales del apartado 1, autorización administrativa para pagos, importe decimal e idempotencia. La suite de PostgreSQL de la base integrada `18ae1cf` verificó constancia y pagos; no se repite ni se altera su implementación al registrar este acuerdo.
+
+**Límite de la confirmación recibida:** la respuesta no define el soporte documental concreto admitido, las situaciones de No aplica, el alcance de consentimiento familiar/genograma, una política nueva de edición clínica por administración ni corrección/anulación de pagos. DEC-C01/C03/C04/C05/P03 permanecen explícitas para validación; no se inventa un acuerdo sobre esos puntos. El contrato técnico actual se conserva hasta recibir otra regla. FE-188 mantiene abierta esa validación externa, con las tres decisiones principales ya resueltas.
