@@ -31,6 +31,16 @@ const borrar = (id, usuario = PERFILES.admin) => comoUsuario(sql, usuario, () =>
 const leer = async (id) => (await sql.query('select * from publicaciones_foro where id = $1', [id])).rows[0];
 const publica = async (id) => (await sql.query('select * from v_investigaciones_publicas where id = $1', [id])).rows[0];
 const fechaLaPaz = (instante) => instante.toLocaleDateString('en-CA', { timeZone: 'America/La_Paz' });
+// 024: archivo ficticio en imagenes_publicas (la base no decodifica; el backend valida el formato).
+const archivo = () => comoUsuario(sql, PERFILES.marketing, async () => {
+  const contenido = Buffer.from(`RIFF\0\0\0\0WEBPVP8 ${randomUUID()}`);
+  const { rows } = await sql.query(
+    `insert into imagenes_publicas (tipo_mime, tamano_bytes, ancho, alto, contenido)
+     values ('image/webp', $1, 800, 400, $2) returning id`, [contenido.length, contenido]);
+  return rows[0].id;
+});
+const existeArchivo = async (id) =>
+  (await sql.query('select count(*)::int as n from imagenes_publicas where id = $1', [id])).rows[0].n === 1;
 
 before(async () => {
   if (opciones.skip) return;
@@ -83,29 +93,45 @@ test('FE-183: crear deja un borrador de quien lo crea; el cliente no fija autor�
 });
 
 test('FE-183: campos inválidos se rechazan', opciones, async () => {
+  const imagen = await archivo();
   for (const datos of [
     { titulo: '   ' }, { titulo: 'x'.repeat(151) }, { contenido: ' ' }, { contenido: 'x'.repeat(20001) },
     { resumen: 'x'.repeat(501) }, { autor_visible: '  ' }, { autor_visible: 'x'.repeat(151) },
-    { imagen_ruta: '../casos/genograma.png', imagen_texto_alternativo: 'Alt' },
-    { imagen_ruta: '/investigaciones/a.png', imagen_texto_alternativo: 'Alt' },
-    { imagen_ruta: 'investigaciones/a b.png', imagen_texto_alternativo: 'Alt' },
-    { imagen_ruta: 'investigaciones/a.png' }, { imagen_ruta: 'investigaciones/a.png', imagen_texto_alternativo: ' ' },
-    { imagen_texto_alternativo: 'Sin imagen' }, { imagen_ancho: 800 },
-    { imagen_ruta: 'investigaciones/a.png', imagen_texto_alternativo: 'Alt', imagen_ancho: 0 },
-    { imagen_ruta: 'investigaciones/a.png', imagen_texto_alternativo: 'x'.repeat(301) },
+    { imagen_id: imagen }, { imagen_id: imagen, imagen_texto_alternativo: ' ' },
+    { imagen_texto_alternativo: 'Sin imagen' },
+    { imagen_id: imagen, imagen_texto_alternativo: 'x'.repeat(301) },
     { estado: 'eliminado' },
   ]) {
     await rechaza(crear(datos), '23514');
   }
   await rechaza(crear({ titulo: null }), '23502');
   await rechaza(crear({ contenido: null }), '23502');
+  await rechaza(crear({ imagen_id: randomUUID(), imagen_texto_alternativo: 'Alt' }), '23503');
   for (const datos of [
     { titulo: 'x'.repeat(150), resumen: 'x'.repeat(500), autor_visible: 'x'.repeat(150) },
     { resumen: null, autor_visible: null }, { contenido: 'x'.repeat(20000) },
-    { imagen_ruta: 'investigaciones/portada.webp', imagen_texto_alternativo: 'Ilustración ficticia', imagen_ancho: 1200, imagen_alto: 630 },
+    { imagen_id: imagen, imagen_texto_alternativo: 'Ilustración ficticia' },
   ]) {
     assert.equal((await crear(datos)).estado, 'borrador');
   }
+  // El mismo archivo no sirve para dos artículos.
+  await rechaza(crear({ imagen_id: imagen, imagen_texto_alternativo: 'Otra' }), '23505');
+});
+
+test('024: quitar o reemplazar la imagen, o borrar el artículo, elimina el archivo', opciones, async () => {
+  const [a, b] = [await archivo(), await archivo()];
+  const p = await crear({ imagen_id: a, imagen_texto_alternativo: 'Portada ficticia' });
+  await cambiar(p.id, { imagen_texto_alternativo: 'Otro texto' });
+  assert.equal(await existeArchivo(a), true);
+  await cambiar(p.id, { imagen_id: b });
+  assert.equal(await existeArchivo(a), false);
+  await cambiar(p.id, { imagen_id: null, imagen_texto_alternativo: null });
+  assert.equal(await existeArchivo(b), false);
+
+  const c = await archivo();
+  const q = await crear({ imagen_id: c, imagen_texto_alternativo: 'Portada ficticia' });
+  await borrar(q.id);
+  assert.equal(await existeArchivo(c), false);
 });
 
 test('FE-183: publicar incompleto falla y conserva el borrador', opciones, async () => {
@@ -117,15 +143,15 @@ test('FE-183: publicar incompleto falla y conserva el borrador', opciones, async
 });
 
 test('FE-183: publicar, editar publicado, retirar y volver a borrador', opciones, async () => {
-  const p = await crear({ imagen_ruta: 'investigaciones/qa/portada.png', imagen_texto_alternativo: 'Portada ficticia',
-    imagen_ancho: 800, imagen_alto: 400 });
+  const imagen = await archivo();
+  const p = await crear({ imagen_id: imagen, imagen_texto_alternativo: 'Portada ficticia' });
   const publicada = await cambiar(p.id, { estado: 'publicado' });
   assert.ok(publicada.publicado_en);
   assert.equal(publicada.publicado_por, PERFILES.marketing);
   assert.deepEqual(await publica(p.id), {
     id: p.id, titulo: ARTICULO.titulo, resumen: ARTICULO.resumen, contenido: ARTICULO.contenido, autor: 'Equipo QA',
     fecha_publicacion: (await publica(p.id)).fecha_publicacion, publicado_en: publicada.publicado_en,
-    imagen_ruta: 'investigaciones/qa/portada.png', imagen_texto_alternativo: 'Portada ficticia', imagen_ancho: 800, imagen_alto: 400,
+    imagen_id: imagen, imagen_texto_alternativo: 'Portada ficticia', imagen_ancho: 800, imagen_alto: 400,
   });
   const { rows: [f] } = await sql.query(
     `select to_char(fecha_publicacion, 'YYYY-MM-DD') as fecha from v_investigaciones_publicas where id = $1`, [p.id]);
@@ -199,7 +225,7 @@ test('FE-183: la vista pública solo expone lo publicado y campos permitidos', o
     `select column_name from information_schema.columns where table_name = 'v_investigaciones_publicas' order by ordinal_position`);
   assert.deepEqual(columnas.map((c) => c.column_name), [
     'id', 'titulo', 'resumen', 'contenido', 'autor', 'fecha_publicacion', 'publicado_en',
-    'imagen_ruta', 'imagen_texto_alternativo', 'imagen_ancho', 'imagen_alto',
+    'imagen_id', 'imagen_texto_alternativo', 'imagen_ancho', 'imagen_alto',
   ]);
   const { rows: [r] } = await sql.query(
     `select (select count(*)::int from v_investigaciones_publicas) as vista,
@@ -215,7 +241,7 @@ test('FE-183: sin comentarios expuestos; separado de lo clínico; RLS activo', o
        from information_schema.table_constraints tc
        join information_schema.constraint_column_usage ccu using (constraint_schema, constraint_name)
       where tc.constraint_type = 'FOREIGN KEY' and tc.table_name = 'publicaciones_foro' order by 1`);
-  assert.deepEqual(rows.map((f) => f.destino), ['perfiles']);
+  assert.deepEqual(rows.map((f) => f.destino), ['imagenes_publicas', 'perfiles']);
   const { rows: rls } = await sql.query(
     `select relname, relrowsecurity from pg_class where relname in ('publicaciones_foro', 'comentarios_foro') order by relname`);
   assert.deepEqual(rls.map((f) => f.relrowsecurity), [true, true]);

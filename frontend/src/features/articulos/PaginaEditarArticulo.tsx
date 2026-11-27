@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { ErrorApi } from '../../api/cliente'
 import { useCarga } from '../../api/useCarga'
 import { ErrorDeCarga } from '../../componentes/ErrorDeCarga'
 import { AreaTexto, Aviso, Boton, CampoTexto, Cargando, EnlaceVolver, Tarjeta } from '../../componentes/ui'
 import { fechaLarga } from '../../utilidades/fechas'
-import { urlImagenDifusion } from '../difusion/difusion'
 import { enfocarPrimerError, mensajeNoGuardado } from '../expediente/errores'
+import { mensajeErrorImagen, validarTextoImagen } from '../publico/imagenes'
+import { ElegirImagenNueva, ImagenPortada, type SeleccionImagen } from '../publico/ImagenPortada'
 import { TarjetaInvestigacion } from '../publico/TarjetaInvestigacion'
 import {
   LIMITES_ARTICULO,
@@ -18,6 +19,7 @@ import {
   editarArticulo,
   eliminarArticulo,
   formularioVacio,
+  imagenArticulo,
   obtenerArticulo,
   validarArticulo,
   type Articulo,
@@ -35,7 +37,9 @@ export function PaginaNuevoArticulo() {
       <h1 className="text-2xl font-semibold text-verde-oscuro sm:text-3xl">Nuevo artículo</h1>
       <Editor
         articulo={null}
-        alGuardar={(a) => navegar(`/articulos/${a.id}`, { replace: true, state: { creado: true } })}
+        alGuardar={(a, errorImagen) =>
+          navegar(`/articulos/${a.id}`, { replace: true, state: { creado: true, errorImagen } })
+        }
       />
     </div>
   )
@@ -46,7 +50,8 @@ export function PaginaEditarArticulo() {
   const { id = '' } = useParams()
   const navegar = useNavigate()
   const ubicacion = useLocation()
-  const creado = Boolean((ubicacion.state as { creado?: boolean } | null)?.creado)
+  const estadoNavegacion = ubicacion.state as { creado?: boolean; errorImagen?: string } | null
+  const creado = Boolean(estadoNavegacion?.creado)
   const { datos, error, recargar } = useCarga(() => obtenerArticulo(id), [id])
   const [actual, setActual] = useState<Articulo | null>(null)
   const articulo = actual && actual.id === datos?.id ? actual : datos
@@ -80,6 +85,7 @@ export function PaginaEditarArticulo() {
       <Editor
         key={articulo.id}
         articulo={articulo}
+        errorImagenAlCrear={creado ? estadoNavegacion?.errorImagen : undefined}
         alGuardar={setActual}
         alRecargar={() => {
           setActual(null)
@@ -93,15 +99,24 @@ export function PaginaEditarArticulo() {
 
 function Editor({
   articulo,
+  errorImagenAlCrear,
   alGuardar,
   alRecargar,
   alEliminar,
 }: {
   articulo: Articulo | null
-  alGuardar: (a: Articulo) => void
+  errorImagenAlCrear?: string
+  /** `errorImagen`: al crear, el borrador se guardó pero la imagen elegida no se pudo subir. */
+  alGuardar: (a: Articulo, errorImagen?: string) => void
   alRecargar?: () => void
   alEliminar?: () => void
 }) {
+  // Nuevo: la imagen elegida se sube después de crear el borrador. Guardado: se gestiona en su tarjeta.
+  const [seleccion, setSeleccion] = useState<SeleccionImagen | null>(null)
+  const [errorTextoImagen, setErrorTextoImagen] = useState<string>()
+  const [urlVista, setUrlVista] = useState<string | null>(null)
+  const idArticulo = articulo?.id
+  const acciones = useMemo(() => (idArticulo ? imagenArticulo(idArticulo) : null), [idArticulo])
   const inicial = articulo ? aFormulario(articulo) : formularioVacio()
   const [form, setForm] = useState<FormularioArticulo>(inicial)
   const [base, setBase] = useState(JSON.stringify(inicial))
@@ -136,15 +151,29 @@ function Editor({
     setIntento(true)
     setMensaje(null)
     const encontrados = validarArticulo(form)
+    const errorImagen = seleccion ? validarTextoImagen(seleccion.textoAlternativo) : null
     setErrores(encontrados)
-    if (Object.keys(encontrados).length) return enfocarPrimerError(refForm.current)
+    setErrorTextoImagen(errorImagen ?? undefined)
+    if (Object.keys(encontrados).length || errorImagen) return enfocarPrimerError(refForm.current)
     setGuardando(true)
     try {
       const datos = aDatos(form)
       const guardado = articulo ? await editarArticulo(articulo.id, datos) : await crearArticulo(datos)
       setBase(JSON.stringify(form))
-      alGuardar(guardado)
-      if (articulo) avisar('exito', 'Cambios guardados.')
+      if (articulo) {
+        alGuardar(guardado)
+        avisar('exito', 'Cambios guardados.')
+        return
+      }
+      let fallo: string | undefined
+      if (seleccion) {
+        try {
+          guardado.imagen = await imagenArticulo(guardado.id).subir(seleccion.archivo, seleccion.textoAlternativo)
+        } catch (error) {
+          fallo = `El artículo se guardó, pero la imagen no se pudo subir. ${mensajeErrorImagen(error)} Puedes intentarlo de nuevo aquí abajo.`
+        }
+      }
+      alGuardar(guardado, fallo)
     } catch (error) {
       if (error instanceof ErrorApi && error.estado === 422) {
         setGuardando(false)
@@ -162,10 +191,9 @@ function Editor({
     resumen: form.resumen.trim() || 'Sin resumen: hace falta para publicar.',
     autor: form.autorVisible.trim() || null,
     fechaPublicacion: articulo?.publicadoEn?.slice(0, 10) ?? null,
-    imagen:
-      form.imagenRuta.trim() && form.imagenAlternativo.trim()
-        ? { url: urlImagenDifusion(form.imagenRuta.trim()), textoAlternativo: form.imagenAlternativo.trim() }
-        : null,
+    imagen: urlVista
+      ? { url: urlVista, textoAlternativo: articulo?.imagen?.textoAlternativo ?? seleccion?.textoAlternativo ?? '' }
+      : null,
   }
 
   return (
@@ -233,29 +261,18 @@ function Editor({
                 ayuda="Solo si la persona autorizó que se muestre su nombre."
                 onChange={(e) => cambiar('autorVisible', e.target.value)}
               />
-              <fieldset className="space-y-4 rounded-2xl bg-crema p-4">
-                <legend className="px-1 text-sm font-semibold text-texto">Imagen de portada (opcional)</legend>
-                <p className="text-sm text-suave">
-                  La imagen debe estar ya en la carpeta pública del sitio ({urlImagenDifusion('')}). Aquí solo se indica
-                  su ruta.
-                </p>
-                <CampoTexto
-                  etiqueta="Ruta de la imagen"
-                  placeholder="investigaciones/portada.jpg"
-                  maxLength={LIMITES_ARTICULO.imagen}
-                  value={form.imagenRuta}
-                  error={errores.imagenRuta}
-                  onChange={(e) => cambiar('imagenRuta', e.target.value)}
+              {!articulo && (
+                <ElegirImagenNueva
+                  seleccion={seleccion}
+                  errorTexto={errorTextoImagen}
+                  alSeleccionar={(s) => {
+                    setSeleccion(s)
+                    if (errorTextoImagen && s) setErrorTextoImagen(validarTextoImagen(s.textoAlternativo) ?? undefined)
+                    if (!s) setErrorTextoImagen(undefined)
+                  }}
+                  alVistaPrevia={setUrlVista}
                 />
-                <CampoTexto
-                  etiqueta="Texto alternativo de la imagen"
-                  maxLength={LIMITES_ARTICULO.imagen}
-                  value={form.imagenAlternativo}
-                  error={errores.imagenAlternativo}
-                  ayuda="Qué muestra la imagen, en una frase."
-                  onChange={(e) => cambiar('imagenAlternativo', e.target.value)}
-                />
-              </fieldset>
+              )}
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
                 {articulo && sinGuardar && <p className="text-sm text-naranja-texto">Hay cambios sin guardar.</p>}
                 <Link
@@ -264,13 +281,28 @@ function Editor({
                 >
                   {articulo ? 'Volver sin guardar' : 'Cancelar'}
                 </Link>
-                <Boton type="submit" icono="guardar" cargando={guardando} textoCargando="Guardando…">
+                <Boton
+                  type="submit"
+                  icono="guardar"
+                  cargando={guardando}
+                  textoCargando={!articulo && seleccion ? 'Guardando y subiendo la imagen…' : 'Guardando…'}
+                >
                   {articulo ? 'Guardar cambios' : 'Guardar borrador'}
                 </Boton>
               </div>
             </fieldset>
           </form>
         </Tarjeta>
+        {articulo && acciones && (
+          <ImagenPortada
+            imagen={articulo.imagen}
+            acciones={acciones}
+            publicado={articulo.estado === 'publicado'}
+            avisoInicial={errorImagenAlCrear}
+            alCambiar={(imagen) => alGuardar({ ...articulo, imagen })}
+            alVistaPrevia={setUrlVista}
+          />
+        )}
       </div>
       <aside aria-labelledby="titulo-vista-previa-articulo" className="space-y-2 lg:sticky lg:top-4" id="vista-previa">
         <h2 id="titulo-vista-previa-articulo" className="text-lg font-semibold text-verde-oscuro">

@@ -4,6 +4,7 @@
  */
 import { peticion } from '../../api/cliente'
 import { esFechaValida } from '../../utilidades/fechas'
+import { aImagenPublicacion, accionesImagen, type ImagenApi, type ImagenGestion } from '../publico/imagenes'
 import { esUrlHttp, type Modalidad, type PublicacionPublica, type TipoPublicacion } from '../publico/publicaciones'
 
 export type EstadoPublicacion = 'borrador' | 'publicado' | 'retirado'
@@ -22,18 +23,7 @@ export const SIGUIENTE_ESTADO: Record<EstadoPublicacion, { estado: EstadoPublica
     retirado: { estado: 'borrador', accion: 'Volver a borrador', ayuda: 'Queda como borrador para corregirla.' },
   }
 
-export interface RecursoDifusion {
-  id: string
-  ruta: string
-  tipoMime: 'image/jpeg' | 'image/png' | 'image/webp'
-  tamanoBytes: number
-  textoAlternativo: string
-  ancho: number | null
-  alto: number | null
-  principal: boolean
-}
-
-/** GET /api/difusion/publicaciones/:id (con `recursos`) y elementos del listado (sin ellos). */
+/** GET /api/difusion/publicaciones/:id (con `imagen`) y elementos del listado (sin ella). */
 export interface PublicacionAdmin {
   id: string
   tipo: TipoPublicacion
@@ -50,7 +40,7 @@ export interface PublicacionAdmin {
   actualizadoPor: string | null
   publicadoEn: string | null
   retiradoEn: string | null
-  recursos?: RecursoDifusion[]
+  imagen?: ImagenGestion | null
 }
 
 export interface PaginaPublicacionesAdmin {
@@ -90,20 +80,17 @@ export const editarPublicacion = (id: string, datos: DatosPublicacion) =>
 /** 409 transición no permitida; 422 `camposFaltantes` (p. ej. publicar sin resumen). */
 export const cambiarEstadoPublicacion = (id: string, estado: EstadoPublicacion) =>
   peticion<PublicacionAdmin>(`${una(id)}/estado`, { metodo: 'PATCH', cuerpo: { estado } })
-/** Solo registra los datos de una imagen ya ubicada en la carpeta pública del sitio; no sube bytes. */
-export const agregarRecurso = (id: string, recurso: Omit<RecursoDifusion, 'id'>) =>
-  peticion<RecursoDifusion>(`${una(id)}/recursos`, { metodo: 'POST', cuerpo: recurso })
-export const quitarRecurso = (id: string, recursoId: string) =>
-  peticion<void>(`${una(id)}/recursos/${encodeURIComponent(recursoId)}`, { metodo: 'DELETE' })
+/** Subir, describir, quitar y ver la imagen de portada (024). */
+export const imagenPublicacion = (id: string) => accionesImagen(una(id))
 
 // ---- Portal público ---------------------------------------------------------------
 
-/** Lo que devuelve la API pública: la imagen llega como ruta relativa, no como URL. */
+/** Lo que devuelve la API pública: la imagen llega con su id; la URL se arma aquí. */
 export interface PublicacionPublicaApi extends Omit<PublicacionPublica, 'imagen' | 'resumen'> {
   resumen: string | null
   contenido: string | null
   publicadoEn: string | null
-  imagen: { ruta: string; textoAlternativo: string; ancho: number | null; alto: number | null } | null
+  imagen: ImagenApi | null
 }
 
 export interface PublicacionPublicaDetalle extends PublicacionPublica {
@@ -111,20 +98,11 @@ export interface PublicacionPublicaDetalle extends PublicacionPublica {
   publicadoEn: string | null
 }
 
-/**
- * Carpeta pública desde donde se sirven las imágenes de difusión (no es almacenamiento clínico).
- * Por defecto `/imagenes/difusion/` del propio sitio; se cambia con VITE_DIFUSION_IMAGENES_URL.
- */
-export function urlImagenDifusion(ruta: string): string {
-  const raiz = (import.meta.env.VITE_DIFUSION_IMAGENES_URL || '/imagenes/difusion/').replace(/\/?$/, '/')
-  return `${raiz}${ruta.replace(/^\/+/, '')}`
-}
-
 export function aPublica(p: PublicacionPublicaApi): PublicacionPublicaDetalle {
   return {
     ...p,
     resumen: p.resumen ?? '',
-    imagen: p.imagen ? { url: urlImagenDifusion(p.imagen.ruta), textoAlternativo: p.imagen.textoAlternativo } : null,
+    imagen: aImagenPublicacion(p.imagen),
   }
 }
 
@@ -222,16 +200,3 @@ export const NOMBRE_CAMPO_PUBLICACION: Record<string, string> = {
   titulo: 'Título',
   tipo: 'Tipo',
 }
-
-// ---- Imagen -----------------------------------------------------------------------
-
-export const TIPOS_IMAGEN: Record<string, RecursoDifusion['tipoMime']> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
-}
-
-/** Misma regla que CrearRecursoDifusionDto: ruta relativa, sin «..» ni barra inicial. */
-export const esRutaRelativa = (ruta: string) =>
-  /^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9/_.-]*$/.test(ruta) && ruta.length <= 300

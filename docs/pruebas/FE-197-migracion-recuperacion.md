@@ -55,6 +55,7 @@ Contra Supabase hay que sumar la latencia de red; el volumen actual es pequeño.
 3. **Imágenes de difusión fuera del respaldo.** `recursos_difusion.ruta` apunta al bucket `difusion-publica`, que no
    existe en Supabase; FE-143 (`af477f4`) registra la ruta que recibe, pero nada sube el archivo. Hoy no hay imágenes.
    Hay que definir dónde se guardan (Storage o la base) y, si es Storage, respaldar el bucket aparte.
+   **Resuelto con la 024:** las imágenes se guardan en la base (`imagenes_publicas`) y entran en el respaldo.
 4. **Cuentas fuera del respaldo.** `auth.users` no está en el respaldo de `public`: sirve para el mismo proyecto,
    no para recrear Supabase desde cero.
 5. **Permisos por defecto.** Supabase da `select` a `anon` en toda tabla nueva; la protección efectiva es RLS sin
@@ -64,4 +65,4 @@ Contra Supabase hay que sumar la latencia de red; el volumen actual es pequeño.
 ## Pendiente
 
 - Aplicar en Supabase la 020 (ya en `main`) y la 019 cuando se una el PR #64, con el procedimiento de la guía.
-- Definir el almacenamiento de las imágenes de difusión (hallazgo 3).
+- ~~Definir el almacenamiento de las imágenes de difusión (hallazgo 3).~~ Resuelto con la 024.

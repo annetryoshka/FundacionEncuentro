@@ -1,4 +1,5 @@
 // FE-142: publicaciones de difusión, estados, imágenes y consulta pública (contrato de FE-140).
+// Imágenes: desde la 024 el archivo está en imagenes_publicas y recursos_difusion lo enlaza (una por publicación).
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { PERFILES, comoUsuario, crearBase, opciones, rechaza } from './helpers/pg-qa.mjs';
@@ -33,14 +34,24 @@ const cambiar = (id, datos, usuario = PERFILES.marketing) => comoUsuario(sql, us
 });
 const leer = async (id) => (await sql.query('select * from publicaciones_difusion where id = $1', [id])).rows[0];
 const publica = async (id) => (await sql.query('select * from v_publicaciones_publicas where id = $1', [id])).rows[0];
-const imagen = (publicacionId, datos = {}) => comoUsuario(sql, PERFILES.marketing, () => {
-  const campos = { publicacion_id: publicacionId, ruta: `publicaciones/${publicacionId}/portada.webp`,
-    tipo_mime: 'image/webp', tamano_bytes: 120000, ancho: 1200, alto: 630,
-    texto_alternativo: 'Ilustración ficticia de la actividad', principal: true, ...datos };
+// Bytes ficticios: la base no decodifica; el formato y las medidas los valida el backend.
+const archivo = (datos = {}) => comoUsuario(sql, PERFILES.marketing, async () => {
+  const contenido = datos.contenido ?? Buffer.from('RIFF\0\0\0\0WEBPVP8 ficticio');
+  const campos = { tipo_mime: 'image/webp', tamano_bytes: contenido.length, ancho: 1200, alto: 630, ...datos, contenido };
+  const columnas = Object.keys(campos);
+  const { rows } = await sql.query(`insert into imagenes_publicas (${columnas.join(', ')})
+    values (${columnas.map((_, i) => `$${i + 1}`).join(', ')}) returning *`, Object.values(campos));
+  return rows[0];
+});
+const imagen = (publicacionId, imagenId, datos = {}) => comoUsuario(sql, PERFILES.marketing, () => {
+  const campos = { publicacion_id: publicacionId, imagen_id: imagenId,
+    texto_alternativo: 'Ilustración ficticia de la actividad', ...datos };
   const columnas = Object.keys(campos);
   return sql.query(`insert into recursos_difusion (${columnas.join(', ')})
     values (${columnas.map((_, i) => `$${i + 1}`).join(', ')}) returning *`, Object.values(campos));
 });
+const existeArchivo = async (id) =>
+  (await sql.query('select count(*)::int as n from imagenes_publicas where id = $1', [id])).rows[0].n === 1;
 
 test('FE-142: sin publicaciones la vista pública está vacía, no falla', opciones, async () => {
   assert.equal((await sql.query('select count(*)::int as n from v_publicaciones_publicas')).rows[0].n, 0);
@@ -95,7 +106,7 @@ test('FE-142: publicar, editar publicado, retirar y volver a borrador', opciones
     id: p.id, tipo: 'actividad', titulo: ACTIVIDAD.titulo, resumen: ACTIVIDAD.resumen, contenido: ACTIVIDAD.contenido,
     fecha_inicio: publicada.fecha_inicio, fecha_fin: publicada.fecha_fin, modalidad: 'presencial', lugar: ACTIVIDAD.lugar,
     contacto_url: null, publicado_en: publicada.publicado_en,
-    imagen_ruta: null, imagen_texto_alternativo: null, imagen_ancho: null, imagen_alto: null,
+    imagen_id: null, imagen_texto_alternativo: null, imagen_ancho: null, imagen_alto: null,
   });
 
   // Editar lo publicado: conserva autoría y fecha de publicación; el cliente no puede falsificarlas.
@@ -132,32 +143,54 @@ test('FE-142: transiciones no previstas se rechazan', opciones, async () => {
   assert.equal((await leer(publicada.id)).estado, 'retirado');
 });
 
-test('FE-142: imágenes con metadatos válidos y una sola principal', opciones, async () => {
-  const p = await crear();
+test('024: archivo de imagen con tipo, tamaño y medidas válidos; no se modifica', opciones, async () => {
   for (const datos of [
-    { tipo_mime: 'application/pdf' }, { tipo_mime: 'image/svg+xml' }, { tamano_bytes: 0 }, { tamano_bytes: 5242881 },
-    { ancho: 0 }, { texto_alternativo: '  ' }, { texto_alternativo: 'x'.repeat(301) }, { ruta: '../casos/genograma.png' },
-    { ruta: '/publicaciones/a.png' }, { ruta: 'publicaciones/a b.png' }, { almacenamiento: 'genogramas' }, { sha256: 'abc' },
+    { tipo_mime: 'application/pdf' }, { tipo_mime: 'image/svg+xml' }, { tamano_bytes: 1 }, { ancho: 0 }, { alto: 4001 },
   ]) {
-    await rechaza(imagen(p.id, datos), '23514');
+    await rechaza(archivo(datos), '23514');
   }
-  await rechaza(imagen(p.id, { texto_alternativo: null }), '23502');
+  await rechaza(archivo({ contenido: Buffer.alloc(3 * 1024 * 1024 + 1) }), '23514');
+  const a = await archivo();
+  assert.equal(a.subido_por, PERFILES.marketing);
+  assert.equal(a.sha256.length, 32);
+  await rechaza(comoUsuario(sql, PERFILES.admin, () =>
+    sql.query('update imagenes_publicas set ancho = 10 where id = $1', [a.id])), '23514');
+});
+
+test('024: una imagen por publicación, con texto alternativo; reemplazar o borrar elimina el archivo', opciones, async () => {
+  const p = await crear();
+  const a = await archivo();
+  for (const datos of [{ texto_alternativo: '  ' }, { texto_alternativo: 'x'.repeat(301) }]) {
+    await rechaza(imagen(p.id, a.id, datos), '23514');
+  }
+  await rechaza(imagen(p.id, a.id, { texto_alternativo: null }), '23502');
+  await rechaza(imagen(p.id, null), '23502');
   // Un fallo de imagen no toca el texto ya guardado.
   assert.equal((await leer(p.id)).titulo, ACTIVIDAD.titulo);
 
-  await imagen(p.id, { sha256: 'a'.repeat(64) });
-  await rechaza(imagen(p.id, { ruta: `publicaciones/${p.id}/otra.png`, tipo_mime: 'image/png' }), '23505');
-  await rechaza(imagen(p.id, { principal: false }), '23505'); // misma ruta
-  await imagen(p.id, { ruta: `publicaciones/${p.id}/galeria-1.jpg`, tipo_mime: 'image/jpeg', principal: false });
+  await imagen(p.id, a.id);
+  const b = await archivo();
+  await rechaza(imagen(p.id, b.id), '23505'); // segunda imagen de la misma publicación
+  const otra = await crear();
+  await rechaza(imagen(otra.id, a.id), '23505'); // el mismo archivo en otra publicación
 
   await cambiar(p.id, { estado: 'publicado' });
   const vista = await publica(p.id);
-  assert.deepEqual([vista.imagen_ruta, vista.imagen_texto_alternativo, vista.imagen_ancho, vista.imagen_alto],
-    [`publicaciones/${p.id}/portada.webp`, 'Ilustración ficticia de la actividad', 1200, 630]);
-  assert.equal((await sql.query('select count(*)::int as n from v_publicaciones_publicas where id = $1', [p.id])).rows[0].n, 1);
+  assert.deepEqual([vista.imagen_id, vista.imagen_texto_alternativo, vista.imagen_ancho, vista.imagen_alto],
+    [a.id, 'Ilustración ficticia de la actividad', 1200, 630]);
 
+  // Reemplazar: el archivo anterior se borra; cambiar solo el texto no borra nada.
+  await comoUsuario(sql, PERFILES.marketing, () =>
+    sql.query('update recursos_difusion set imagen_id = $2 where publicacion_id = $1', [p.id, b.id]));
+  assert.equal(await existeArchivo(a.id), false);
+  await comoUsuario(sql, PERFILES.marketing, () =>
+    sql.query(`update recursos_difusion set texto_alternativo = 'Otro texto' where publicacion_id = $1`, [p.id]));
+  assert.equal(await existeArchivo(b.id), true);
+
+  // Borrar la publicación borra el enlace y el archivo.
   await comoUsuario(sql, PERFILES.admin, () => sql.query('delete from publicaciones_difusion where id = $1', [p.id]));
   assert.equal((await sql.query('select count(*)::int as n from recursos_difusion where publicacion_id = $1', [p.id])).rows[0].n, 0);
+  assert.equal(await existeArchivo(b.id), false);
 });
 
 test('FE-142: la vista pública solo expone lo publicado y campos permitidos', opciones, async () => {
@@ -165,7 +198,7 @@ test('FE-142: la vista pública solo expone lo publicado y campos permitidos', o
     `select column_name from information_schema.columns where table_name = 'v_publicaciones_publicas' order by ordinal_position`);
   assert.deepEqual(columnas.map((c) => c.column_name), [
     'id', 'tipo', 'titulo', 'resumen', 'contenido', 'fecha_inicio', 'fecha_fin', 'modalidad', 'lugar', 'contacto_url',
-    'publicado_en', 'imagen_ruta', 'imagen_texto_alternativo', 'imagen_ancho', 'imagen_alto',
+    'publicado_en', 'imagen_id', 'imagen_texto_alternativo', 'imagen_ancho', 'imagen_alto',
   ]);
   const { rows } = await sql.query(
     `select (select count(*)::int from v_publicaciones_publicas) as vista,
@@ -185,12 +218,12 @@ test('FE-142: difusión separada de lo clínico; RLS activo', opciones, async ()
        from information_schema.table_constraints tc
        join information_schema.constraint_column_usage ccu using (constraint_schema, constraint_name)
       where tc.constraint_type = 'FOREIGN KEY'
-        and tc.table_name in ('publicaciones_difusion', 'recursos_difusion') order by 1`);
-  assert.deepEqual(rows.map((f) => f.destino), ['perfiles', 'publicaciones_difusion']);
+        and tc.table_name in ('publicaciones_difusion', 'recursos_difusion', 'imagenes_publicas') order by 1`);
+  assert.deepEqual(rows.map((f) => f.destino), ['imagenes_publicas', 'perfiles', 'publicaciones_difusion']);
   const { rows: rls } = await sql.query(
     `select relname, relrowsecurity from pg_class
-      where relname in ('publicaciones_difusion', 'recursos_difusion') order by relname`);
-  assert.deepEqual(rls.map((f) => f.relrowsecurity), [true, true]);
+      where relname in ('publicaciones_difusion', 'recursos_difusion', 'imagenes_publicas') order by relname`);
+  assert.deepEqual(rls.map((f) => f.relrowsecurity), [true, true, true]);
 });
 
 test('FE-142: los cambios quedan en auditoría con su autor', opciones, async () => {

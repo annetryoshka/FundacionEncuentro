@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { Global, Module, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { createCanvas } from '@napi-rs/canvas';
 import { DatabaseService } from '../dist/database/database.service.js';
 import { AuthModule } from '../dist/modules/auth/auth.module.js';
 import { DifusionModule } from '../dist/modules/difusion/difusion.module.js';
@@ -111,13 +112,10 @@ test('FE-143: la consulta pública solo devuelve publicaciones publicadas', opci
   assert.equal(filtroProhibido.status, 400);
   await filtroProhibido.json();
 
-  // El portal público solo permite lectura: la escritura de recursos usa
+  // El portal público solo permite lectura: subir o quitar la imagen usa
   // las rutas autenticadas de administración/marketing.
-  for (const [metodo, sufijo] of [
-    ['POST', `/${publicada}/recursos`],
-    ['DELETE', `/${publicada}/recursos/00000000-0000-4000-8000-000000000099`],
-  ]) {
-    const escrituraPublica = await fetch(`${ruta}${sufijo}`, { method: metodo });
+  for (const metodo of ['PUT', 'PATCH', 'DELETE']) {
+    const escrituraPublica = await fetch(`${ruta}/${publicada}/imagen`, { method: metodo });
     assert.equal(escrituraPublica.status, 404, await escrituraPublica.text());
   }
 
@@ -228,21 +226,28 @@ test('FE-143: la consulta pública solo devuelve publicaciones publicadas', opci
   assert.equal(volverABorrador.status, 200);
   await volverABorrador.json();
 
-  const rutaRecursos = `${rutaAdmin}/${creada.id}/recursos`;
-  const imagen = {
-    ruta: 'qa/actividad.png',
-    tipoMime: 'image/png',
-    tamanoBytes: 100,
-    textoAlternativo: 'Imagen ficticia de una actividad',
-    principal: true,
+  // 024: la imagen se sube como archivo (multipart) y el backend la guarda en la base.
+  const rutaImagenes = `${await app.getUrl()}/api/publico/imagenes`;
+  const subir = (id, archivo, textoAlternativo, token = 'marketing-qa') => {
+    const formulario = new FormData();
+    if (archivo) formulario.append('archivo', new Blob([archivo.datos], { type: archivo.tipo }), archivo.nombre);
+    if (textoAlternativo !== undefined) formulario.append('textoAlternativo', textoAlternativo);
+    return fetch(`${rutaAdmin}/${id}/imagen`, {
+      method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: formulario,
+    });
   };
+  const foto = { datos: dibujar(2400, 1200, 'jpeg'), tipo: 'image/jpeg', nombre: 'foto del celular.jpg' };
 
-  const invalida = await escribir(rutaRecursos, 'POST', 'marketing-qa', {
-    ...imagen,
-    ruta: '../actividad.png',
-  });
-  const errorImagen = await invalida.json();
-  assert.equal(invalida.status, 400, JSON.stringify(errorImagen));
+  const noEsImagen = await subir(creada.id, { datos: Buffer.from('%PDF-1.7\n'), tipo: 'image/jpeg', nombre: 'a.jpg' }, 'Texto');
+  assert.equal(noEsImagen.status, 415, await noEsImagen.text());
+  const sinTexto = await subir(creada.id, foto, '   ');
+  assert.equal(sinTexto.status, 400, await sinTexto.text());
+  const sinArchivo = await subir(creada.id, null, 'Texto');
+  assert.equal(sinArchivo.status, 400, await sinArchivo.text());
+  const terapeuta = await subir(creada.id, foto, 'Texto', 'terapeuta-qa');
+  assert.equal(terapeuta.status, 403, await terapeuta.text());
+  const inexistente = await subir('00000000-0000-4000-8000-000000000099', foto, 'Texto');
+  assert.equal(inexistente.status, 404, await inexistente.text());
 
   const trasError = await fetch(`${rutaAdmin}/${creada.id}`, {
     headers: { Authorization: 'Bearer marketing-qa' },
@@ -250,19 +255,29 @@ test('FE-143: la consulta pública solo devuelve publicaciones publicadas', opci
   assert.equal(trasError.status, 200);
   const conservada = await trasError.json();
   assert.equal(conservada.titulo, 'Borrador editado QA');
-  assert.deepEqual(conservada.recursos, []);
+  assert.equal(conservada.imagen, null);
 
-  const adjunta = await escribir(rutaRecursos, 'POST', 'marketing-qa', imagen);
-  const recurso = await adjunta.json();
-  assert.equal(adjunta.status, 201, JSON.stringify(recurso));
-  assert.equal(recurso.principal, true);
+  const adjunta = await subir(creada.id, foto, ' Imagen ficticia de una actividad ');
+  const imagen = await adjunta.json();
+  assert.equal(adjunta.status, 200, JSON.stringify(imagen));
+  assert.equal(imagen.textoAlternativo, 'Imagen ficticia de una actividad');
+  assert.deepEqual([imagen.ancho, imagen.alto], [1600, 800]);
+  assert.ok(imagen.tamanoBytes > 0);
 
-  const duplicada = await escribir(rutaRecursos, 'POST', 'marketing-qa', {
-    ...imagen,
-    ruta: 'qa/segunda.png',
+  // En borrador el público no la ve; gestión sí, para la vista previa.
+  const borradorPublico = await fetch(`${rutaImagenes}/${imagen.id}`);
+  assert.equal(borradorPublico.status, 404);
+  await borradorPublico.json();
+  const vistaPrevia = await fetch(`${rutaAdmin}/${creada.id}/imagen/archivo`, {
+    headers: { Authorization: 'Bearer marketing-qa' },
   });
-  assert.equal(duplicada.status, 409);
-  await duplicada.json();
+  assert.equal(vistaPrevia.status, 200);
+  assert.equal(vistaPrevia.headers.get('content-type'), 'image/webp');
+  assert.equal(vistaPrevia.headers.get('cache-control'), 'private, no-store');
+  assert.equal(Buffer.from(await vistaPrevia.arrayBuffer()).toString('latin1', 8, 12), 'WEBP');
+  const vistaSinSesion = await fetch(`${rutaAdmin}/${creada.id}/imagen/archivo`);
+  assert.equal(vistaSinSesion.status, 401);
+  await vistaSinSesion.json();
 
   const republicada = await cambiarEstado(creada.id, 'publicado');
   assert.equal(republicada.status, 200);
@@ -271,22 +286,64 @@ test('FE-143: la consulta pública solo devuelve publicaciones publicadas', opci
   const publicaConImagen = await fetch(`${ruta}/${creada.id}`);
   assert.equal(publicaConImagen.status, 200);
   const detalleConImagen = await publicaConImagen.json();
-  assert.equal(detalleConImagen.imagen.ruta, imagen.ruta);
-  assert.equal(detalleConImagen.imagen.textoAlternativo, imagen.textoAlternativo);
+  assert.deepEqual(detalleConImagen.imagen, {
+    id: imagen.id, textoAlternativo: 'Imagen ficticia de una actividad', ancho: 1600, alto: 800,
+  });
+
+  const servida = await fetch(`${rutaImagenes}/${imagen.id}`);
+  assert.equal(servida.status, 200);
+  assert.equal(servida.headers.get('content-type'), 'image/webp');
+  assert.equal(servida.headers.get('cross-origin-resource-policy'), 'cross-origin');
+  assert.equal(servida.headers.get('x-content-type-options'), 'nosniff');
+  assert.match(servida.headers.get('cache-control'), /^public/);
+  const bytes = Buffer.from(await servida.arrayBuffer());
+  assert.equal(bytes.length, imagen.tamanoBytes);
+  const etiqueta = servida.headers.get('etag');
+  const enCache = await fetch(`${rutaImagenes}/${imagen.id}`, { headers: { 'If-None-Match': etiqueta } });
+  assert.equal(enCache.status, 304);
+
+  // Reemplazar: la imagen anterior deja de servirse.
+  const reemplazo = await subir(creada.id, { datos: dibujar(800, 600, 'png'), tipo: 'image/png', nombre: 'afiche.png' }, 'Afiche ficticio');
+  const nueva = await reemplazo.json();
+  assert.equal(reemplazo.status, 200, JSON.stringify(nueva));
+  assert.notEqual(nueva.id, imagen.id);
+  assert.deepEqual([nueva.ancho, nueva.alto], [800, 600]);
+  assert.equal((await fetch(`${rutaImagenes}/${imagen.id}`)).status, 404);
+  assert.equal((await fetch(`${rutaImagenes}/${nueva.id}`)).status, 200);
+
+  const nuevoTexto = await escribir(`${rutaAdmin}/${creada.id}/imagen`, 'PATCH', 'marketing-qa', {
+    textoAlternativo: 'Afiche ficticio de la actividad',
+  });
+  assert.equal(nuevoTexto.status, 200);
+  assert.equal((await nuevoTexto.json()).textoAlternativo, 'Afiche ficticio de la actividad');
 
   const quitar = (publicacionId) => fetch(
-    `${rutaAdmin}/${publicacionId}/recursos/${recurso.id}`,
+    `${rutaAdmin}/${publicacionId}/imagen`,
     { method: 'DELETE', headers: { Authorization: 'Bearer marketing-qa' } },
   );
 
-  const recursoAjeno = await quitar(publicada);
-  assert.equal(recursoAjeno.status, 404);
-  await recursoAjeno.json();
+  const sinImagen = await quitar(publicada);
+  assert.equal(sinImagen.status, 404);
+  await sinImagen.json();
 
   const eliminada = await quitar(creada.id);
   assert.equal(eliminada.status, 204);
+  assert.equal((await fetch(`${rutaImagenes}/${nueva.id}`)).status, 404);
 
   const publicaSinImagen = await fetch(`${ruta}/${creada.id}`);
   assert.equal(publicaSinImagen.status, 200);
   assert.equal((await publicaSinImagen.json()).imagen, null);
+  const { rows: [{ n }] } = await base.cliente.query('select count(*)::int as n from imagenes_publicas');
+  assert.equal(n, 0);
 });
+
+/** Mitad roja y mitad azul, en el formato pedido. */
+function dibujar(ancho, alto, formato) {
+  const lienzo = createCanvas(ancho, alto);
+  const c = lienzo.getContext('2d');
+  c.fillStyle = '#c0392b';
+  c.fillRect(0, 0, ancho / 2, alto);
+  c.fillStyle = '#2c3e50';
+  c.fillRect(ancho / 2, 0, ancho / 2, alto);
+  return formato === 'png' ? lienzo.encodeSync('png') : lienzo.encodeSync('jpeg', 90);
+}

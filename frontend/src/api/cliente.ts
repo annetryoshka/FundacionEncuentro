@@ -58,7 +58,12 @@ interface OpcionesPeticion {
   publica?: boolean
   /** Sprint 3: `archivo` devuelve el cuerpo como Blob (genograma, PDF/Word, ZIP) en vez de JSON. */
   respuesta?: 'json' | 'archivo'
+  /** Para subir fotos con una conexión lenta. Por defecto 15 s. */
+  tiempoMaximoMs?: number
 }
+
+/** URL absoluta de una ruta de la API (p. ej. el `src` de una imagen pública). */
+export const urlApi = (ruta: string) => `${URL_BASE}${ruta}`
 
 /** Archivo recibido de la API. `nombre` sale de Content-Disposition cuando el backend lo envía. */
 export interface ArchivoRecibido {
@@ -123,7 +128,7 @@ async function enviar(ruta: string, opciones: OpcionesPeticion, token: string | 
       const { atenderSimulado } = await import('./simulado/servidor')
       return await atenderSimulado(url, init)
     }
-    return await fetch(url, { ...init, signal: AbortSignal.timeout(TIEMPO_MAXIMO_MS) })
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(opciones.tiempoMaximoMs ?? TIEMPO_MAXIMO_MS) })
   } catch {
     // fetch solo lanza si no hubo respuesta: red caída, CORS o tiempo agotado.
     throw new ErrorApi(0, 'Sin respuesta del servidor')

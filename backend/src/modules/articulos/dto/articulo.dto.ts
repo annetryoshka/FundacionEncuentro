@@ -1,39 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateNested,
+  IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min,
 } from 'class-validator';
 
 export const ESTADOS_ARTICULO = ['borrador', 'publicado', 'retirado'] as const;
 export type EstadoArticulo = (typeof ESTADOS_ARTICULO)[number];
-
-export class ImagenArticuloDto {
-  @ApiProperty({ example: 'investigaciones/portada-qa.png', maxLength: 300 })
-  @IsString()
-  @MaxLength(300)
-  @Matches(/^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9/_.-]*$/, { message: 'La ruta de la imagen no es válida' })
-  ruta: string;
-
-  @ApiProperty({ maxLength: 300 })
-  @IsString()
-  @Matches(/\S/, { message: 'La imagen necesita un texto alternativo' })
-  @MaxLength(300)
-  textoAlternativo: string;
-
-  @ApiPropertyOptional({ minimum: 1 })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(2147483647)
-  ancho?: number | null;
-
-  @ApiPropertyOptional({ minimum: 1 })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(2147483647)
-  alto?: number | null;
-}
 
 export class GuardarArticuloDto {
   @ApiProperty({ maxLength: 150 })
@@ -59,12 +31,6 @@ export class GuardarArticuloDto {
   @IsString()
   @MaxLength(150)
   autorVisible?: string | null;
-
-  @ApiPropertyOptional({ type: ImagenArticuloDto, nullable: true })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => ImagenArticuloDto)
-  imagen?: ImagenArticuloDto | null;
 }
 
 export class CambiarEstadoArticuloDto {

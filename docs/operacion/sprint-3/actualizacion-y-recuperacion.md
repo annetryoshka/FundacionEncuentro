@@ -79,7 +79,7 @@ Todo lo escrito después del respaldo se pierde: avisar al equipo y detener la A
 | Tablas clínicas, administrativas, auditoría | `public` | Sí |
 | Archivos de genograma (012) | `genograma_archivos.contenido` (bytea) | Sí, con su sha256 |
 | Cuentas (correo, contraseña) | `auth.users` de Supabase | **No**. En el mismo proyecto no se tocan; para un proyecto nuevo hay que migrar Auth aparte |
-| Imágenes de difusión (014) | Rutas en `recursos_difusion`; el archivo iría al bucket `difusion-publica` de Supabase Storage | **No**. Hoy no hay bucket ni imágenes; cuando existan, copiar el bucket junto con el respaldo |
+| Imágenes del portal (024) | `imagenes_publicas.contenido` (bytea) | Sí, con su sha256 |
 | `consentimientos.archivo_path`, `pagos.comprobante_path`, `informes.archivo_path`, `exportaciones.archivo_path` | Rutas (sin archivos guardados hoy) | Solo la ruta |
 
 ## Ensayo automático

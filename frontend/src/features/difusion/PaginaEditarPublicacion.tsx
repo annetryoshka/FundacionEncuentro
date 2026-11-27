@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { ErrorApi } from '../../api/cliente'
 import { useCarga } from '../../api/useCarga'
@@ -14,10 +14,10 @@ import {
   GrupoOpciones,
   Tarjeta,
 } from '../../componentes/ui'
-import { extension, tamanoLegible } from '../../utilidades/archivos'
 import { fechaLarga } from '../../utilidades/fechas'
 import { enfocarPrimerError, mensajeNoGuardado } from '../expediente/errores'
-import { ImagenPublica } from '../publico/ImagenPublica'
+import { mensajeErrorImagen, validarTextoImagen } from '../publico/imagenes'
+import { ElegirImagenNueva, ImagenPortada, type SeleccionImagen } from '../publico/ImagenPortada'
 import {
   NOMBRE_MODALIDAD,
   NOMBRE_TIPO_PUBLICACION,
@@ -29,23 +29,18 @@ import {
   LIMITES_PUBLICACION,
   NOMBRE_CAMPO_PUBLICACION,
   SIGUIENTE_ESTADO,
-  TIPOS_IMAGEN,
   aDatos,
   aFormulario,
-  agregarRecurso,
   cambiarEstadoPublicacion,
   crearPublicacion,
   editarPublicacion,
-  esRutaRelativa,
   formularioVacio,
+  imagenPublicacion,
   obtenerPublicacionAdmin,
-  quitarRecurso,
-  urlImagenDifusion,
   validarPublicacion,
   type ErroresPublicacion,
   type FormularioPublicacion,
   type PublicacionAdmin,
-  type RecursoDifusion,
 } from './difusion'
 import { EtiquetaEstadoPublicacion } from './PaginaDifusion'
 
@@ -63,7 +58,9 @@ export function PaginaNuevaPublicacion() {
       <h1 className="text-2xl font-semibold text-verde-oscuro sm:text-3xl">Nueva publicación</h1>
       <Editor
         publicacion={null}
-        alGuardar={(p) => navegar(`/difusion/${p.id}`, { replace: true, state: { creada: true } })}
+        alGuardar={(p, errorImagen) =>
+          navegar(`/difusion/${p.id}`, { replace: true, state: { creada: true, errorImagen } })
+        }
       />
     </div>
   )
@@ -73,7 +70,8 @@ export function PaginaNuevaPublicacion() {
 export function PaginaEditarPublicacion() {
   const { id = '' } = useParams()
   const ubicacion = useLocation()
-  const creada = Boolean((ubicacion.state as { creada?: boolean } | null)?.creada)
+  const estadoNavegacion = ubicacion.state as { creada?: boolean; errorImagen?: string } | null
+  const creada = Boolean(estadoNavegacion?.creada)
   const { datos, error, recargar } = useCarga(() => obtenerPublicacionAdmin(id), [id])
   const [actual, setActual] = useState<PublicacionAdmin | null>(null)
   const publicacion = actual && actual.id === datos?.id ? actual : datos
@@ -107,7 +105,9 @@ export function PaginaEditarPublicacion() {
       <Editor
         key={publicacion.id}
         publicacion={publicacion}
-        alGuardar={(p) => setActual({ ...p, recursos: p.recursos ?? publicacion.recursos })}
+        errorImagenAlCrear={creada ? estadoNavegacion?.errorImagen : undefined}
+        // PUT y PATCH de estado no devuelven la imagen: se conserva la que ya se tenía.
+        alGuardar={(p) => setActual({ ...p, imagen: p.imagen === undefined ? publicacion.imagen : p.imagen })}
         alRecargar={() => {
           setActual(null)
           recargar()
@@ -119,13 +119,22 @@ export function PaginaEditarPublicacion() {
 
 function Editor({
   publicacion,
+  errorImagenAlCrear,
   alGuardar,
   alRecargar,
 }: {
   publicacion: PublicacionAdmin | null
-  alGuardar: (p: PublicacionAdmin) => void
+  errorImagenAlCrear?: string
+  /** `errorImagen`: al crear, el borrador se guardó pero la imagen elegida no se pudo subir. */
+  alGuardar: (p: PublicacionAdmin, errorImagen?: string) => void
   alRecargar?: () => void
 }) {
+  // Nueva: la imagen elegida se sube después de crear el borrador. Guardada: se gestiona en su tarjeta.
+  const [seleccion, setSeleccion] = useState<SeleccionImagen | null>(null)
+  const [errorTextoImagen, setErrorTextoImagen] = useState<string>()
+  const [urlVista, setUrlVista] = useState<string | null>(null)
+  const idPublicacion = publicacion?.id
+  const acciones = useMemo(() => (idPublicacion ? imagenPublicacion(idPublicacion) : null), [idPublicacion])
   const [form, setForm] = useState<FormularioPublicacion>(() =>
     publicacion ? aFormulario(publicacion) : formularioVacio(),
   )
@@ -157,15 +166,29 @@ function Editor({
     setIntento(true)
     setMensaje(null)
     const encontrados = validarPublicacion(form)
+    const errorImagen = seleccion ? validarTextoImagen(seleccion.textoAlternativo) : null
     setErrores(encontrados)
-    if (Object.keys(encontrados).length) return enfocarPrimerError(refForm.current)
+    setErrorTextoImagen(errorImagen ?? undefined)
+    if (Object.keys(encontrados).length || errorImagen) return enfocarPrimerError(refForm.current)
     setGuardando(true)
     try {
       const datos = aDatos(form)
       const guardada = publicacion ? await editarPublicacion(publicacion.id, datos) : await crearPublicacion(datos)
       setGuardadoBase(JSON.stringify(form))
-      alGuardar(guardada)
-      if (publicacion) avisar('exito', 'Cambios guardados.')
+      if (publicacion) {
+        alGuardar(guardada)
+        avisar('exito', 'Cambios guardados.')
+        return
+      }
+      let fallo: string | undefined
+      if (seleccion) {
+        try {
+          guardada.imagen = await imagenPublicacion(guardada.id).subir(seleccion.archivo, seleccion.textoAlternativo)
+        } catch (error) {
+          fallo = `La publicación se guardó, pero la imagen no se pudo subir. ${mensajeErrorImagen(error)} Puedes intentarlo de nuevo aquí abajo.`
+        }
+      }
+      alGuardar(guardada, fallo)
     } catch (error) {
       // El formulario se conserva tal cual: nada de lo escrito se pierde.
       avisar('error', mensajeNoGuardado(error))
@@ -174,13 +197,14 @@ function Editor({
     }
   }
 
-  const principal = publicacion?.recursos?.find((r) => r.principal) ?? null
   const vista = {
     id: publicacion?.id ?? 'nueva',
     tipo: (form.tipo || 'campana') as TipoPublicacion,
     titulo: form.titulo.trim() || 'Título de la publicación',
     resumen: form.resumen.trim() || 'Sin resumen: hace falta para publicar.',
-    imagen: principal ? { url: urlImagenDifusion(principal.ruta), textoAlternativo: principal.textoAlternativo } : null,
+    imagen: urlVista
+      ? { url: urlVista, textoAlternativo: publicacion?.imagen?.textoAlternativo ?? seleccion?.textoAlternativo ?? '' }
+      : null,
     fechaInicio: form.fechaInicio || null,
     fechaFin: form.fechaFin || null,
     modalidad: form.modalidad || null,
@@ -308,6 +332,18 @@ function Editor({
                 ayuda="Solo canales institucionales verificados."
                 onChange={(e) => cambiar('contactoUrl', e.target.value)}
               />
+              {!publicacion && (
+                <ElegirImagenNueva
+                  seleccion={seleccion}
+                  errorTexto={errorTextoImagen}
+                  alSeleccionar={(s) => {
+                    setSeleccion(s)
+                    if (errorTextoImagen && s) setErrorTextoImagen(validarTextoImagen(s.textoAlternativo) ?? undefined)
+                    if (!s) setErrorTextoImagen(undefined)
+                  }}
+                  alVistaPrevia={setUrlVista}
+                />
+              )}
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
                 {publicacion && sinGuardar && <p className="text-sm text-naranja-texto">Hay cambios sin guardar.</p>}
                 <Link
@@ -316,7 +352,12 @@ function Editor({
                 >
                   {publicacion ? 'Volver sin guardar' : 'Cancelar'}
                 </Link>
-                <Boton type="submit" icono="guardar" cargando={guardando} textoCargando="Guardando…">
+                <Boton
+                  type="submit"
+                  icono="guardar"
+                  cargando={guardando}
+                  textoCargando={!publicacion && seleccion ? 'Guardando y subiendo la imagen…' : 'Guardando…'}
+                >
                   {publicacion ? 'Guardar cambios' : 'Guardar borrador'}
                 </Boton>
               </div>
@@ -324,10 +365,15 @@ function Editor({
           </form>
         </Tarjeta>
 
-        {publicacion ? (
-          <ImagenPrincipal publicacion={publicacion} principal={principal} alCambiar={alGuardar} />
-        ) : (
-          <p className="text-sm text-suave">La imagen se agrega después de guardar el borrador.</p>
+        {publicacion && acciones && (
+          <ImagenPortada
+            imagen={publicacion.imagen ?? null}
+            acciones={acciones}
+            publicado={publicacion.estado === 'publicado'}
+            avisoInicial={errorImagenAlCrear}
+            alCambiar={(imagen) => alGuardar({ ...publicacion, imagen })}
+            alVistaPrevia={setUrlVista}
+          />
         )}
       </div>
 
@@ -429,193 +475,6 @@ function CambioEstado({
           </Link>
         )}
       </div>
-    </Tarjeta>
-  )
-}
-
-/** Lee tipo, tamaño y dimensiones de la imagen elegida (no se sube: la API solo recibe sus datos). */
-async function leerImagen(archivo: File): Promise<{ ancho: number | null; alto: number | null }> {
-  if (typeof createImageBitmap !== 'function') return { ancho: null, alto: null }
-  try {
-    const bitmap = await createImageBitmap(archivo)
-    const medidas = { ancho: bitmap.width, alto: bitmap.height }
-    bitmap.close()
-    return medidas
-  } catch {
-    return { ancho: null, alto: null }
-  }
-}
-
-function ImagenPrincipal({
-  publicacion,
-  principal,
-  alCambiar,
-}: {
-  publicacion: PublicacionAdmin
-  principal: RecursoDifusion | null
-  alCambiar: (p: PublicacionAdmin) => void
-}) {
-  const id = useId()
-  const [archivo, setArchivo] = useState<File | null>(null)
-  const [medidas, setMedidas] = useState<{ ancho: number | null; alto: number | null }>({ ancho: null, alto: null })
-  const [ruta, setRuta] = useState('')
-  const [alternativo, setAlternativo] = useState('')
-  const [errores, setErrores] = useState<{ archivo?: string; ruta?: string; alternativo?: string }>({})
-  const [enviando, setEnviando] = useState(false)
-  const [mensaje, setMensaje] = useState<{ tipo: 'exito' | 'error'; texto: string } | null>(null)
-  const refMensaje = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (mensaje) requestAnimationFrame(() => refMensaje.current?.focus())
-  }, [mensaje])
-
-  const recursos = publicacion.recursos ?? []
-  const otros = recursos.filter((r) => !r.principal)
-
-  async function agregar(evento: FormEvent) {
-    evento.preventDefault()
-    if (enviando) return
-    const e: typeof errores = {}
-    const tipoMime = archivo ? TIPOS_IMAGEN[extension(archivo.name)] : undefined
-    if (!archivo) e.archivo = 'Elige la imagen para leer su tipo y tamaño.'
-    else if (!tipoMime) e.archivo = 'Usa una imagen JPEG, PNG o WebP.'
-    else if (archivo.size > 5 * 1024 * 1024)
-      e.archivo = `La imagen pesa ${tamanoLegible(archivo.size)}; el máximo es 5 MB.`
-    if (!esRutaRelativa(ruta.trim()))
-      e.ruta = 'Escribe la ruta dentro de la carpeta pública, sin «..» ni barra inicial.'
-    if (!alternativo.trim()) e.alternativo = 'Describe la imagen para quien no la ve.'
-    setErrores(e)
-    if (Object.keys(e).length || !archivo || !tipoMime) return
-    setEnviando(true)
-    setMensaje(null)
-    try {
-      const recurso = await agregarRecurso(publicacion.id, {
-        ruta: ruta.trim(),
-        tipoMime,
-        tamanoBytes: archivo.size,
-        textoAlternativo: alternativo.trim(),
-        ancho: medidas.ancho,
-        alto: medidas.alto,
-        principal: true,
-      })
-      alCambiar({ ...publicacion, recursos: [...recursos, recurso] })
-      setArchivo(null)
-      setRuta('')
-      setAlternativo('')
-      setMensaje({ tipo: 'exito', texto: 'Imagen principal registrada.' })
-    } catch (error) {
-      setMensaje({
-        tipo: 'error',
-        texto:
-          error instanceof ErrorApi && error.estado === 409
-            ? 'Esa ruta ya está registrada o la publicación ya tiene imagen principal. Quita la actual primero.'
-            : mensajeNoGuardado(error),
-      })
-    } finally {
-      setEnviando(false)
-    }
-  }
-
-  async function quitar(recurso: RecursoDifusion) {
-    if (enviando) return
-    setEnviando(true)
-    setMensaje(null)
-    try {
-      await quitarRecurso(publicacion.id, recurso.id)
-      alCambiar({ ...publicacion, recursos: recursos.filter((r) => r.id !== recurso.id) })
-      setMensaje({ tipo: 'exito', texto: 'Imagen quitada.' })
-    } catch (error) {
-      setMensaje({ tipo: 'error', texto: mensajeNoGuardado(error) })
-    } finally {
-      setEnviando(false)
-    }
-  }
-
-  return (
-    <Tarjeta>
-      <h2 className="text-lg font-semibold text-verde-oscuro">Imagen principal</h2>
-      {mensaje && (
-        <Aviso ref={refMensaje} tipo={mensaje.tipo} className="mt-3">
-          <p>{mensaje.texto}</p>
-        </Aviso>
-      )}
-      {principal ? (
-        <div className="mt-3 space-y-3">
-          <div className="overflow-hidden rounded-2xl border border-linea">
-            <ImagenPublica
-              imagen={{ url: urlImagenDifusion(principal.ruta), textoAlternativo: principal.textoAlternativo }}
-            />
-          </div>
-          <p className="text-sm text-suave">
-            <span className="font-semibold text-texto">{principal.ruta}</span> · {tamanoLegible(principal.tamanoBytes)}
-            {principal.ancho && principal.alto ? ` · ${principal.ancho}×${principal.alto}` : ''}
-            <br />
-            Texto alternativo: {principal.textoAlternativo}
-          </p>
-          <Boton variante="secundario" icono="cerrar" cargando={enviando} onClick={() => quitar(principal)}>
-            Quitar imagen
-          </Boton>
-        </div>
-      ) : (
-        <form noValidate onSubmit={agregar} className="mt-3 space-y-4">
-          <p className="text-sm text-suave">
-            El servidor todavía no recibe archivos de imagen: aquí se registra una imagen autorizada que ya está en la
-            carpeta pública del sitio ({urlImagenDifusion('')}). Elige la misma imagen para leer su tipo, tamaño y
-            medidas. No uses fotos en las que se reconozca a pacientes.
-          </p>
-          <div>
-            <label htmlFor={id} className="block text-sm font-semibold text-texto">
-              Imagen
-            </label>
-            <input
-              id={id}
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-              aria-invalid={errores.archivo ? true : undefined}
-              aria-describedby={errores.archivo ? `${id}-error` : undefined}
-              onChange={async (e) => {
-                const elegido = e.target.files?.[0] ?? null
-                setArchivo(elegido)
-                setErrores((x) => ({ ...x, archivo: undefined }))
-                if (elegido) {
-                  if (!ruta) setRuta(elegido.name.replace(/[^A-Za-z0-9._-]/g, '-'))
-                  setMedidas(await leerImagen(elegido))
-                }
-              }}
-              className="mt-1.5 block w-full rounded-xl border border-linea bg-white px-3 py-2.5 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-verde/10 file:px-4 file:py-2 file:font-semibold file:text-verde-oscuro"
-            />
-            {errores.archivo && (
-              <p id={`${id}-error`} className="mt-1.5 text-sm text-error">
-                {errores.archivo}
-              </p>
-            )}
-          </div>
-          <CampoTexto
-            etiqueta="Ruta en la carpeta pública"
-            value={ruta}
-            error={errores.ruta}
-            placeholder="campanas/diciembre.jpg"
-            onChange={(e) => setRuta(e.target.value)}
-          />
-          <CampoTexto
-            etiqueta="Texto alternativo"
-            value={alternativo}
-            maxLength={300}
-            error={errores.alternativo}
-            ayuda="Qué muestra la imagen, en una frase."
-            onChange={(e) => setAlternativo(e.target.value)}
-          />
-          <Boton type="submit" icono="subir" cargando={enviando} textoCargando="Registrando…">
-            Registrar imagen principal
-          </Boton>
-        </form>
-      )}
-      {otros.length > 0 && (
-        <p className="mt-3 text-sm text-suave">
-          Además hay {otros.length}{' '}
-          {otros.length === 1 ? 'imagen secundaria registrada' : 'imágenes secundarias registradas'}.
-        </p>
-      )}
     </Tarjeta>
   )
 }
