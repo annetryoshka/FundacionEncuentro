@@ -136,10 +136,9 @@ test('P6 · una publicada no puede quedar sin resumen al editarla', opciones, as
   await estado(p.id, 'publicado');
   const r = await pedir(`/difusion/publicaciones/${p.id}`, { metodo: 'PUT', cuerpo: { ...ACTIVIDAD, resumen: null } });
   const visible = await publico(p.id);
-  assert.ok(
-    r.status >= 400 || visible.status !== 200 || Boolean(visible.cuerpo.resumen),
-    `Quedó publicada sin resumen (PUT ${r.status}); publicar exige resumen, editar debería respetarlo`,
-  );
+  assert.equal(r.status, 400, 'Una edición inválida debe rechazarse de forma controlada');
+  assert.equal(visible.status, 200, 'El rechazo conserva la publicación visible');
+  assert.equal(visible.cuerpo.resumen, ACTIVIDAD.resumen, 'El resumen anterior no se pierde');
 });
 
 test('P7 · HTML o script en el contenido se guarda como texto, sin alterar, para que la interfaz lo muestre como texto', opciones, async () => {
