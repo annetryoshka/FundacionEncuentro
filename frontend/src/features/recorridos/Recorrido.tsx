@@ -157,7 +157,7 @@ export function Recorrido({ pasos, alCerrar }: { pasos: PasoRecorrido[]; alCerra
         <div
           aria-hidden="true"
           data-testid="recorrido-resaltado"
-          className="pointer-events-none fixed rounded-2xl outline-4 outline-naranja transition-all duration-300 motion-reduce:transition-none"
+          className="pointer-events-none fixed rounded-2xl outline-4 outline-naranja"
           style={{ ...objetivo, boxShadow: '0 0 0 9999px rgb(0 0 0 / 0.55)' }}
         />
       )}
