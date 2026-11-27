@@ -25,6 +25,7 @@
    | `migrations/018_investigacion_categorias.sql` | FE-168: categorías de investigación, selección autorizada y paquete para Atlas.ti con manifiesto |
    | `migrations/020_registro_exportaciones.sql` | FE-158: exportaciones PDF/Word de informe revisado, ficha o historial con sus datos, archivo privado y trazabilidad (019 la usa FE-169) |
    | `migrations/022_gastos_funcionamiento.sql` | FE-173: gastos de funcionamiento en `movimientos_contables` (egreso), corrección y anulación con auditoría, `consultar_gastos_mes(mes)` |
+   | `migrations/023_investigaciones_publicas.sql` | FE-183: artículos de investigación en `publicaciones_foro` (borrador/publicado/retirado), sin comentarios, vista pública `v_investigaciones_publicas` |
 
    ## Modelo del Sprint 2
 
@@ -323,6 +324,35 @@
    - Errores para traducir: `23514` y `23502` → 400, `22008` (fecha imposible) → 400, `42501` → 403, `P0002` → 404.
    - Cada alta, corrección y anulación queda en `auditoria` con su autor (trigger de la 001).
 
+   ## Investigaciones públicas (FE-183)
+
+   Contrato de FE-182 con el alcance acordado el 26/11/2026: artículos publicados por administración o marketing y
+   consulta pública. **Sin comentarios de visitantes:** `comentarios_foro` (001) queda sin uso, sin acceso ni vista.
+   Un artículo es una fila de `publicaciones_foro` (001), separada de lo clínico: sus FK solo apuntan a `perfiles`.
+
+   | Columna | Regla |
+   |---|---|
+   | `titulo` | 1–150, no solo espacios. |
+   | `resumen` | Hasta 500. Obligatorio para publicar. |
+   | `contenido` | 1–20 000, texto: la API y la interfaz no lo interpretan como HTML. |
+   | `autor_visible` | Autoría que ve el público (hasta 150); NULL si no se autorizó mostrarla. |
+   | `autor_id` | Quién lo creó en el sistema; lo pone la base y no se publica. |
+   | `imagen_ruta`, `imagen_texto_alternativo`, `imagen_ancho`, `imagen_alto` | Opcionales. Con ruta, texto alternativo obligatorio (hasta 300); misma regla de ruta que `recursos_difusion`. Sin ruta, todo NULL. |
+   | `estado` | Como difusión: se crea en `borrador`; `borrador → publicado → retirado → borrador`. Otra transición → `23514`. |
+   | `publicado_en/por`, `retirado_en/por`, `creado_en`, `actualizado_en/por` | Los pone la base desde `app.usuario_id`; lo que envíe el cliente se ignora. |
+
+   Para la API (FE-184), cada escritura en una transacción con `app.usuario_id`:
+
+   - **Gestión:** `insert` / `update` sobre `publicaciones_foro` (publicar o retirar = cambiar `estado`). Solo administración o
+     marketing activos; otro rol, cuenta inactiva o sin usuario → `42501` (403). Listado interno: la tabla, con su `estado`.
+   - **Eliminar:** solo lo que nunca se publicó; publicado, retirado o vuelto a borrador después de publicarse → `23514` (retirar).
+   - **Consulta pública:** solo desde `v_investigaciones_publicas` (`id`, `titulo`, `resumen`, `contenido`, `autor`,
+     `fecha_publicacion`, `publicado_en`, `imagen_*`), ordenada por `publicado_en desc`. Borrador o retirado = no existe (404).
+     `fecha_publicacion` es la fecha en Bolivia (`AAAA-MM-DD` de `InvestigacionPublica.fechaPublicacion`).
+   - Errores para traducir: `23514` y `23502` → 400, `42501` → 403.
+   - La imagen usa el mismo bucket `difusion-publica` que difusión, que todavía no existe: hoy solo se registran los metadatos.
+   - Cada alta, cambio y baja queda en `auditoria` con su autor.
+
    ## Pruebas de las migraciones con PostgreSQL local
 
    Cada archivo `backend/test/*-postgres.test.mjs` del Sprint 2 crea una base desechable, aplica todas las migraciones, carga datos ficticios y la borra al terminar. Nunca usa Supabase.
@@ -351,6 +381,7 @@
    | FE-168 | `investigacion-postgres.test.mjs` (aplica la 018 sobre una base con datos existentes) |
    | FE-158 | `exportaciones-postgres.test.mjs` (aplica la 020 sobre una base con datos existentes) |
    | FE-173 | `gastos-postgres.test.mjs` (aplica la 022 sobre una base con datos existentes) |
+   | FE-183 | `investigaciones-publicas-postgres.test.mjs` (aplica la 023 sobre una base con un artículo existente) |
 
    | FE-130 | `genograma-postgres.test.mjs` (también la API con base real) |
 
