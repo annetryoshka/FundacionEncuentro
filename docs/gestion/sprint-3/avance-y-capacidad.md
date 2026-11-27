@@ -81,3 +81,22 @@ Andrea retiró FE-4 y sus subtareas. La tabla anterior conserva el corte histór
 | Total de 83 subtareas | 317 |
 
 Estas cifras sustituyen 345 h/54 h para el seguimiento vigente; no representan horas ejecutadas ni capacidad confirmada. El cambio total respecto del corte anterior no se atribuye exclusivamente a HU4, porque el backlog puede contener otros ajustes del equipo. HU5 conserva sus estimaciones asignadas y se simplifica a gastos básicos sin reparto. No se reasigna ni registra como realizada ninguna tarea automáticamente.
+
+## Estado de las tareas de Gemina · 2026-11-26
+
+| Tarea | Estado | Qué falta |
+|---|---|---|
+| FE-137, FE-148, FE-186 | Integradas en `main` | Cierre en Jira |
+| FE-141 | Contenido de demostración integrado | Imágenes y publicaciones reales autorizadas |
+| FE-157 | En rama `feature/FE-157-estilos-plantillas` | PR y revisión de Jorge y Andrea |
+| FE-147 | En rama `feature/FE-147-revision-contenido` | Revisión con la Fundación |
+| FE-176 | Bloqueada; guion preparado | Gastos (FE-173 a FE-175) |
+| FE-185 | Parcial; contenido y casos preparados | Flujo de artículos (FE-183, FE-184, FE-187) |
+| FE-201, FE-202, FE-204 | Documentos integrados y actualizados | Seguimiento hasta el cierre |
+| FE-203 | Guía actualizada | Validación con la Fundación y operación |
+| FE-210 | Pendiente | Fechas y asistencia reales |
+| FE-121 | Borrador de contenido | Modelo institucional, horas y entrega (límite 2026-11-28) |
+| FE-122 | Pendiente | Cierre del Sprint 3 |
+| FE-181 | Retirada del proyecto | — |
+
+Horas ejecutadas: sin registro.
