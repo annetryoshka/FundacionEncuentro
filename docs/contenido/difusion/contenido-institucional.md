@@ -2,21 +2,21 @@
 
 Tarea: FE-141 (HU FE-112) · Responsable: Gemina Ponce · Contrato: [FE-140](../../srs/sprint-3/FE-140-difusion-publicaciones.md) (rama `docs/andrea-sprint3-contratos`)
 
-Este documento organiza el texto de la portada, los servicios y el contacto. **Ningún texto de esta página está aprobado por la Fundación**: los borradores se redactaron a partir de la documentación del proyecto, y el contenido real se publica solo cuando se registre su autorización en [registro-autorizacion.md](registro-autorizacion.md). No se incluyen datos de pacientes, expedientes ni domicilios particulares.
+Este documento organiza el texto de la portada, los servicios y el contacto. **Actualización 26/11/2026:** Andrea (PO) autorizó expresamente la descripción del centro, el teléfono y la dirección que se detallan abajo. La autorización se registra en [registro-autorizacion.md](registro-autorizacion.md); los demás textos e imágenes conservan su estado pendiente. No se incluyen datos de pacientes, expedientes ni domicilios particulares.
 
 ## 1. Portada y presentación
 
 | Elemento | Borrador (pendiente de aprobación) | Fuente |
 | --- | --- | --- |
-| Nombre | Fundación Encuentro | Minuta ENT-001 |
-| Descripción | Centro de atención terapéutica en La Paz, Bolivia, que brinda intervención psicológica con enfoque sistémico a personas, parejas y familias. | Documento del grupo, apartado 1.1.1 |
+| Nombre | Fundación Encuentro | Minuta ENT-001; autorización de Andrea, 26/11/2026. |
+| Descripción | Centro de atención terapéutica en La Paz, Bolivia, que brinda intervención psicológica con enfoque sistémico a personas, parejas y familias. | Documento del grupo, apartado 1.1.1; autorización de Andrea, 26/11/2026. |
 | Investigación | Además de la atención clínica, realiza labores de investigación y sistematización cualitativa. | Documento del grupo, apartado 1.1.1 |
 
 ## 2. Servicios
 
 | Servicio | Borrador | Estado |
 | --- | --- | --- |
-| Atención psicológica sistémica individual, de pareja y familiar | Redacción tomada del documento del grupo | Pendiente de aprobación |
+| Atención psicológica con enfoque sistémico a personas, parejas y familias | Derivada de la descripción autorizada, sin ampliar servicios. | Autorizada por Andrea, 26/11/2026. |
 | Otros servicios, tarifas, horarios | **Sin información** | La Fundación debe proporcionarlos |
 
 No se publican tarifas, cupos ni reservas de citas: el contrato FE-140 excluye inscripción, cobro y reserva.
@@ -25,10 +25,10 @@ No se publican tarifas, cupos ni reservas de citas: el contrato FE-140 excluye i
 
 | Canal | Dato | Estado |
 | --- | --- | --- |
-| Teléfono | **Pendiente** | La Fundación debe entregarlo y autorizar su publicación |
+| Teléfono | +591 77263336 | Del afiche utilizado en la marca; publicación autorizada por Andrea, 26/11/2026. |
 | Correo | **Pendiente** | Ídem |
 | Redes sociales | **Pendiente** (la entrevista menciona Facebook, TikTok e Instagram como canales de captación, pero no se tienen las direcciones oficiales) | Ídem |
-| Dirección del centro | **Pendiente** | Solo la dirección institucional, nunca domicilios de pacientes |
+| Dirección del centro | Calle 11 de Obrajes Nº 169, frente al colegio Linderman; La Paz, Bolivia. | Del afiche; publicación autorizada por Andrea, 26/11/2026. |
 
 Regla del contrato: `contactoUrl` es un canal institucional verificado con URL http/https; no se inventan contactos.
 
@@ -58,6 +58,6 @@ Resultado esperado del listado público: **C1 y K1**. El enlace `ejemplo.invalid
 | Tema | Pendiente de |
 | --- | --- |
 | Etiqueta visible de «curso» o «taller» | Fundación |
-| Textos, servicios y contactos reales | Fundación |
+| Descripción y atención sistémica; teléfono y dirección | Autorizados por Andrea el 26/11/2026; implementados en FE-146. Otros datos siguen pendientes. |
 | Imágenes autorizadas | Fundación |
 | Quién aprueba el contenido antes de publicar | Andrea con la Fundación |

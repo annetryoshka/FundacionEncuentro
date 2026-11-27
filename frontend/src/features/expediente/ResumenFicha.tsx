@@ -6,10 +6,9 @@ import { Icono, type NombreIcono } from '../../componentes/iconos'
 import { fechaLarga } from '../../utilidades/fechas'
 import type { CarpetaDetalle } from '../carpetas/tipos'
 import { obtenerDiagnosticoVigente } from './diagnosticoVigente'
-import { nombreParentesco, obtenerFamilia, textoEdad } from './familia/familia'
+import { obtenerFamilia } from './familia/familia'
+import { ResumenFamilia } from './familia/ResumenFamilia'
 import { nombreFormato, obtenerGenograma } from './genograma/genograma'
-
-const MAX_FAMILIARES = 4
 
 /**
  * FE-127 · Resumen inicial de la ficha (FE-123 §1): composición familiar, genograma y diagnóstico, antes del
@@ -86,23 +85,8 @@ function BloqueFamilia({ carpetaId, enlace }: { carpetaId: string; enlace: strin
         <EstadoBloque error={error} alReintentar={recargar} texto="No se pudo cargar la composición familiar." />
       ) : !datos.registrada ? (
         <p className="text-suave">Sin composición familiar registrada.</p>
-      ) : datos.familiares.length === 0 ? (
-        <p className="text-suave">Registrada sin integrantes.</p>
       ) : (
-        <>
-          <ul className="space-y-1">
-            {datos.familiares.slice(0, MAX_FAMILIARES).map((f) => (
-              <li key={f.id} className="min-w-0">
-                <span className="font-semibold">{nombreParentesco(f)}</span>
-                {f.nombreCompleto ? `: ${f.nombreCompleto}` : ''}
-                <span className="block text-suave">{textoEdad(f, fechaLarga)}</span>
-              </li>
-            ))}
-          </ul>
-          {datos.familiares.length > MAX_FAMILIARES && (
-            <p className="mt-1 text-suave">y {datos.familiares.length - MAX_FAMILIARES} más.</p>
-          )}
-        </>
+        <ResumenFamilia key={datos.casoId} familiares={datos.familiares} />
       )}
     </Bloque>
   )

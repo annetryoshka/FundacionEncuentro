@@ -17,3 +17,7 @@ Propuesta funcional para FE-50. Registrar el contexto en la carpeta existente, c
 **Pendiente de validar.** Qué evidencia se admite, cuándo aplica cada estado y qué datos operativos pueden registrarse mientras la constancia esté pendiente. La propuesta no define estas reglas para datos reales.
 
 El [esquema base](../../../db/migrations/001_esquema_base.sql) dispone de `contexto_judicial` y `consentimientos`. La implementación debe distinguir estado y justificación de la evidencia referenciada.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+Andrea confirmó que la Fundación permite registrar atención con la constancia en estado pendiente. Esta decisión se aplica al incremento actual sin presentar Pendiente como consentimiento otorgado. Se conservan los campos condicionales implementados; la definición del soporte admisible y los supuestos de No aplica se controlan en [FE-188](../sprint-3/FE-188-decisiones-consentimiento-pagos.md). No se modifica el corte histórico del Sprint 2.

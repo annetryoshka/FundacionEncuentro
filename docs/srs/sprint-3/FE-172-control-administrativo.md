@@ -94,3 +94,11 @@ Los importes son inventados para QA: no son costos reales de la Fundación.
 | FE-176 | Gemina, revisión de Emilia | Comprobar el ejemplo ficticio, permisos y totales; registrar evidencia. |
 
 La PO ya confirmó el alcance básico. Cada implementación y su verificación siguen pendientes de los entregables respectivos; este documento no certifica la API ni la pantalla como terminadas.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+El alcance de la PO está confirmado: gastos sencillos de internet/Wi-Fi, electricidad, alquiler y otros, con fecha, monto en Bs y descripción; consulta mensual, corrección y anulación trazables. No queda ninguna regla de reparto que impida empezar. La definición de campos y el ejemplo de aceptación de FE-172 están completos.
+
+Cotejo aritmético del ejemplo, sin una API de gastos: `120.00 + 80.00 + 1500.00 = 1700.00`; reemplazar 80.00 por 85.00 deja 1705.00; excluir el ID de internet deja 1585.00. Repetir la anulación sobre ese mismo ID no vuelve a restarlo. Se usan decimales exactos; estos importes no son gastos reales de la Fundación.
+
+La inspección de la entrega `18ae1cf` no encuentra un módulo/controlador `/api/gastos` ni una pantalla de gastos. Por eso FE-173/174/175/176 siguen siendo implementación y QA pendientes. Este cierre documental de FE-172 no equivale a cerrar la HU FE-5. El contrato reduce su alcance a un formulario y listado administrativo ya descritos, sin exigir rehacer pagos ni ninguna otra función integrada.

@@ -78,3 +78,13 @@ Evidencia estructural de la muestra: existe texto en párrafos/tablas de OpenXML
 | Error del generador | Mensaje de fallo y posibilidad de reintento; no archivo corrupto presentado como éxito. |
 
 **Pendiente para cierre:** ratificar contenido/estilo con la Fundación y revisar los documentos producidos por la aplicación después de FE-159/160. La muestra adjunta es referencia, no exportación real del sistema.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+El producto integrado ya genera y descarga PDF/DOCX mediante POST `/api/carpetas/:id/exportaciones` y descarga autenticada de su resultado. `GenerarExportacionDto` admite `informe`, `ficha` o `historial`; el informe exige una versión revisada. Administración accede a ficha/historial y pagos expresamente seleccionados; el informe clínico revisado se restringe a la terapeuta asignada. Marketing y la terapeuta ajena no reciben archivos.
+
+`generar-docx.ts` produce párrafos y tablas OpenXML con texto, no una captura aplanada. `generar-pdf.ts` usa A4, márgenes y numeración. La API con PostgreSQL local ya generó y descargó ambos formatos en la base `18ae1cf`; `backend/test/evaluacion-inicial-postgres.test.mjs` inspeccionó el XML de un DOCX real descargado e incluyó la evaluación inicial. `exportaciones-api-postgres.test.mjs` cubre autorización y fallos de persistencia. Los documentos revisados anteriores permanecen intactos.
+
+**Límite encontrado:** la exportación actual agrega metadatos/referencia del genograma, pero el generador no incrusta la imagen/PDF dentro del Word o PDF. La carga y visualización en la ficha sí están disponibles. No se declara esa inserción gráfica como terminada; se registra como diferencia de la HU FE-114 para su decisión/corrección, junto con la revisión visual de Word y PDF de varias páginas.
+
+La muestra `FE-156-ficha-ficticia.docx` sigue siendo una referencia ajena a la API. La evidencia de ejecución real es la suite anterior, no esa muestra. No se ejecutó Word/LibreOffice ni una validación de estilo de la Fundación en esta sesión. FE-156 conserva pendiente ese cotejo final; la definición de formatos y el examen estructural están entregados.

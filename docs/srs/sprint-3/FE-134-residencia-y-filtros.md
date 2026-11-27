@@ -76,3 +76,11 @@ Las terapeutas no reciben indicadores financieros por añadirles un filtro. Las 
 - Una fecha sin pagos da importe `0.00`; fallo de carga nunca se presenta como cero.
 
 **Pendiente para cierre:** ratificar si se necesita análisis por residencia histórica y confirmar la presentación de “Otra localidad”.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+El alcance solicitado por Andrea es el lugar donde **vive** el paciente. La implementación guarda su residencia actual registrada en el paciente (`la_paz`, `el_alto`, `otra` más detalle, o null), compartida entre sus casos. El catálogo y el filtro «Sin registrar» del contrato están integrados; no se deduce la residencia del lugar de atención, juzgado ni procedencia.
+
+La migración 016, `residencia.ts`, `SelectorResidencia.tsx` y las consultas de carpetas/indicadores aplican esa misma semántica. Cambiar residencia actualiza la agrupación actual; no cambia origen, número, familia ni autorías. No se comprometió una dimensión histórica de residencia al ingreso: sería un campo diferente y un requisito adicional, no un impedimento para el alcance actual.
+
+Evidencia técnica: `backend/test/residencia-postgres.test.mjs`, `frontend/src/features/carpetas/Residencia.test.tsx`, `ResidenciaCarpetas.test.tsx` y pruebas de indicadores. Están incluidas en la regresión integrada de `18ae1cf` y en la suite actual de frontend. Los casos A–D siguen siendo ficticios. Esta revisión cierra la definición del catálogo y los ejemplos de FE-134; no certifica estadísticas históricas de residencia ni uso con pacientes reales.

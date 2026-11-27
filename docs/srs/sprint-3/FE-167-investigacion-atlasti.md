@@ -89,3 +89,13 @@ Cambiar encabezados no anonimiza el texto libre. Incluir una revisión previa de
 | Software de prueba no disponible | Compatibilidad ejecutada pendiente, sin marcarla como aprobada. |
 
 **Para completar FE-167:** ratificar categorías, secciones, perfil autorizado y tratamiento de identificadores. La verificación documental de formatos está realizada; la prueba de importación del producto corresponde a FE-171.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+La selección/categorización y preparación de paquetes están implementadas en `InvestigacionModule`. El DTO efectivo pide `casosIds`, secciones `diagnostico`/`seguimiento`/`tareas`, formato `docx` o `txt` y período opcional. El servidor limita cada caso al acceso actual, conserva la relación interna y exige una revisión explícita del paquete antes de la descarga. Una huella detecta cambios entre la vista previa y la confirmación.
+
+La evaluación inicial se incluye en el documento y se presenta en pantalla antes de confirmar. Los nombres de archivo usan códigos de exportación; el texto libre requiere revisión profesional de posibles identificadores. La suite `evaluacion-inicial-postgres.test.mjs` probó vista previa, ZIP y cambio de huella (409), además de la regresión de `investigacion-api-postgres.test.mjs`. El frontend tiene el mismo recorrido en `Investigacion.test.tsx`.
+
+El [manual oficial de ATLAS.ti 26 para Windows](https://manuals.atlasti.com/Win/es/manual/Documents/DocumentsSupportedFileFormats_es.html), consultado el 26/11/2026, enumera DOCX y TXT como formatos documentales compatibles. Eso sustenta el intercambio de documentos, **sin demostrar la versión instalada en la Fundación ni una importación de proyectos/códigos nativos**.
+
+Pendientes externos de FE-167: catálogo clínico definitivo, perfiles autorizados para investigación con datos reales y prueba de importación de un paquete ficticio en la versión concreta de ATLAS.ti. Los ejemplos COM-FAM/LIM/QA conservan su carácter de datos de prueba. No se atribuye una taxonomía clínica aprobada a la Fundación ni se amplían sus permisos de investigación por la sola existencia de acceso asistencial.

@@ -1,5 +1,7 @@
 # FE-27 — Verificación de cierre completo
 
+**Actualización Sprint 3, 26/11/2026:** FE-192 corrigió el contrato; Emilia aportó evidencia con Supabase y Andrea completó su aceptación en [FE-194](sprint-3/FE-194-aceptacion-logout.md). FE27-01 y FE27-03 quedan cerrados; FE27-02 conserva la caracterización real de R7. El documento siguiente se conserva como corte histórico de octubre, no como el estado vigente del defecto.
+
 Fecha de revisión: 2026-10-16 (America/La_Paz).
 
 ## Alcance y clasificación de evidencia

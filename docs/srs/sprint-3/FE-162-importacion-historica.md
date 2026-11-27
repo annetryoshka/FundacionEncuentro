@@ -6,9 +6,9 @@
 
 **Base revisada:** `main` en `37ed16bcca9bb3d6842c62f41b58a1bf17f7616f`.
 
-**Estado del entregable:** análisis preparado; no acredita implementación ni validación de la Fundación.
+**Estado actualizado 26/11/2026:** contrato y tabla de revisión implementados por Andrea sobre el asistente integrado de Jorge. La validación de un archivo histórico real autorizado sigue pendiente.
 
-HU FE-9 · RF-13/RF-14. Este documento completa el contrato propuesto; **FE-162 también exige un componente frontend**, que sigue pendiente.
+HU FE-9 · RF-13/RF-14. Este documento conserva el contrato de diseño y añade al final su correspondencia con la implementación.
 
 ## 1. Flujo propuesto
 
@@ -107,3 +107,15 @@ El componente recibe datos y callbacks del contrato; Jorge integra carga/confirm
 - Guardar procedencia, autor, momento, decisiones y resultado del lote.
 
 **Pendiente:** contrastar columnas con una muestra vacía/anonimizada autorizada del archivo antiguo y construir/revisar el componente de FE-162. No se efectuó importación real.
+
+## 7. Entrega técnica de Andrea · 26/11/2026
+
+`TablaRevisionImportacion.tsx` presenta fila/referencia, paciente, tipo/número, estado, cantidad de errores/coincidencias y decisión actual. El botón «Revisar fila» lleva el foco al detalle editable de FE-165, donde se conservan las acciones de corregir, crear, vincular o excluir ya integradas. No se duplica la lógica de persistencia ni se inventa un resultado sin respuesta del servidor.
+
+La tabla respeta el filtro del lote, bloquea revisiones obsoletas y ofrece desplazamiento horizontal dentro de su propia región accesible en celular. Las acciones conservan el control de versión, el rechazo de 409 y el bloqueo de confirmación con filas pendientes.
+
+La plantilla efectiva es `db/importacion/plantilla-importacion-historica.csv` y `COLUMNAS` de `importacion.ts`: son 18 columnas, incluyendo estado y contexto judicial. La API efectiva usa POST `/api/importaciones`, GET `/api/importaciones/:id`, PATCH `/:id/filas/:numeroFila` y `/:id/filas/:numeroFila/datos`, y POST `/:id/confirmar`. El resultado es transaccional por lote e idempotente. El ejemplo JSON del apartado 4 conserva su carácter ilustrativo; se aplican los tipos efectivos del cliente.
+
+Verificación ejecutada: **13 pruebas de interfaz** entre `TablaRevisionImportacion.test.tsx` y `Importacion.test.tsx`, todas aprobadas. La suite de integración existente de FE-164 ya comprueba la muestra de FE-162, duplicados, formatos, correcciones, confirmación y no duplicación en PostgreSQL. La revisión de navegador de esta entrega se registra en FE-196. No se declara una nueva revisión de Jorge ni una importación de expedientes reales.
+
+El componente queda entregado. Para aceptar el mapeo del archivo antiguo de la Fundación falta una muestra autorizada y su contraste con estas columnas; se conserva como validación externa pendiente.

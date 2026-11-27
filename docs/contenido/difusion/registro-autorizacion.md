@@ -10,6 +10,10 @@ Cada contenido que llegue al portal público se anota aquí con su origen y qui�
 | 4 | Imágenes | La Fundación | | | | Pendiente: aún no se entregan |
 | 5 | Campaña, actividad y curso reales | La Fundación | | | | Pendiente |
 | 6 | Publicaciones de demostración (6, marcadas `[DEMO QA]`) | Redactadas por el equipo | No requiere: es contenido ficticio | 2026-11-25 | — | Solo para QA, nunca en producción |
+| 7 | Descripción: «Centro de atención terapéutica en La Paz, Bolivia, que brinda intervención psicológica con enfoque sistémico a personas, parejas y familias»; servicio limitado a esa descripción. | Borrador presentado a la PO | Andrea Carolina Narváez Ortega (PO) | 2026-11-26 | Respuesta expresa en la sesión de trabajo: «Autorizar texto, teléfono y dirección». | Autorizado; sustituye el estado pendiente de las filas 1 y 2 solo para este texto. |
+| 8 | Teléfono +591 77263336 y dirección Calle 11 de Obrajes Nº 169, frente al colegio Linderman. | Afiche ya usado en `frontend/src/componentes/marca.tsx`, contrastado con Andrea. | Andrea Carolina Narváez Ortega (PO) | 2026-11-26 | Misma respuesta expresa. | Autorizados; sustituye fila 3 solo para teléfono/dirección. No incluye correo ni redes. |
+
+Esta constancia registra la autorización de la PO; no inventa una reunión, firma ni aprobación de otra persona de la Fundación. Imágenes, investigación institucional, tarifas, horarios, redes y publicaciones reales adicionales siguen pendientes.
 
 ## Comprobaciones antes de publicar contenido real
 

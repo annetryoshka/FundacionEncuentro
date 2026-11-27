@@ -1,0 +1,9 @@
+flowchart TB
+  personal["Administración, terapeuta y marketing"] --> web["React: área del personal y portal público"]
+  visitante["Visitante sin sesión"] --> web
+  geno["GenoPro externo"] -->|"PDF o imagen; carga manual"| web
+  web -->|"HTTP; acceso público o token por operación"| api["API NestJS modular"]
+  api -->|"Verifica sesión"| auth["Supabase Auth"]
+  api -->|"SQL, transacciones y genogramas privados"| db["PostgreSQL"]
+  api -->|"Exportaciones privadas"| archivos["Directorio EXPORTACIONES_DIR"]
+  web -->|"Descarga y traslado manual de documentos"| atlas["ATLAS.ti externo"]

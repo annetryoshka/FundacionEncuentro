@@ -65,3 +65,18 @@ Pantallas: listado, detalle y, si corresponde, formulario de comentario con avis
 | Texto inválido o excesivo | Rechazado sin publicarse. |
 
 **Para completar FE-182:** registrar decisión de alcance, participación, perfiles responsables y política de contenido. No se obtuvo esa ratificación en esta entrega.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+Andrea (PO) ratificó expresamente en esta sesión el alcance: **«Sí: artículos públicos sin comentarios»**, después de revisar la propuesta de listar y leer artículos autorizados, gestionados por administración o marketing como borrador/publicado/retirado. Esta decisión sustituye el estado pendiente de alcance de los apartados 1 y 2.
+
+| Capacidad del Sprint 3 | Regla definitiva |
+|---|---|
+| Visitante | Listar/leer solo artículos publicados y autorizados. |
+| Administración/marketing | Crear, editar, publicar y retirar contenido autorizado; no obtiene acceso clínico adicional. |
+| Comentarios | Fuera de esta entrega. No mostrar formulario ni habilitar recepción pública. No se requiere moderación de comentarios en este sprint. |
+| Datos clínicos | No se publican automáticamente exportaciones, identificadores, historias ni notas de pacientes. |
+
+En la base integrada hay componentes `ListadoInvestigaciones`/`TarjetaInvestigacion` y sus pruebas, pero **no un recorrido de gestión/lectura de artículos conectado a una API de investigaciones públicas**. Es trabajo pendiente de FE-183 a FE-187 conforme a este alcance reducido. Reutilizar difusión requiere separar el tipo de contenido y sus permisos; no declarar que un componente aislado implementa toda la HU.
+
+FE-182 entrega y cierra la definición de alcance/política con decisión trazable. FE-116 permanece pendiente de implementación y aceptación. La publicación de cada artículo real requiere su autorización; esta decisión de alcance no aprueba contenidos todavía no proporcionados.
