@@ -4,16 +4,16 @@ Historia FE-5 (RF-25) · Insumo [FE-172](../srs/sprint-3/FE-172-control-administ
 
 ## Base y alcance
 
-Rama `feature/FE-173-gastos-mensuales` sobre `main` en `abcc9b8`. Solo base de datos y pruebas.
+Rama `feature/FE-173-gastos-mensuales` sobre `main` en `18ae1cf`. Solo base de datos y pruebas.
 La API es de FE-174 (Emilia, revisión de Adriana); la pantalla, de FE-175 (Jorge); la verificación, de FE-176 (Gemina).
 
 | Archivo | Cambio |
 |---|---|
-| `db/migrations/021_gastos_funcionamiento.sql` | `movimientos_contables` (001) para gastos `egreso`: categorías, fecha no futura, monto exacto, descripción, anulación con autor y motivo, autoría por la base, sin borrado; `consultar_gastos_mes`, `anular_gasto`, `gasto_json`; RLS y permisos |
+| `db/migrations/022_gastos_funcionamiento.sql` | `movimientos_contables` (001) para gastos `egreso`: categorías, fecha no futura, monto exacto, descripción, anulación con autor y motivo, autoría por la base, sin borrado; `consultar_gastos_mes`, `anular_gasto`, `gasto_json`; RLS y permisos |
 | `backend/test/gastos-postgres.test.mjs` | 14 pruebas sobre PostgreSQL local |
 | `db/migrations/README.md` | Columnas, flujo y errores para FE-174/FE-175 |
 
-Numeración: 019 y 020 ya están en `main`; 021 no la usa ninguna rama (revisado por contenido en todas las ramas remotas).
+Numeración: 019, 020 y 021 (`021_evaluacion_inicial.sql`, FE-126) ya están en `main`; 022 no la usa ninguna rama (revisado por contenido en todas las ramas remotas).
 
 ## Decisiones
 
@@ -43,7 +43,7 @@ $env:FE_PG_QA = '1'; $env:FE_PG_ADMIN_URL = 'postgres://postgres:<clave>@localho
 node --test test/gastos-postgres.test.mjs
 ```
 
-Datos de prueba: un ingreso previo de 75.50 cargado con 001–020; después se aplica la 021. Gastos ficticios del ejemplo de
+Datos de prueba: un ingreso previo de 75.50 cargado con 001–021; después se aplica la 022. Gastos ficticios del ejemplo de
 FE-172 (noviembre 2026) y otros en meses vacíos para no mezclar totales.
 
 ## Matriz de pruebas
@@ -75,10 +75,10 @@ fallar al menos una prueba.
 | Comando | Resultado |
 |---|---|
 | `npm run build` (backend) | OK |
-| `npm run test:unit` | 273/273 |
-| `node --test --test-concurrency=1 test/*.test.mjs` con todas las suites de PostgreSQL | 419 pass, 0 fail, 13 skip (12 requieren Supabase Auth real, 1 variante sin la 012) |
+| `npm run test:unit` | 279/279 |
+| `node --test --test-concurrency=1 test/*.test.mjs` con todas las suites de PostgreSQL | 427 pass, 0 fail, 13 skip (12 requieren Supabase Auth real, 1 variante sin la 012) |
 | `gastos-postgres.test.mjs` | 14/14 |
-| Frontend `lint`, `build`, `test` (sin cambios) | OK, OK, 271/271 |
+| Frontend `lint`, `build`, `test` (sin cambios; antes de unir `main`) | OK, OK, 271/271 |
 
 ## Pendiente
 

@@ -1,4 +1,4 @@
-// FE-173: gastos de funcionamiento y totales mensuales (migración 021, contrato FE-172). Datos ficticios.
+// FE-173: gastos de funcionamiento y totales mensuales (migración 022, contrato FE-172). Datos ficticios.
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { after, before, test } from 'node:test';
@@ -39,8 +39,8 @@ const totales = (r) => Object.fromEntries(r.totalesPorCategoria.map((c) => [c.ca
 
 before(async () => {
   if (opciones.skip) return;
-  // Movimiento cargado con 001–020; la 021 se aplica después, como en Supabase.
-  base = await crearBase('fe173', { hasta: '020' });
+  // Movimiento cargado con 001–021; la 022 se aplica después, como en Supabase.
+  base = await crearBase('fe173', { hasta: '021' });
   sql = base.cliente;
   ingresoPrevio = (await sql.query(
     `insert into movimientos_contables (fecha, tipo, monto, descripcion)
@@ -49,7 +49,7 @@ before(async () => {
 });
 after(async () => { await base?.cerrar(); });
 
-test('FE-173: la 021 conserva los movimientos existentes y no exige datos de gasto a los ingresos', opciones, async () => {
+test('FE-173: la 022 conserva los movimientos existentes y no exige datos de gasto a los ingresos', opciones, async () => {
   const previo = await leer(ingresoPrevio.id);
   assert.equal(previo.monto, '75.50');
   assert.equal(previo.tipo, 'ingreso');
