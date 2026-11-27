@@ -664,7 +664,7 @@ Gasto: `{ id, fecha, categoria, descripcion, monto, anulado, anuladoEn, anuladoP
 - `categoria`: `internet` (Internet / Wi-Fi), `electricidad`, `alquiler`, `otros` (Otros gastos). Se permiten varios por categoría y mes.
 - `fecha`: `AAAA-MM-DD`, válida, no futura (hora de Bolivia) y desde 2000. El mes del total sale de esta fecha: corregirla a otro mes mueve el gasto entre totales.
 - `monto`: **texto** decimal en Bs con punto, positivo, hasta 8 enteros y 2 decimales (`"120.00"`, `"1500"`). Un número JSON, una coma o un tercer decimal → `400`; no se redondea. Las respuestas devuelven siempre dos decimales.
-- `descripcion`: opcional, hasta 200 caracteres; en blanco se guarda como `null`. **Obligatoria para `otros`.**
+- `descripcion`: opcional (omitir o enviar `null`), hasta 200 caracteres. Si se envía texto, debe contener caracteres distintos de espacios; vacío o en blanco devuelve `400`. El servicio recorta el texto válido. **Obligatoria para `otros`.**
 - Autoría, fechas de auditoría, tipo de movimiento y anulación los pone el servidor; enviarlos → `400`.
 - Los anulados aparecen en `gastos` con `anulado: true`, pero no suman en `totalMes` ni en `totalesPorCategoria`. Las cuatro categorías aparecen siempre, aunque sea en `0.00`.
 - Ejemplo de aceptación (FE-172 §5): internet 120.00 + electricidad 80.00 + alquiler 1500.00 = `1700.00`; corregir electricidad a 85.00 → `1705.00`; anular internet → `1585.00`.
