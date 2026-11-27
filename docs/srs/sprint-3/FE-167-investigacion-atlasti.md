@@ -99,3 +99,7 @@ La evaluación inicial se incluye en el documento y se presenta en pantalla ante
 El [manual oficial de ATLAS.ti 26 para Windows](https://manuals.atlasti.com/Win/es/manual/Documents/DocumentsSupportedFileFormats_es.html), consultado el 26/11/2026, enumera DOCX y TXT como formatos documentales compatibles. Eso sustenta el intercambio de documentos, **sin demostrar la versión instalada en la Fundación ni una importación de proyectos/códigos nativos**.
 
 Pendientes externos de FE-167: catálogo clínico definitivo, perfiles autorizados para investigación con datos reales y prueba de importación de un paquete ficticio en la versión concreta de ATLAS.ti. Los ejemplos COM-FAM/LIM/QA conservan su carácter de datos de prueba. No se atribuye una taxonomía clínica aprobada a la Fundación ni se amplían sus permisos de investigación por la sola existencia de acceso asistencial.
+
+## Aceptación del alcance técnico por la PO · 26/11/2026
+
+Andrea aprobó el cierre del alcance técnico de Sprint 3: paquete DOCX/TXT revisado y pruebas de archivos, manifiesto, privacidad y permisos. La validación externa permanece pendiente y se traslada por su decisión expresa a [FE-215](https://andreanarvaezort-1786202493806.atlassian.net/browse/FE-215), prevista en Sprint 4. Este apartado sustituye el pendiente de cierre de Sprint 3 de las secciones anteriores, sin acreditar ensayos en la instalación de la Fundación, una muestra histórica real ni un catálogo/perfil institucional aprobado. No se registran horas reales ni reuniones.
