@@ -37,28 +37,44 @@ Límites técnicos propuestos: nombres/lugares hasta 150 caracteres, ocupación 
 
 ## 3. Separar diagnóstico y composición familiar
 
-Main guarda `diagnosticoIngreso`, `hipotesisRelacional` y `comentariosClinicos` en `fichas_diagnostico.contenido`; el alta también admite columnas clínicas en `casos`. El guardado de diagnóstico reemplaza el JSON.
+En main integrado por PR #70 (`e6c89bd`), `diagnosticoIngreso`, `hipotesisRelacional` y `comentariosClinicos` se guardan en `fichas_diagnostico.contenido`; el alta conserva sus columnas clínicas. Desde FE-126, el guardado combina el JSON existente con los campos conocidos del formulario mediante `contenido || excluded.contenido`. Esto conserva claves adicionales; sustituye la descripción de reemplazo completo del corte inicial.
+
+**Matiz del contrato actual:** el servicio siempre construye las tres claves conocidas. Si se omite hipótesis o comentarios, los convierte a `null`; la combinación no conserva automáticamente esos dos campos. Se mantiene el formulario completo por PUT y se preservan las claves adicionales ajenas al formulario. No se convierte este endpoint en un PATCH genérico de JSON.
 
 **Propuesta técnica:** familiares en persistencia propia por caso y guardado independiente; nunca insertar familiares o la referencia del genograma dentro de ese JSON sin adaptar su conservación. El encabezado se construye con datos del paciente/caso, no con una copia libre.
 
 Fuente clínica propuesta para informes: ficha vigente cuando exista; si no existe, valores históricos de alta como antecedente identificado. Un null de una ficha existente no debe rellenarse silenciosamente desde el alta, porque podría representar una corrección intencional. Conservar ambos orígenes y su auditoría; no borrar los datos originales.
 
-## 4. Diferencia FE-66 / API: decisión pendiente
+## 4. Decisión de Andrea como PO · 26/11/2026
 
-| Elemento | FE-66 | Main |
+Andrea confirmó en esta conversación: **evaluación inicial obligatoria y diagnóstico de ingreso opcional**. Esta decisión resuelve el pendiente funcional de FE-66/FE-70; no se presenta como validación externa de la Fundación ni como código ya adaptado.
+
+| Campo | Main en e6c89bd | Contrato acordado para adaptar |
 |---|---|---|
-| Evaluación inicial | Obligatoria | No tiene campo independiente. |
-| Diagnóstico de ingreso | Opcional | Obligatorio al guardar ficha. |
-| Comentarios clínicos | No era el campo mínimo definido | Opcional. |
-| Edición por administración | Sin definición expresa en FE-66 | Permitida. |
+| Fecha de evaluación | Obligatoria | Obligatoria y calendario válido. |
+| `evaluacionInicial` | No tiene campo independiente. | Texto obligatorio, distinto de espacios, hasta 10000 caracteres. |
+| `diagnosticoIngreso` | Obligatorio | Opcional; vacío se representa como `null`. |
+| `hipotesisRelacional` | Opcional | Opcional, hasta 10000 caracteres; vacío = `null`. |
+| `comentariosClinicos` | Opcional | Campo independiente opcional; no sustituye la evaluación inicial. |
 
-Propuesta a ratificar: evaluación inicial con texto obligatorio para una ficha completa; diagnóstico de ingreso opcional cuando aún no se dispone de él; hipótesis/comentarios opcionales. **Hasta acordar la transición, la API actual conserva su contrato.** La implementación de familiares puede avanzar separada. No renombrar automáticamente comentarios antiguos como evaluación inicial ni impedir leer registros históricos.
+**Ejemplo ficticio:** se debe poder guardar la evaluación «Evaluación inicial ficticia: entrevista de ingreso realizada» sin formular todavía un diagnóstico. Una evaluación vacía debe rechazarse incluso si se escribió un diagnóstico.
+
+Reglas para la adaptación:
+
+- La evaluación inicial se añade como campo propio del JSON. No renombrar ni copiar automáticamente comentarios o diagnósticos históricos: su significado no es equivalente.
+- Las fichas antiguas siguen siendo legibles; la pantalla muestra «Sin evaluación inicial registrada». Al guardar una edición con el contrato nuevo, se solicita completar la evaluación.
+- El PUT recibe el formulario completo: evaluación, diagnóstico, hipótesis y comentarios. El frontend envía `null` para limpiar opcionales; se conserva la combinación del JSON para proteger claves adicionales del servidor.
+- Se conservan ID, creación, autoría, familia y genograma. Una ficha vigente con diagnóstico `null` no se completa desde los datos del alta.
+- Adriana y Alejandro deben adaptar DTO, servicio, lectura de la fuente clínica vigente y sus usos en historial, informes/exportación. Jorge adapta formulario, tipos, resumen y simulador. Emilia comprueba los escenarios y la regresión.
+- Hasta desplegar esos ajustes, la API integrada sigue exigiendo diagnóstico. No declarar el nuevo criterio implementado por haber actualizado este documento.
+
+Aceptación adicional: guardar con evaluación y diagnóstico ausente; rechazar evaluación vacía; conservar opcionales y claves adicionales al editar; limpiar un diagnóstico con `null`; leer una ficha antigua sin perder datos; comprobar permisos y recarga; conservar la evaluación en historial, informe y exportación cuando esa sección se incluya.
 
 ## 5. Contrato nuevo propuesto
 
-GET/PUT `/api/carpetas/:id/familia`; son rutas de diseño, todavía no existen. GET distingue ausencia de ficha familiar de familia registrada sin miembros. PUT usa IDs estables y actualización transaccional. Una omisión de integrantes no se interpreta como borrado sin una acción explícita definida en el contrato final.
+GET/PUT `/api/carpetas/:id/familia` ya están integradas por FE-126. GET distingue ausencia de ficha familiar de familia registrada sin miembros. PUT exige la versión recibida; una versión desactualizada devuelve 409. Los IDs son estables, el guardado es transaccional y la eliminación es explícita mediante `eliminarIds`. El contrato técnico completo está en `docs/api/contrato-frontend-backend.md`.
 
-Ejemplo ficticio del paciente A, de 12 años:
+Ejemplo conceptual ficticio del paciente A, de 12 años (ilustra la composición; no es el cuerpo literal del PUT):
 
 ```json
 {
@@ -110,4 +126,4 @@ Administración y terapeuta asignada mantienen el acceso clínico actual; terape
 - Una edición concurrente debe evitar sobrescribir silenciosamente cambios ajenos; acordar versión/fecha de control en API.
 - El resumen funciona en móvil sin convertir los datos en texto ilegible.
 
-**Pendiente para cierre:** contrastar campos con ficha vacía o caso ficticio validado por la Fundación; acordar mínimo clínico y transición de fuente. No se recibieron esos insumos en esta entrega.
+**Pendiente para cierre:** contrastar campos con ficha de referencia o caso ficticio validado por la Fundación y revisar con el equipo la adaptación de la regla acordada. El mínimo del contrato ya fue decidido por Andrea; la implementación y la validación externa requieren evidencia posterior.

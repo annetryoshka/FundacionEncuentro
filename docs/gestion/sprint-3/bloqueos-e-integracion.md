@@ -50,3 +50,10 @@ Las fechas quedan por fijar con el equipo cuando se calendarice el sprint.
 1. El bloqueo se registra el mismo día en que se detecta.
 2. Si consume el margen de capacidad, se retira primero el alcance de menor prioridad y se documenta el ajuste.
 3. No se amplían jornadas para sostener un compromiso inviable.
+
+## Actualización posterior al corte original · 26/11/2026
+
+- FE-4 fue retirada por Andrea; sus referencias en las tablas del corte 23/11 son históricas. No implementar planificación de personal ni FE-177/178/179/180/181.
+- FE-5 sigue en el sprint con alcance básico: gastos de internet/Wi-Fi, electricidad, alquiler y otros, consulta mensual y totales. La distribución de ingresos queda fuera de HU5; FE-172 contiene el contrato actualizado.
+- La diferencia clínica de FE-66/FE-123 ya tiene decisión de la PO: evaluación inicial obligatoria y diagnóstico opcional. El código requiere adaptación y reverificación; no se atribuye un defecto al trabajo anterior de Adriana.
+- FE-116 y las demás decisiones de la Fundación mantienen sus pendientes propios. Esta actualización no registra una ratificación que no ocurrió.

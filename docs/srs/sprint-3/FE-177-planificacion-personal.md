@@ -1,4 +1,6 @@
-# FE-177 · Disponibilidad y cruces de horario
+# FE-177 · Archivo histórico de planificación de personal
+
+**RETIRADO DEL SPRINT.** Andrea eliminó HU4/FE-4 por no corresponder al proyecto. FE-177/178/179/180/181 no aparecen en la consulta actual de Jira. Todo el contenido siguiente es antecedente del plan inicial: no constituye una instrucción vigente ni un pendiente de implementación. Decisión registrada el 26/11/2026.
 
 **Responsable:** Andrea Carolina Narváez Ortega.
 
