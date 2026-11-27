@@ -625,3 +625,9 @@ al descargar.
 El texto libre puede contener identificadores y requiere revisión humana.
 El uso con datos reales sigue sujeto a ratificación. La prueba de
 importación en Atlas.ti corresponde a FE-171.
+
+## Adaptación clínica acordada, pendiente de implementación · FE-123
+
+Decisión de Andrea (PO), 26/11/2026: evaluación inicial obligatoria y diagnóstico de ingreso opcional. La API de main e6c89bd aún conserva sus validadores anteriores; esta sección describe el objetivo de adaptación, no una ruta ya modificada.
+
+El PUT de diagnóstico debe incorporar `evaluacionInicial` (texto de 1 a 10000 caracteres después de quitar espacios exteriores), admitir `diagnosticoIngreso: null` y mantener hipótesis/comentarios independientes y opcionales. Se conserva el guardado del formulario completo y la combinación del JSON para proteger claves adicionales. Las fichas históricas se leen sin transformación automática de su contenido; una edición solicita la evaluación faltante. Familia, genograma, autoría e ID se conservan. Deben actualizarse también fuente clínica, historial, informes/exportación, frontend y pruebas. Ver [decisión y aceptación de FE-123](../srs/sprint-3/FE-123-ficha-familiar-y-diagnostico.md#4-decisión-de-andrea-como-po--26112026).

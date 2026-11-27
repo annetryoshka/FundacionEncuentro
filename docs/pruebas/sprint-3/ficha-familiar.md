@@ -74,3 +74,9 @@ La ejecución del backend no encontró defectos: la API y la base cumplen los cr
 - [x] Suite QA y regresión ejecutadas; resultados en la matriz (10/10 y 14/14, 2026-11-26).
 - [ ] Observaciones 1 y 2 comunicadas a Andrea y Adriana.
 - [ ] Prueba de interfaz (sección 5) cuando FE-127 esté listo. Hasta entonces, FE-128 queda **en curso**.
+
+## Decisión posterior de la PO · 26/11/2026
+
+Andrea confirmó evaluación inicial obligatoria y diagnóstico de ingreso opcional. El cambio de FE-126 que combina el JSON conserva claves adicionales y se mantiene como protección de integridad. En la API actual, omitir hipótesis/comentarios todavía los limpia: no confundir ese PUT de formulario completo con una edición parcial.
+
+Los resultados anteriores corresponden a los commits identificados en este informe y no certifican la nueva regla. Tras adaptar API y formulario, verificar: evaluación sin diagnóstico, evaluación vacía rechazada, lectura de fichas antiguas, edición con evaluación, diagnóstico `null` sin recuperación desde el alta, conservación de claves adicionales/familia/genograma y propagación a historial/informes/exportaciones. El contrato actualizado está en FE-123 §4.

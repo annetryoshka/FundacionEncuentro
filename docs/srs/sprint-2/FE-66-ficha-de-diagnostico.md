@@ -15,3 +15,7 @@ Propuesta funcional para FE-13. La ficha vigente se consulta y se edita desde la
 **Ejemplos.** Crear una ficha ficticia con fecha válida, evaluación y campos opcionales vacíos. Recargar y comprobar la misma ficha. Intentar guardar una fecha imposible o evaluación de solo espacios. Cancelar una edición y comprobar que los datos previos se conservan. Guardar una modificación y verificar que conserva ID y autoría de creación. Probar acceso directo por una cuenta ajena.
 
 **Pendiente de validar.** Contrastar los campos mínimos con la ficha vacía de referencia. La [migración base](../../../db/migrations/001_esquema_base.sql) permite múltiples fichas por caso. La implementación debe definir cómo se identifica la ficha vigente y preservar los registros anteriores.
+
+## Aclaración posterior de FE-123 · 26/11/2026
+
+Andrea confirmó evaluación inicial obligatoria y diagnóstico de ingreso opcional. Se implementará `evaluacionInicial` como campo independiente de `comentariosClinicos`, conservando los datos históricos. La lectura de fichas antiguas no se bloquea; su próxima edición debe completar la evaluación. La base integrada e6c89bd todavía exige diagnóstico: esta adenda es el contrato de adaptación. Ver [FE-123](../sprint-3/FE-123-ficha-familiar-y-diagnostico.md), sección 4.
