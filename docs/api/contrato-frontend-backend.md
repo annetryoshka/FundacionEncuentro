@@ -648,6 +648,37 @@ GET de diagnóstico, GET de fuente vigente e historial devuelven `evaluacionInic
 
 La 021 amplía la vista y las fotografías: incluye evaluación cuando existe, sin reescribir fichas ni informes/exportaciones anteriores. Los informes nuevos usan plantilla v2. PDF, DOCX y los documentos seleccionados de investigación conservan la evaluación; la revisión de textos de investigación y sus permisos permanecen vigentes. Ver [contrato FE-123](../srs/sprint-3/FE-123-ficha-familiar-y-diagnostico.md) y [evidencia de verificación](../pruebas/sprint-3/evaluacion-inicial.md).
 
+## Investigaciones públicas: artículos sin comentarios (FE-184)
+
+Alcance ratificado en [FE-182](../srs/sprint-3/FE-182-investigaciones-publicas.md): artículos públicos gestionados por administración o marketing, **sin comentarios**. Base de FE-183 (migración 023). Separado de lo clínico: no lee carpetas ni expedientes.
+
+**Gestión** (administración o marketing; terapeuta → 403; sin sesión → 401):
+
+| Método y ruta | Cuerpo | Resultado |
+| --- | --- | --- |
+| `GET /api/investigaciones/articulos?estado=&pagina=&tamano=` | — | `{ articulos, total, pagina, tamano }`, cualquier estado. |
+| `GET /api/investigaciones/articulos/:id` | — | Artículo completo o `404`. |
+| `POST /api/investigaciones/articulos` | `{ titulo, resumen?, contenido, autorVisible?, imagen? }` | `201`, siempre en `borrador`. |
+| `PUT /api/investigaciones/articulos/:id` | Mismo cuerpo (formulario completo) | `200`. Un publicado que queda sin resumen → `422` `{ camposFaltantes: ['resumen'] }`. |
+| `PATCH /api/investigaciones/articulos/:id/estado` | `{ estado }` | `borrador → publicado → retirado → borrador`. Otra transición → `409`. Publicar sin resumen → `422` `{ camposFaltantes: ['resumen'] }`. |
+| `DELETE /api/investigaciones/articulos/:id` | — | `204` solo si nunca se publicó; si alguna vez se publicó → `409` (se retira). |
+
+Artículo (gestión): `{ id, titulo, resumen, contenido, estado, autorVisible, imagen, creadoPor, creadoEn, actualizadoPor, actualizadoEn, publicadoEn, publicadoPor, retiradoEn, retiradoPor }`.
+
+- `titulo` hasta 150 y `contenido` hasta 20000, ambos obligatorios y no en blanco; `resumen` hasta 500 (obligatorio para publicar); `autorVisible` hasta 150 o `null` si no se autorizó mostrarlo.
+- `imagen`: `{ ruta, textoAlternativo, ancho?, alto? }` o `null`. La ruta es relativa al almacenamiento público de difusión (sin `..` ni protocolo) y el texto alternativo es obligatorio.
+- Estado, autoría y fechas los pone el servidor; enviarlos → `400`.
+
+**Portal** (sin sesión):
+
+| Método y ruta | Resultado |
+| --- | --- |
+| `GET /api/publico/investigaciones?pagina=&tamano=` | `{ investigaciones: [{ id, titulo, resumen, autor, fechaPublicacion, imagen }], total, pagina, tamano }`, solo publicados, del más reciente al más antiguo. |
+| `GET /api/publico/investigaciones/:id` | Lo mismo más `contenido`. Borrador, retirado o inexistente → `404`. |
+
+`fechaPublicacion` es `AAAA-MM-DD` (fecha de Bolivia) y coincide con `InvestigacionPublica` de `frontend/src/features/publico/investigaciones.ts`; `imagen` usa la misma forma que difusión (`ruta`, no `url`). No hay rutas de comentarios.
+
+Pruebas: `backend/src/modules/articulos/tests/articulos.service.spec.ts` (unitarias) y `backend/test/articulos-api-postgres.test.mjs` (API con PostgreSQL y los artículos de FE-185).
 ## Gastos de funcionamiento (FE-174)
 
 Solo **administración** (terapeuta y marketing → 403; sin sesión → 401). Contrato de [FE-172](../srs/sprint-3/FE-172-control-administrativo.md) sobre la base de FE-173 (migración 022). Todas las respuestas llevan `Cache-Control: private, no-store`.

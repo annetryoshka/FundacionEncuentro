@@ -8,7 +8,7 @@
 - **Trazabilidad:** RF-02, RF-08, RF-11.
 - **Responsable QA:** Emilia Crespo.
 - **Fecha de ejecución:** 2026-11-26 (America/La_Paz) · **Commit probado:** `1c7ad98` · PostgreSQL 17 local, Node v22.20.0
-- **Resultado global:** suite QA 10/10 aprobadas (15,0 s); regresión de FE-125 y FE-126 14/14 aprobadas (12,2 s). La interfaz sigue pendiente.
+- **Resultado global:** suite QA 10/10 aprobadas (15,0 s); regresión de FE-125 y FE-126 14/14 aprobadas (12,2 s). Interfaz (FE-127): 7/7 pruebas QA y recorrido manual en escritorio y móvil aprobados (sección 5).
 
 ## 1. Alcance
 
@@ -16,8 +16,8 @@
 |---|---|---|
 | Base de datos (FE-125) | Lista | PostgreSQL 17 local desechable con todas las migraciones |
 | API familia y diagnóstico vigente (FE-126) | Lista | NestJS HTTP real con guards reales; solo Supabase Auth es un doble |
-| Formulario familiar y orden de la ficha (FE-127) | **Pendiente (Jorge)** | Bloqueado: cancelación, navegación y móvil (sección 5) |
-| Componente de resumen (FE-124) | **Pendiente (Andrea)** | Bloqueado |
+| Formulario familiar y orden de la ficha (FE-127) | Listo (Jorge, `f44b309`) | Pruebas de interfaz en modo simulado y recorrido manual (sección 5) |
+| Componente de resumen (FE-124) | "Por hacer" en Jira; cubierto por la tarjeta "Contexto del paciente" de Jorge | Incluido en la sección 5 |
 
 Todos los datos son ficticios. Cada ejecución crea una base `fe128_*` en tu PostgreSQL local y la borra al terminar. No se conecta a Supabase.
 
@@ -56,26 +56,39 @@ La primera suite es la de QA (FE-128). La segunda línea vuelve a correr las sui
 2. **Hallazgos de FE-70 todavía abiertos** (FE-123 §4): FE-66 pide *evaluación inicial* obligatoria y *diagnóstico de ingreso* opcional, pero la API sigue exigiendo `diagnosticoIngreso`. FE-123 indica mantener el contrato actual hasta ratificarlo, así que no es un defecto de FE-126.
 3. **Menores de estilo:** sangría irregular en `obtenerVigente` y `guardar`, y archivos sin salto de línea final. No afectan el funcionamiento.
 
-## 5. Pendiente: interfaz (cuando se integren FE-124 y FE-127)
+## 5. Interfaz (FE-127)
 
-| Paso | Esperado | Escritorio | Móvil |
-|---|---|---|---|
-| Abrir una ficha con familia | Orden: datos generales → familia → genograma → diagnóstico → historial | | |
-| Registrar un familiar con datos desconocidos y recargar | Se ve "desconocido", no un texto inventado | | |
-| Editar y **cancelar** | No se guarda nada; la versión no cambia | | |
-| Lista vacía frente a fallo de red | Mensajes distintos | | |
-| Dos pestañas editando a la vez | La segunda recibe aviso de conflicto (409) | | |
-| Navegación Atrás y recarga | Sin pérdida de datos ni pantallas clínicas tras cerrar sesión | | |
+- **Base probada:** rama `feature/FE-138-FE-170-front-sprint3`, commit `f44b309` (Jorge, FE-127), en modo simulado con los datos ficticios del caso A de FE-123. La API real de familia ya quedó verificada en las secciones 3 y 4. Jorge documenta además un recorrido E2E contra el backend real en `docs/pruebas/sprint-3-frontend.md` (en su rama).
+- **Fecha:** 2026-11-26.
+- **Automatizado:** `frontend/src/features/expediente/familia/FamiliaQA.test.tsx` (QA, en la rama de Jorge) 7/7, más `Familia.test.tsx` (Jorge) 13/13. La suite completa del frontend da 269/269; 4 pruebas de otros módulos agotaron los 5 s una vez por la carga de la máquina y pasaron al repetirlas solas.
+- **Manual:** navegador integrado en escritorio (1280 px) y móvil (375 px).
+
+| Paso | Esperado | Escritorio | Móvil | Evidencia |
+|---|---|---|---|---|
+| Abrir una ficha con familia | "Contexto del paciente" (familia, genograma, diagnóstico) antes de los apartados; orden familia → genograma → diagnóstico → historial | Aprobado | Aprobado | Manual + `FamiliaQA` (orden) |
+| Datos desconocidos (ficha B) | "Nombre no registrado", "Edad no registrada" y "Sin dato"; dos "Tío"; "otro" muestra "Padrino" | Aprobado | — | `FamiliaQA` |
+| Registrada sin integrantes | "Registrada sin integrantes", distinto de "Sin composición familiar registrada" | Aprobado | — | `FamiliaQA` |
+| Editar y **cancelar** (también tras agregar y quitar) | No se envía ningún PUT; siguen 4 integrantes | Aprobado | Aprobado | Manual + `FamiliaQA` + `Familia.test` |
+| Lista vacía frente a fallo de red | Mensajes distintos, con "Reintentar" | Aprobado | — | `Familia.test` (Jorge) |
+| Edición concurrente | Aviso de 409 sin perder lo escrito y "Cargar la versión actual" | Aprobado | — | `Familia.test` (Jorge) |
+| Permisos en la interfaz | Administración edita; marketing no ve ni modifica la familia | Aprobado | — | `FamiliaQA` |
+| Cerrar sesión y Atrás | Vuelve a `/login`; no se ve ningún dato de la familia | Aprobado | Aprobado | Manual + `FamiliaQA` |
+| Lectura en celular | Tarjetas y formulario legibles, sin desplazamiento horizontal de la página (ancho 375 = 375) | — | Aprobado | Manual |
 
 ## 6. Hallazgos
 
-La ejecución del backend no encontró defectos: la API y la base cumplen los criterios de FE-110 y FE-123 que se pueden comprobar sin interfaz. Quedan abiertas las observaciones de la sección 4, que necesitan una decisión de la PO, y la prueba de interfaz de la sección 5.
+No se encontraron defectos en el backend ni en la interfaz: se cumplen los criterios de FE-110 y FE-123.
+
+Observaciones, ninguna bloqueante:
+- Las de la sección 4 necesitan una decisión de la PO (combinar en el guardado del diagnóstico; evaluación inicial frente a diagnóstico de ingreso).
+- FE-124 (componente de resumen de Andrea) sigue en "Por hacer" en Jira, pero la tarjeta "Contexto del paciente" de Jorge (`ResumenFicha.tsx`) ya cubre ese resumen. Andrea debe confirmar si FE-124 se da por cubierta.
+- Para Jorge: varias pruebas del frontend (difusión, informes, importación) quedan cerca del límite de 5 s y fallan si la máquina está cargada.
 
 ## 7. Cierre
 
 - [x] Suite QA y regresión ejecutadas; resultados en la matriz (10/10 y 14/14, 2026-11-26).
 - [ ] Observaciones 1 y 2 comunicadas a Andrea y Adriana.
-- [ ] Prueba de interfaz (sección 5) cuando FE-127 esté listo. Hasta entonces, FE-128 queda **en curso**.
+- [x] Prueba de interfaz (sección 5): 7/7 automatizadas y recorrido manual en escritorio y móvil (2026-11-26).
 
 ## Decisión posterior de la PO · 26/11/2026
 
