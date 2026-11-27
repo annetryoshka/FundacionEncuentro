@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { ErrorApi } from '../../api/cliente'
 import { useCarga } from '../../api/useCarga'
 import { ErrorDeCarga } from '../../componentes/ErrorDeCarga'
 import { Aviso, Boton, CampoTexto, Cargando, GrupoOpciones, Tarjeta } from '../../componentes/ui'
@@ -14,6 +15,8 @@ import { NOMBRE_METODO_PAGO, type MetodoPago, type Pago, type SesionResumen } fr
 /**
  * FE-87 · Pagos del caso (solo administración, reglas FE-86). Un pago por sesión, en BOB con hasta dos
  * decimales, por QR o transferencia. Repetir el mismo registro no lo duplica.
+ * FE-190 · Reglas ratificadas (FE-188, DEC-P01/P02): sin cuotas ni segundo pago que reemplace al primero, y
+ * sin efectivo. La corrección o anulación de un pago queda para el Sprint 4 (FE-211).
  */
 export function PaginaPagos() {
   return <SeccionCarpeta titulo="Pagos">{(carpeta) => <VistaPagos carpeta={carpeta} />}</SeccionCarpeta>
@@ -180,7 +183,13 @@ function FormularioPago({
       setReferencia('')
       setMetodo('')
     } catch (error) {
-      setResultado({ tipo: 'error', texto: mensajeNoGuardado(error) })
+      setResultado({
+        tipo: 'error',
+        texto:
+          error instanceof ErrorApi && error.estado === 409
+            ? 'Esa sesión ya tiene su pago registrado con otros datos. Cada sesión lleva un solo pago: no se suma ni se reemplaza.'
+            : mensajeNoGuardado(error),
+      })
     } finally {
       setGuardando(false)
       requestAnimationFrame(() => refResultado.current?.focus())
@@ -191,6 +200,10 @@ function FormularioPago({
     <Tarjeta>
       <form ref={refFormulario} onSubmit={enviar} noValidate className="space-y-5">
         <h2 className="text-lg font-semibold text-verde-oscuro">Registrar pago</h2>
+        <p className="text-sm text-suave">
+          Cada sesión lleva un solo pago, completo: sin cuotas. Revisa los datos antes de registrar; por ahora un pago
+          registrado no se corrige desde aquí.
+        </p>
         <div data-recorrido="pago-sesion">
           <label htmlFor="pago-sesion" className="block text-sm font-semibold text-texto">
             Sesión
@@ -247,6 +260,7 @@ function FormularioPago({
               { valor: 'transferencia', nombre: 'Transferencia' },
             ]}
           />
+          <p className="mt-1.5 text-sm text-suave">Solo QR o transferencia: el pago en efectivo no está habilitado.</p>
         </div>
         <CampoTexto
           etiqueta="Referencia (opcional)"
