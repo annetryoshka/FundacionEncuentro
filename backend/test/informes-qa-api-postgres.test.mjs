@@ -32,7 +32,7 @@ before(async () => {
   };
   await comoUsuario(sql, PERFILES.admin, () => sql.query(
     `insert into pagos (caso_id, sesion_id, fecha, monto, metodo) values ($1, $2, '2026-10-12', '987.65', 'qr')`,
-    [A.id, sesiones.a1.id])).catch(() => {});
+    [A.id, sesiones.a1.id]));
   await comoUsuario(sql, PERFILES.admin, async () => {
     await sql.query(
       `insert into contexto_judicial (caso_id, juzgado, nro_expediente, fecha_derivacion) values ($1, $2, $3, '2026-10-01')`,
@@ -76,7 +76,7 @@ test('I1 · sistémico del caso A: identificación, evaluación vigente y solo l
   assert.equal(r.status, 201, JSON.stringify(r.cuerpo));
   const v = r.cuerpo;
   assert.equal(v.estado, 'borrador');
-  assert.equal(v.versionPlantilla, 'fe151-sistemica-v2');
+  assert.equal(v.versionPlantilla, 'fe151-sistemica-v3');
   assert.deepEqual(v.secciones.map((s) => s.titulo), [
     'Identificación', 'Profesional responsable', 'Evaluación', 'Intervención y evolución', 'Conclusiones y recomendaciones',
   ]);
@@ -192,10 +192,22 @@ test('I8 · tipo o datos de la solicitud inválidos dan 400', opciones, async ()
 
 test('I9 · FE155-01: la composición familiar seleccionada aparece en el informe (FE-151, plantilla A, punto 4)', {
   ...opciones,
-  todo: opciones.skip ? undefined : 'FE155-01: ninguna plantilla v2 escribe la familia aunque se marque incluirFamilia',
 }, async () => {
   const con = (await generar(A, { tipo: 'intervencion_sistemica', incluirFamilia: true })).cuerpo;
   const sin = (await generar(A, { tipo: 'intervencion_sistemica', incluirFamilia: false })).cuerpo;
   assert.notDeepEqual(con.secciones, sin.secciones, 'Marcar "Composición familiar" debe cambiar el informe');
   assert.ok(textoCompleto(con).includes('Madre QA Informe'), 'La madre registrada debe figurar en el informe');
+  assert.ok(!textoCompleto(sin).includes('Madre QA Informe'));
+  assert.ok(!textoCompleto((await generar(C, { tipo: 'intervencion_sistemica', incluirFamilia: true })).cuerpo).includes('Madre QA Informe'));
 });
+
+ test('I10 · las tareas corresponden solo a las sesiones seleccionadas', opciones, async () => {
+  await comoUsuario(sql, PERFILES.t1, async () => {
+    for (const [sesion, descripcion] of [[sesiones.a1, 'Tarea elegida QA155'], [sesiones.a2, 'Tarea omitida QA155']]) {
+      await sql.query('insert into tareas_terapeuticas(caso_id,sesion_id,descripcion,perfil_id) values($1,$2,$3,$4)', [A.id,sesion.id,descripcion,PERFILES.t1]);
+    }
+  });
+  const v = (await generar(A, { tipo: 'intervencion_sistemica', sesionesIds: [sesiones.a1.id] })).cuerpo;
+  assert.ok(textoCompleto(v).includes('Tarea elegida QA155'));
+  assert.ok(!textoCompleto(v).includes('Tarea omitida QA155'));
+ });

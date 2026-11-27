@@ -776,7 +776,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
   const terapeuta = ctx.perfiles.find((p) => p.id === caso.asignacion?.perfilId)?.nombreCompleto ?? 'Sin asignar'
   const diag = ctx.expediente.diagnosticos.find((d) => d.casoId === caso.id)
-  const seguimiento = sesiones.map((s) => `Sesión ${s.numero} (${s.fecha}): ${s.evolucion}`).join('\n')
+  const seguimiento = sesiones.map((s) => [`Sesión ${s.numero} (${s.fecha}): ${s.evolucion}`, ...ctx.expediente.tareas.filter((t) => t.sesionId === s.id).map((t) => `• ${t.descripcion}`)].join('\n')).join('\n')
   const familia = c.incluirFamilia
     ? (ctx.estado.familias[caso.id]?.familiares ?? [])
         .map((f) => `${f.parentesco}: ${f.nombreCompleto ?? 'sin nombre'}`)
@@ -797,6 +797,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
       { titulo: 'Destinatario', contenido: juzgado },
       { titulo: 'Identificación', contenido: caso.paciente.nombreCompleto },
       { titulo: 'Profesional responsable', contenido: terapeuta },
+      ...(c.incluirFamilia ? [{ titulo: 'Contexto familiar', contenido: familia || 'Sin integrantes familiares registrados.' }] : []),
       { titulo: 'Objeto del informe', contenido: objeto },
       ...(diag?.evaluacionInicial ? [{ titulo: 'Evaluación inicial', contenido: diag.evaluacionInicial }] : []),
       { titulo: 'Intervención y observaciones', contenido: seguimiento || 'Sin sesiones seleccionadas.' },
@@ -806,7 +807,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
     secciones = [
       { titulo: 'Identificación', contenido: caso.paciente.nombreCompleto },
       { titulo: 'Profesional responsable', contenido: terapeuta },
-      ...(familia ? [{ titulo: 'Composición familiar', contenido: familia }] : []),
+      ...(c.incluirFamilia ? [{ titulo: 'Contexto familiar', contenido: familia || 'Sin integrantes familiares registrados.' }] : []),
       { titulo: 'Evaluación', contenido: [diag?.evaluacionInicial, diag?.diagnosticoIngreso, diag?.hipotesisRelacional].filter(Boolean).join('\n') || 'Sin datos registrados.' },
       { titulo: 'Intervención y evolución', contenido: seguimiento || 'Sin sesiones seleccionadas.' },
       { titulo: 'Conclusiones y recomendaciones', contenido: 'Pendiente de redacción profesional.' },
@@ -818,7 +819,7 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
     casoId: caso.id,
     tipo: c.tipo,
     nroVersion: 1,
-    versionPlantilla: c.tipo === 'judicial' ? 'fe151-judicial-v2' : 'fe151-sistemica-v2',
+    versionPlantilla: c.tipo === 'judicial' ? 'fe151-judicial-v3' : 'fe151-sistemica-v3',
     estado: 'borrador',
     secciones,
     creadoPor: ctx.yo.id,
