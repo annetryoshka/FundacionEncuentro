@@ -475,8 +475,17 @@ ignorada por Git). En un despliegue, esa ruta debe apuntar a almacenamiento
 persistente y privado; los respaldos de la base no incluyen estos archivos. Si falla la escritura,
 la API devuelve `500` y registra la exportación como fallida.
 
-La inserción visual del genograma queda pendiente. La migración 012
-habilita sus metadatos, que es lo que el conversor actual puede mostrar.
+La ficha y el historial admiten `incluirGenograma: true` para adjuntar su representación
+visual. Un informe revisado conserva la selección y la clave del archivo de su fotografía:
+no admite cambiar opciones al exportar ni tomar silenciosamente el genograma vigente.
+El backend comprueba caso, acceso, tipo y SHA-256 antes de leer esa versión privada.
+PNG/JPEG se normalizan a PNG; un PDF legible de hasta 20 páginas se inserta completo,
+una página por anexo, manteniendo proporción. El texto y las tablas de DOCX siguen siendo
+editables; el genograma es una imagen. Si no existe genograma, se conserva la ausencia
+registrada; si el archivo no puede leerse/renderizarse, la exportación queda fallida y no
+se entrega un archivo vacío. Se limita la imagen de entrada a 25 millones de píxeles y la
+representación a un lado máximo de 3000 píxeles por página. La carga del genograma
+mantiene sus límites de tamaño existentes.
 
 ## Importación histórica (FE-164)
 

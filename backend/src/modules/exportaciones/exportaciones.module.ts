@@ -4,6 +4,7 @@ import { ExportacionesRegistroService } from './exportaciones-registro.service.j
 import { ExportacionesController } from './exportaciones.controller.js';
 import { ExportacionesService } from './exportaciones.service.js';
 import { GenerarExportacionService } from './generar-exportacion.service.js';
+import { ExportarGenogramaService } from './exportar-genograma.service.js';
 
 @Module({
   controllers: [ExportacionesController],
@@ -12,6 +13,7 @@ import { GenerarExportacionService } from './generar-exportacion.service.js';
     ExportacionesRegistroService,
     ExportacionesAlmacenService,
     GenerarExportacionService,
+    ExportarGenogramaService,
   ],
 })
 export class ExportacionesModule {}
