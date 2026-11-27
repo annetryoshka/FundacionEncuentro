@@ -25,6 +25,7 @@ import { PaginaCategoriasCaso } from './features/investigacion/PaginaCategoriasC
 import { PaginaInvestigacion } from './features/investigacion/PaginaInvestigacion'
 import { PaginaRevisionInvestigacion } from './features/investigacion/PaginaRevisionInvestigacion'
 import { PlantillaPublica } from './features/publico/PlantillaPublica'
+import { PaginaFundacion } from './features/publico/PaginaFundacion'
 import { PaginaPublicaciones } from './features/publico/PaginaPublicaciones'
 import { PaginaDetallePublicacion, PaginaPublicaNoEncontrada } from './features/publico/PaginaDetallePublicacion'
 import { PaginaUsuarios } from './features/usuarios/PaginaUsuarios'
@@ -39,6 +40,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<PaginaLogin />} />
+      <Route path="/fundacion" element={<PlantillaPublica />}>
+        <Route index element={<PaginaFundacion />} />
+      </Route>
 
       {/* FE-149 · Portal público: sin sesión y sin navegación clínica */}
       <Route path="/publicaciones" element={<PlantillaPublica />}>

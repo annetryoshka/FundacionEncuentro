@@ -16,7 +16,7 @@ export function PlantillaPublica() {
         Saltar al contenido
       </a>
       <header className="border-b-4 border-naranja bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:flex-nowrap sm:px-8">
           <Link
             to="/publicaciones"
             className="flex items-center gap-3 rounded-full focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
@@ -25,6 +25,14 @@ export function PlantillaPublica() {
             <span className="font-semibold text-verde-oscuro">Fundación Encuentro</span>
           </Link>
           <nav aria-label="Portal" className="flex items-center gap-2 sm:gap-4">
+            <NavLink
+              to="/fundacion"
+              className={({ isActive }) =>
+                `rounded-full px-2 py-2 text-sm font-semibold ${isActive ? 'text-verde-oscuro underline underline-offset-4' : 'text-suave hover:text-verde-oscuro'}`
+              }
+            >
+              Fundación
+            </NavLink>
             <NavLink
               to="/publicaciones"
               end
