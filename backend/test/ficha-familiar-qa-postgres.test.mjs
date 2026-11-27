@@ -148,6 +148,7 @@ test('Q4 · regresión: editar la familia no cambia el diagnóstico y viceversa'
     diagnosticoIngreso: 'Diagnóstico ficticio QA',
     hipotesisRelacional: 'Hipótesis ficticia QA',
     comentariosClinicos: null,
+    evaluacionInicial: 'Entrevista ficticia QA',
   };
   await ok(guardarDiagnostico(casoA, fichaDiag));
   const diagAntes = await ok(diagnostico(casoA));
@@ -185,7 +186,10 @@ test('Q5 · fuente vigente: sin datos → alta → ficha, sin borrar el alta', o
   assert.equal(alta.diagnosticoIngreso, 'Diagnóstico del alta QA');
 
   await ok(guardarDiagnostico(casoSinFicha, {
-    fecha: '2026-11-21', diagnosticoIngreso: 'Diagnóstico de la ficha QA', hipotesisRelacional: null,
+    fecha: '2026-11-21',
+    diagnosticoIngreso: 'Diagnóstico de la ficha QA',
+    hipotesisRelacional: null,
+    evaluacionInicial: 'Entrevista ficticia QA',
   }));
   const ficha = await ok(vigente(casoSinFicha));
   assert.equal(ficha.origen, 'ficha');

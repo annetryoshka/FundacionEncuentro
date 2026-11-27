@@ -68,6 +68,7 @@ export function armarDocumentoExportable(
     ['observaciones', 'Observaciones judiciales'],
   ]);
   agregarCampos('', datos.diagnostico, [
+    ['evaluacionInicial', 'Evaluación inicial'],
     ['diagnosticoIngreso', 'Diagnóstico de ingreso'],
     ['hipotesisRelacional', 'Hipótesis relacional'],
     ['comentariosClinicos', 'Comentarios clínicos'],

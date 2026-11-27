@@ -9,7 +9,8 @@ interface Ficha {
   caso_id: string;
   fecha: string;
   contenido: {
-    diagnosticoIngreso?: string;
+    evaluacionInicial?: string;
+    diagnosticoIngreso?: string | null;
     hipotesisRelacional?: string | null;
     comentariosClinicos?: string | null;
     [campo: string]: unknown;
@@ -91,6 +92,7 @@ export class DiagnosticoService {
         `select origen,
                 ficha_id as "fichaId",
                 to_char(ficha_fecha, 'YYYY-MM-DD') as "fichaFecha",
+                evaluacion_inicial as "evaluacionInicial",
                 diagnostico_ingreso as "diagnosticoIngreso",
                 hipotesis_relacional as "hipotesisRelacional",
                 comentarios_clinicos as "comentariosClinicos",
@@ -118,7 +120,8 @@ export class DiagnosticoService {
     usuario: Usuario,
   ) {
     const contenido = {
-      diagnosticoIngreso: dto.diagnosticoIngreso.trim(),
+      evaluacionInicial: dto.evaluacionInicial.trim(),
+      diagnosticoIngreso: dto.diagnosticoIngreso?.trim() || null,
       hipotesisRelacional: dto.hipotesisRelacional?.trim() || null,
       comentariosClinicos: dto.comentariosClinicos?.trim() || null,
     };
@@ -151,6 +154,7 @@ export class DiagnosticoService {
       id: fila.id,
       casoId: fila.caso_id,
       fecha: fila.fecha,
+      evaluacionInicial: fila.contenido.evaluacionInicial ?? null,
       diagnosticoIngreso: fila.contenido.diagnosticoIngreso ?? null,
       hipotesisRelacional: fila.contenido.hipotesisRelacional ?? null,
       comentariosClinicos: fila.contenido.comentariosClinicos ?? null,

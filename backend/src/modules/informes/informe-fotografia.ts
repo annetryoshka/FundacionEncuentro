@@ -17,6 +17,7 @@ export type FotografiaInforme = Record<string, unknown> & {
   diagnostico: {
     diagnosticoIngreso: string | null;
     hipotesisRelacional: string | null;
+    evaluacionInicial?: string;
   };
   sesiones: {
     nroSesion: number;

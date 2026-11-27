@@ -631,3 +631,19 @@ importación en Atlas.ti corresponde a FE-171.
 Decisión de Andrea (PO), 26/11/2026: evaluación inicial obligatoria y diagnóstico de ingreso opcional. La API de main e6c89bd aún conserva sus validadores anteriores; esta sección describe el objetivo de adaptación, no una ruta ya modificada.
 
 El PUT de diagnóstico debe incorporar `evaluacionInicial` (texto de 1 a 10000 caracteres después de quitar espacios exteriores), admitir `diagnosticoIngreso: null` y mantener hipótesis/comentarios independientes y opcionales. Se conserva el guardado del formulario completo y la combinación del JSON para proteger claves adicionales. Las fichas históricas se leen sin transformación automática de su contenido; una edición solicita la evaluación faltante. Familia, genograma, autoría e ID se conservan. Deben actualizarse también fuente clínica, historial, informes/exportación, frontend y pruebas. Ver [decisión y aceptación de FE-123](../srs/sprint-3/FE-123-ficha-familiar-y-diagnostico.md#4-decisión-de-andrea-como-po--26112026).
+
+## Evaluación inicial en la ficha de diagnóstico (FE-66 / FE-123)
+
+`PUT /api/carpetas/:id/diagnostico` requiere `fecha` y `evaluacionInicial`.
+La evaluación admite hasta 10.000 caracteres y debe contener texto.
+`diagnosticoIngreso` es opcional. Si se omite, se envía `null` o queda
+vacío después de recortar espacios, se guarda como `null`.
+
+`GET /api/carpetas/:id/diagnostico` devuelve `evaluacionInicial: null`
+en una ficha antigua que carece del campo. La evaluación se exige en
+su próxima edición. También se expone en el diagnóstico vigente y el
+historial, y se usa en informes sistémicos nuevos y exportaciones de
+ficha o historial cuando incluyen la sección de diagnóstico.
+
+Coordinar la integración con el formulario de FE-127 para que el
+frontend envíe `evaluacionInicial` al guardar.

@@ -40,7 +40,7 @@ before(async () => {
   // A: voluntario, terapeuta t1, ficha, dos sesiones (registradas fuera de orden), tareas, familia y pagos.
   A = await crearCaso(sql, { nombre: 'Lucía Exportación Ficticia', terapeuta: PERFILES.t1 });
   await llamar(PERFILES.t1, `insert into fichas_diagnostico (caso_id, fecha, contenido, creado_por) values ($1, '2026-10-05', $2, $3)`,
-    [A.id, json({ diagnosticoIngreso: 'Diagnóstico ficticio A', hipotesisRelacional: 'Hipótesis A' }), PERFILES.t1]);
+    [A.id, json({ diagnosticoIngreso: 'Diagnóstico ficticio A', hipotesisRelacional: 'Hipótesis A', evaluacionInicial: 'Evaluación inicial ficticia A' }), PERFILES.t1]);
   sesA = {
     s2: await crearSesion(sql, A.id, { fecha: '2026-10-19', evolucion: 'Evolución A2' }),
     s1: await crearSesion(sql, A.id, { fecha: '2026-10-12', evolucion: 'Evolución A1' }),

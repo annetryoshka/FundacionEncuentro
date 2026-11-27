@@ -93,6 +93,14 @@ test('revierte la cabecera si PostgreSQL rechaza la versión', opciones, async (
 
 test('el borrador sistémico incluye solo la sesión seleccionada', opciones, async () => {
   const caso = await crearCaso(base.cliente, { terapeuta: autora.id });
+  const evaluacionInicial = 'Entrevista inicial ficticia QA';
+    await comoUsuario(base.cliente, autora.id, () =>
+      base.cliente.query(
+        `insert into fichas_diagnostico (caso_id, fecha, contenido, creado_por)
+        values ($1, '2026-10-12', $2::jsonb, $3)`,
+        [caso.id, { evaluacionInicial, diagnosticoIngreso: null }, autora.id],
+      ),
+  );
   const elegida = await crearSesion(base.cliente, caso.id, {
     evolucion: 'Evolución seleccionada de prueba',
   });
@@ -110,6 +118,12 @@ test('el borrador sistémico incluye solo la sesión seleccionada', opciones, as
   const { rows: [guardada] } = await base.cliente.query(
     'select datos_origen, secciones from informe_versiones where id = $1',
     [version.id],
+  );
+
+  assert.equal(guardada.datos_origen.diagnostico.evaluacionInicial, evaluacionInicial);
+  assert.equal(
+    guardada.secciones.find(({ titulo }) => titulo === 'Evaluación')?.contenido,
+    evaluacionInicial,
   );
 
   assert.deepEqual(

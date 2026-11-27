@@ -12,9 +12,15 @@ export class GuardarDiagnosticoDto {
 
   @ApiProperty({ maxLength: 10000 })
   @IsString()
-  @Matches(/\S/, { message: 'El diagnóstico de ingreso es obligatorio' })
+  @Matches(/\S/, { message: 'La evaluación inicial es obligatoria' })
   @MaxLength(10000)
-  diagnosticoIngreso: string;
+  evaluacionInicial: string;
+
+  @ApiPropertyOptional({ nullable: true, maxLength: 10000 })
+  @ValidateIf((_obj, valor) => valor !== undefined && valor !== null)
+  @IsString()
+  @MaxLength(10000)
+  diagnosticoIngreso?: string | null;
 
   @ApiPropertyOptional({ nullable: true, maxLength: 10000 })
   @ValidateIf((_obj, valor) => valor !== undefined && valor !== null)

@@ -148,8 +148,10 @@ const guardarFicha = (id, cuerpo, token = "fixture") =>
   });
 const fichaValida = {
   fecha: "2026-10-12",
+  evaluacionInicial: "Entrevista inicial ficticia QA",
   diagnosticoIngreso: "Evaluación inicial ficticia QA",
 };
+
 const fichasEnBase = async (id) =>
   (
     await conexion.query(
@@ -239,6 +241,7 @@ test(
     const res = await guardarFicha(casoA.id, {
       fecha: "2026-10-12",
       diagnosticoIngreso: "  Evaluación QA  ",
+      evaluacionInicial: "Entrevista inicial ficticia QA",
       hipotesisRelacional: "   ",
     });
     assert.equal(res.status, 200);
@@ -259,10 +262,10 @@ test(
       { ...fichaValida, fecha: "2026-02-30" },
       { ...fichaValida, fecha: "12/10/2026" },
       { ...fichaValida, fecha: "" },
-      { diagnosticoIngreso: "Sin fecha QA" },
-      { ...fichaValida, diagnosticoIngreso: "     " },
-      { ...fichaValida, diagnosticoIngreso: "" },
-      { fecha: "2026-10-12" },
+      { ...fichaValida, fecha: undefined },
+      { ...fichaValida, evaluacionInicial: "     " },
+      { ...fichaValida, evaluacionInicial: "" },
+      { ...fichaValida, evaluacionInicial: undefined },
       { ...fichaValida, diagnosticoIngreso: "x".repeat(10001) },
       { ...fichaValida, creadoPor: terapeutaB },
     ];
@@ -399,6 +402,7 @@ test("FE-126: la ficha vigente conserva sus nulos y distingue el alta", opciones
   const vigente = await consultar();
   assert.equal(vigente.origen, "ficha");
   assert.equal(vigente.fichaId, diagnostico.id);
+  assert.equal(vigente.evaluacionInicial, fichaValida.evaluacionInicial);
   assert.equal(vigente.diagnosticoIngreso, fichaValida.diagnosticoIngreso);
   assert.equal(vigente.comentariosClinicos, null);
   assert.equal(vigente.alta.comentariosClinicos, "Comentario histórico QA");
@@ -406,4 +410,55 @@ test("FE-126: la ficha vigente conserva sus nulos y distingue el alta", opciones
   const denegada = await api.solicitar(ruta, { token: "terapeutaB" });
   assert.equal(denegada.status, 404);
   await denegada.json();
+});
+
+test("FE-66: guarda y recarga la evaluación inicial sin diagnóstico de ingreso", opciones, async () => {
+  const evaluacionInicial = "Entrevista de ingreso ficticia realizada.";
+  const guardado = await guardarFicha(
+    casoA.id,
+    { fecha: "2026-10-12", evaluacionInicial },
+    "terapeutaA",
+  );
+
+  assert.equal(guardado.status, 200, await guardado.clone().text());
+  const { diagnostico: ficha } = await guardado.json();
+  assert.equal(ficha.evaluacionInicial, evaluacionInicial);
+  assert.equal(ficha.diagnosticoIngreso, null);
+
+  const recarga = await verFicha(casoA.id, "terapeutaA");
+  assert.equal(recarga.status, 200);
+  assert.deepEqual((await recarga.json()).diagnostico, ficha);
+});
+
+test("FE-66: lee una ficha antigua y permite limpiar su diagnóstico al editarla", opciones, async () => {
+  const creada = await guardarFicha(casoA.id, fichaValida, "terapeutaA");
+  assert.equal(creada.status, 200, await creada.clone().text());
+
+  // Simula una ficha guardada antes de que existiera evaluacionInicial.
+  await conexion.query(
+    `update fichas_diagnostico
+        set contenido = contenido - 'evaluacionInicial'
+      where caso_id = $1`,
+    [casoA.id],
+  );
+
+  const consulta = await verFicha(casoA.id, "terapeutaA");
+  assert.equal(consulta.status, 200);
+  const { diagnostico: anterior } = await consulta.json();
+  assert.equal(anterior.evaluacionInicial, null);
+  assert.equal(anterior.diagnosticoIngreso, fichaValida.diagnosticoIngreso);
+
+  const edicion = await guardarFicha(
+    casoA.id,
+    { ...fichaValida, diagnosticoIngreso: null },
+    "terapeutaA",
+  );
+  assert.equal(edicion.status, 200, await edicion.clone().text());
+
+  const { diagnostico: actual } = await edicion.json();
+  assert.equal(actual.id, anterior.id);
+  assert.equal(actual.creadoEn, anterior.creadoEn);
+  assert.equal(actual.creadoPor, anterior.creadoPor);
+  assert.equal(actual.evaluacionInicial, fichaValida.evaluacionInicial);
+  assert.equal(actual.diagnosticoIngreso, null);
 });

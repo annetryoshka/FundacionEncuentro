@@ -179,7 +179,11 @@ async function completarCaso(caso, prefijo) {
   await enviar(
     `/carpetas/${caso.id}/diagnostico`,
     "PUT",
-    { fecha: "2026-10-05", diagnosticoIngreso: `Diagnóstico ${prefijo}` },
+    {
+      fecha: "2026-10-05",
+      evaluacionInicial: `Evaluación inicial ${prefijo}`,
+      diagnosticoIngreso: `Diagnóstico ${prefijo}`,
+    },
     200,
   );
   const s1 = await crearSesion(caso.id, "2026-11-10", `Evolución ${prefijo} 1`);
@@ -233,6 +237,7 @@ test(
     assert.equal(historial.contexto.juzgado, "Juzgado A");
     assert.equal(historial.constancia.estado, "registrado");
     assert.equal(historial.constancia.fechaConsentimiento, "2026-10-02");
+    assert.equal(historial.diagnostico.evaluacionInicial, "Evaluación inicial A");
     assert.equal(historial.diagnostico.diagnosticoIngreso, "Diagnóstico A");
     assert.equal(historial.diagnostico.creadoPor, actor);
 

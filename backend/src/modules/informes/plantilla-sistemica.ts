@@ -15,6 +15,7 @@ export function definirPlantillaSistemica(
     ],
     generarSecciones: ({ paciente, responsable, diagnostico, sesiones }) => {
       const evaluacion = [
+        diagnostico.evaluacionInicial,
         diagnostico.diagnosticoIngreso,
         diagnostico.hipotesisRelacional,
       ].filter((texto) => texto?.trim()).join('\n');
