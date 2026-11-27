@@ -235,6 +235,44 @@ export function PaginaCarpeta() {
             />
           )}
 
+          {/* FE-124 · Datos generales antes del contexto familiar y del historial. */}
+          <Tarjeta>
+            <h2 className="text-lg font-semibold text-verde-oscuro">Resumen</h2>
+
+            <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+              <Dato titulo="Número de carpeta">{numeroCarpeta(carpeta.numero)}</Dato>
+
+              <Dato titulo="Tipo de ingreso">{NOMBRE_TIPO[carpeta.tipo]}</Dato>
+
+              <Dato titulo="Fecha de ingreso">{fechaLarga(carpeta.fechaIngreso)}</Dato>
+
+              <Dato titulo="Clasificación">
+                <EtiquetaClasificacion clasificacion={carpeta.clasificacion} />
+              </Dato>
+
+              <Dato titulo="Estado">
+                <EtiquetaEstado estado={carpeta.estado} />
+              </Dato>
+
+              <Dato titulo="Ciudad de residencia" ancho>
+                {textoResidencia({
+                  ciudadResidencia: carpeta.paciente.ciudadResidencia ?? null,
+                  otraLocalidad: carpeta.paciente.otraLocalidad ?? null,
+                })}
+              </Dato>
+
+              <Dato titulo="Registrada por" ancho>
+                {carpeta.creadoPor?.nombreCompleto ?? 'Sin dato'}, el {fechaLarga(carpeta.creadoEn)}
+              </Dato>
+
+              {carpeta.actualizadoEn && (
+                <Dato titulo="Última actualización" ancho>
+                  {carpeta.actualizadoPor?.nombreCompleto ?? 'Sin dato'}, el {fechaLarga(carpeta.actualizadoEn)}
+                </Dato>
+              )}
+            </dl>
+          </Tarjeta>
+
           {/* FE-127 · Contexto del paciente (familia, genograma, diagnóstico) antes del historial (FE-123 §1) */}
           <ResumenFicha carpeta={carpeta} />
 
@@ -260,46 +298,9 @@ export function PaginaCarpeta() {
             </ul>
           </Tarjeta>
 
-          {/* Resumen y asignación */}
-          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-            <Tarjeta>
-              <h2 className="text-lg font-semibold text-verde-oscuro">Resumen</h2>
-
-              <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
-                <Dato titulo="Número de carpeta">{numeroCarpeta(carpeta.numero)}</Dato>
-
-                <Dato titulo="Tipo de ingreso">{NOMBRE_TIPO[carpeta.tipo]}</Dato>
-
-                <Dato titulo="Fecha de ingreso">{fechaLarga(carpeta.fechaIngreso)}</Dato>
-
-                <Dato titulo="Clasificación">
-                  <EtiquetaClasificacion clasificacion={carpeta.clasificacion} />
-                </Dato>
-
-                <Dato titulo="Estado">
-                  <EtiquetaEstado estado={carpeta.estado} />
-                </Dato>
-
-                <Dato titulo="Ciudad de residencia" ancho>
-                  {textoResidencia({
-                    ciudadResidencia: carpeta.paciente.ciudadResidencia ?? null,
-                    otraLocalidad: carpeta.paciente.otraLocalidad ?? null,
-                  })}
-                </Dato>
-
-                <Dato titulo="Registrada por" ancho>
-                  {carpeta.creadoPor?.nombreCompleto ?? 'Sin dato'}, el {fechaLarga(carpeta.creadoEn)}
-                </Dato>
-
-                {carpeta.actualizadoEn && (
-                  <Dato titulo="Última actualización" ancho>
-                    {carpeta.actualizadoPor?.nombreCompleto ?? 'Sin dato'}, el {fechaLarga(carpeta.actualizadoEn)}
-                  </Dato>
-                )}
-              </dl>
-            </Tarjeta>
-
-            <div className="space-y-6">
+          {/* Acciones de administración y exportación, después de la lectura del contexto. */}
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
               <ClasificacionYEstado
                 carpeta={carpeta}
                 puedeEditar={puedeClasificar}
