@@ -1,0 +1,61 @@
+{
+  "fecha": "2026-11-27T01:08:32.325Z",
+  "fuente": "Chromium real con API simulada local y datos ficticios; sin Supabase. Las descargas y la base real se verifican por separado.",
+  "base": "18ae1cf",
+  "results": [
+    {
+      "device": "escritorio",
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "result": "aprobado",
+      "checks": [
+        "portal_publico_sin_sesion",
+        "contenido_y_contacto_autorizados",
+        "navegacion_publica",
+        "resumen_ocupacion_edad_trabajo",
+        "familia_cancelar",
+        "genograma_estado_vacio",
+        "evaluacion_sin_diagnostico",
+        "diagnostico_recarga",
+        "informe_borrador_revision",
+        "investigacion_vista_previa",
+        "revision_explicita",
+        "logout_limpia_refresh",
+        "atras_recarga_sin_datos_clinicos",
+        "tabla_revision_accesible",
+        "errores_bloquean_confirmacion",
+        "exclusion_confirmacion"
+      ],
+      "jsErrors": []
+    },
+    {
+      "device": "movil",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "result": "aprobado",
+      "checks": [
+        "portal_publico_sin_sesion",
+        "contenido_y_contacto_autorizados",
+        "navegacion_publica",
+        "resumen_ocupacion_edad_trabajo",
+        "familia_cancelar",
+        "genograma_estado_vacio",
+        "evaluacion_sin_diagnostico",
+        "diagnostico_recarga",
+        "informe_borrador_revision",
+        "investigacion_vista_previa",
+        "revision_explicita",
+        "logout_limpia_refresh",
+        "atras_recarga_sin_datos_clinicos",
+        "tabla_revision_accesible",
+        "errores_bloquean_confirmacion",
+        "exclusion_confirmacion"
+      ],
+      "jsErrors": []
+    }
+  ]
+}

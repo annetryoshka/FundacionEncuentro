@@ -1,4 +1,3 @@
-
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -21,6 +20,8 @@ const carpeta: CarpetaDetalle = {
   paciente: {
     id: '20000000-0000-4000-8000-000000000001',
     nombreCompleto: 'Juan Pérez',
+    ciudadResidencia: null,
+    otraLocalidad: null,
   },
   terapeuta: null,
   creadoPor: null,
@@ -37,13 +38,7 @@ function montarFormulario() {
   const alGuardar = vi.fn()
   const alCancelar = vi.fn()
 
-  render(
-    <FormularioEditarPaciente
-      carpeta={carpeta}
-      alGuardar={alGuardar}
-      alCancelar={alCancelar}
-    />,
-  )
+  render(<FormularioEditarPaciente carpeta={carpeta} alGuardar={alGuardar} alCancelar={alCancelar} />)
 
   return { alGuardar, alCancelar }
 }
@@ -62,9 +57,7 @@ describe('FE-52 - Edición de datos del paciente', () => {
       }),
     ).toHaveValue('Juan Pérez')
 
-    expect(
-      screen.getByLabelText('Fecha de ingreso'),
-    ).toHaveValue('2026-09-15')
+    expect(screen.getByLabelText('Fecha de ingreso')).toHaveValue('2026-09-15')
   })
 
   it('muestra el número de carpeta como solo lectura', () => {
@@ -106,13 +99,12 @@ describe('FE-52 - Edición de datos del paciente', () => {
       }),
     )
 
-    expect(actualizar).toHaveBeenCalledWith(
-      carpeta.id,
-      {
-        nombreCompleto: 'Juan Carlos Pérez',
-        fechaIngreso: '2026-09-15',
-      },
-    )
+    expect(actualizar).toHaveBeenCalledWith(carpeta.id, {
+      nombreCompleto: 'Juan Carlos Pérez',
+      fechaIngreso: '2026-09-15',
+      ciudadResidencia: null,
+      otraLocalidad: null,
+    })
 
     expect(alGuardar).toHaveBeenCalledWith(actualizada)
   })
@@ -154,9 +146,7 @@ describe('FE-52 - Edición de datos del paciente', () => {
       }),
     )
 
-    expect(
-      screen.getByText('Escribe el nombre completo del paciente.'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Escribe el nombre completo del paciente.')).toBeInTheDocument()
 
     expect(actualizar).not.toHaveBeenCalled()
   })
@@ -164,9 +154,7 @@ describe('FE-52 - Edición de datos del paciente', () => {
   it('muestra el error del backend sin confirmar el guardado', async () => {
     const usuario = userEvent.setup()
 
-    actualizar.mockRejectedValueOnce(
-      new ErrorApi(400, 'La fecha de ingreso no es válida'),
-    )
+    actualizar.mockRejectedValueOnce(new ErrorApi(400, 'La fecha de ingreso no es válida'))
 
     const { alGuardar } = montarFormulario()
 
@@ -176,9 +164,7 @@ describe('FE-52 - Edición de datos del paciente', () => {
       }),
     )
 
-    expect(
-      await screen.findByRole('alert'),
-    ).toHaveTextContent('La fecha de ingreso no es válida')
+    expect(await screen.findByRole('alert')).toHaveTextContent('La fecha de ingreso no es válida')
 
     expect(alGuardar).not.toHaveBeenCalled()
   })

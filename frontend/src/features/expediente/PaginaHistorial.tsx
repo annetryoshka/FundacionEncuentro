@@ -110,6 +110,7 @@ function VistaHistorial({ carpeta }: { carpeta: CarpetaDetalle }) {
               Evaluación del {fechaLarga(diagnostico.fecha)} · Última actualización por{' '}
               {nombre(diagnostico.actualizadoPor)} el {fechaLarga(diagnostico.actualizadoEn)}
             </p>
+            <Texto titulo="Evaluación inicial">{diagnostico.evaluacionInicial ?? 'Sin evaluación inicial registrada'}</Texto>
             <Texto titulo="Diagnóstico de ingreso">{diagnostico.diagnosticoIngreso}</Texto>
             <Texto titulo="Hipótesis relacional">{diagnostico.hipotesisRelacional}</Texto>
             <Texto titulo="Comentarios clínicos">{diagnostico.comentariosClinicos}</Texto>

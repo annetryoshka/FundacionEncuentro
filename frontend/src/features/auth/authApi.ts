@@ -11,7 +11,7 @@ export function renovarSesion(refreshToken: string): Promise<RespuestaSesion> {
   return peticion<RespuestaSesion>('/auth/refresh', { metodo: 'POST', cuerpo: { refreshToken }, publica: true })
 }
 
-/** POST /api/auth/logout (FE-26): el backend invalida el token en Supabase. Responde 204. */
+/** Solicita el cierre remoto de la sesión actual. Un 204 confirma el cierre solicitado. */
 export function cerrarSesionEnServidor(token: string): Promise<void> {
   return revocarSesion(token)
 }

@@ -38,28 +38,40 @@ export async function crearBase(prefijo, { hasta } = {}) {
     return c;
   };
   const cliente = await conectar();
-  // auth.users es solo el soporte de la FK de perfiles; no es Supabase Auth.
-  await cliente.query('create schema auth; create table auth.users (id uuid primary key); create schema extensions');
-  const carpeta = new URL('../../../db/migrations/', import.meta.url);
-  const archivos = (await readdir(carpeta)).filter((a) => /^\d+.*\.sql$/.test(a)).sort();
-  const aplicar = async (lista) => {
-    for (const archivo of lista) await cliente.query(await readFile(new URL(archivo, carpeta), 'utf8'));
-  };
-  const enBase = hasta ? archivos.filter((a) => a.slice(0, 3) <= hasta) : archivos;
-  await aplicar(enBase);
-  // Aplica las migraciones restantes sobre los datos ya cargados.
-  const migrar = () => aplicar(archivos.filter((a) => !enBase.includes(a)));
-  for (const [clave, id] of Object.entries(PERFILES)) {
-    const rol = clave === 'admin' ? 'administrador' : clave === 'marketing' ? 'marketing' : 'terapeuta';
-    await cliente.query('insert into auth.users (id) values ($1)', [id]);
-    await cliente.query('insert into perfiles (id, nombre_completo, rol) values ($1, $2, $3)', [id, `${clave} QA`, rol]);
-  }
-
   const cerrar = async () => {
-    await cliente.end();
+    await cliente.end().catch(() => {});
     await admin.query(`drop database "${nombre}" with (force)`);
     await admin.end();
   };
+  const carpeta = new URL('../../../db/migrations/', import.meta.url);
+  const archivos = (await readdir(carpeta)).filter((a) => /^\d+.*\.sql$/.test(a)).sort();
+  const aplicar = async (lista) => {
+    for (const archivo of lista) {
+      try {
+        await cliente.query(await readFile(new URL(archivo, carpeta), 'utf8'));
+      } catch (error) {
+        error.message = `${archivo}: ${error.message}`;
+        throw error;
+      }
+    }
+  };
+  const enBase = hasta ? archivos.filter((a) => a.slice(0, 3) <= hasta) : archivos;
+  try {
+    // auth.users es solo el soporte de la FK de perfiles; no es Supabase Auth.
+    await cliente.query('create schema auth; create table auth.users (id uuid primary key); create schema extensions');
+    await aplicar(enBase);
+    for (const [clave, id] of Object.entries(PERFILES)) {
+      const rol = clave === 'admin' ? 'administrador' : clave === 'marketing' ? 'marketing' : 'terapeuta';
+      await cliente.query('insert into auth.users (id) values ($1)', [id]);
+      await cliente.query('insert into perfiles (id, nombre_completo, rol) values ($1, $2, $3)', [id, `${clave} QA`, rol]);
+    }
+  } catch (error) {
+    // Sin esto, una migración que falla deja conexiones abiertas y la suite se queda colgada en vez de fallar.
+    await cerrar();
+    throw error;
+  }
+  // Aplica las migraciones restantes sobre los datos ya cargados.
+  const migrar = () => aplicar(archivos.filter((a) => !enBase.includes(a)));
   return { cliente, conectar, cerrar, migrar };
 }
 

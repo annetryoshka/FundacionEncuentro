@@ -39,13 +39,29 @@ export function PaginaInicio() {
           <h2 id="inicio-administracion" className="text-lg font-semibold text-verde-oscuro">
             Administración
           </h2>
-          <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <li>
               <EnlaceAcceso
                 a="/indicadores"
                 icono="grafico"
                 titulo="Indicadores"
                 descripcion="Casos por estado, sesiones y pagos recibidos en un período."
+              />
+            </li>
+            <li>
+              <EnlaceAcceso
+                a="/difusion"
+                icono="megafono"
+                titulo="Difusión"
+                descripcion="Campañas, actividades y cursos del portal público."
+              />
+            </li>
+            <li>
+              <EnlaceAcceso
+                a="/importaciones"
+                icono="importar"
+                titulo="Importar registros históricos"
+                descripcion="Carga pacientes y casos antiguos desde una planilla, con revisión fila por fila."
               />
             </li>
             <li>
@@ -119,11 +135,32 @@ function BuscarCarpeta({ esAdmin }: { esAdmin: boolean }) {
   )
 }
 
+/** Marketing (FE-144): no ve información clínica; su trabajo es la difusión. */
 function SinAccesoClinico() {
   return (
-    <p className="max-w-prose rounded-3xl border border-linea bg-white p-6 text-suave">
-      Tu cuenta no tiene acceso a la información clínica de los pacientes. Las herramientas de difusión llegarán en
-      próximas versiones.
-    </p>
+    <section aria-labelledby="inicio-difusion" className="space-y-3">
+      <p className="max-w-prose text-suave">Tu cuenta no tiene acceso a la información clínica de los pacientes.</p>
+      <h2 id="inicio-difusion" className="text-lg font-semibold text-verde-oscuro">
+        Difusión
+      </h2>
+      <ul className="grid gap-3 sm:grid-cols-2">
+        <li>
+          <EnlaceAcceso
+            a="/difusion"
+            icono="megafono"
+            titulo="Publicaciones"
+            descripcion="Campañas, actividades y cursos: borradores, publicación y retiro."
+          />
+        </li>
+        <li>
+          <EnlaceAcceso
+            a="/publicaciones"
+            icono="web"
+            titulo="Ver el portal público"
+            descripcion="Lo que ven los visitantes, tal como está publicado."
+          />
+        </li>
+      </ul>
+    </section>
   )
 }

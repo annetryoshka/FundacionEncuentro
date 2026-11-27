@@ -15,6 +15,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { ResidenciaPacienteDto } from './residencia-paciente.dto.js';
 
 export const TIPOS_CASO = ['derivado', 'voluntario'] as const;
 export const ESTADOS_CASO = ['iniciado', 'en_proceso', 'concluido'] as const;
@@ -22,7 +23,7 @@ export const ESTADOS_CASO = ['iniciado', 'en_proceso', 'concluido'] as const;
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const MSG_FECHA = 'La fecha debe tener formato AAAA-MM-DD y ser una fecha real';
 
-export class PacienteDto {
+export class PacienteDto extends ResidenciaPacienteDto {
   @ApiProperty({
     description: 'Nombre completo del paciente',
     example: 'María López',

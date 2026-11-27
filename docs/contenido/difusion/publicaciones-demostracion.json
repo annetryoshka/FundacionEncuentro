@@ -1,0 +1,103 @@
+{
+  "aviso": "CONTENIDO FICTICIO DE PRUEBA PARA QA. No es contenido institucional, no fue aprobado por la Fundación y no debe publicarse en un entorno real. Sin datos de pacientes. Campos según docs/srs/sprint-3/FE-140-difusion-publicaciones.md.",
+  "fuente": "FE-141",
+  "publicaciones": [
+    {
+      "alias": "C1",
+      "proposito": "Campaña publicada: debe verse en el listado y en el detalle público.",
+      "tipo": "campana",
+      "titulo": "[DEMO QA] Campaña ficticia de sensibilización",
+      "resumen": "Texto de prueba de una campaña. No describe ninguna campaña real de la Fundación.",
+      "contenido": "Contenido de ejemplo para revisar el portal. Sin datos de pacientes.",
+      "imagen": null,
+      "fechaInicio": "2026-12-01",
+      "fechaFin": "2026-12-15",
+      "modalidad": "mixta",
+      "lugar": "Lugar ficticio de QA",
+      "contactoUrl": "https://ejemplo.invalid/contacto-qa",
+      "estado": "publicado"
+    },
+    {
+      "alias": "A1",
+      "proposito": "Actividad en borrador (ejemplo del contrato): no debe aparecer en el listado ni por URL pública.",
+      "tipo": "actividad",
+      "titulo": "[DEMO QA] Actividad ficticia",
+      "resumen": "Texto de prueba para revisar el portal.",
+      "contenido": "Ejemplo sin datos de pacientes.",
+      "imagen": null,
+      "fechaInicio": "2026-12-01",
+      "fechaFin": "2026-12-01",
+      "modalidad": "presencial",
+      "lugar": "Lugar ficticio de QA",
+      "contactoUrl": null,
+      "estado": "borrador"
+    },
+    {
+      "alias": "K1",
+      "proposito": "Curso publicado con rango de fechas y modalidad virtual: sirve para probar fechas y etiqueta de curso.",
+      "tipo": "curso",
+      "titulo": "[DEMO QA] Curso ficticio",
+      "resumen": "Texto de prueba de un curso. No implica inscripción, cobro ni reserva.",
+      "contenido": "Contenido de ejemplo del curso. Sin datos de pacientes.",
+      "imagen": null,
+      "fechaInicio": "2026-12-05",
+      "fechaFin": "2026-12-19",
+      "modalidad": "virtual",
+      "lugar": null,
+      "contactoUrl": null,
+      "estado": "publicado"
+    },
+    {
+      "alias": "R1",
+      "proposito": "Campaña retirada: debe ocultarse del listado y su URL pública debe responder no encontrado.",
+      "tipo": "campana",
+      "titulo": "[DEMO QA] Campaña ficticia retirada",
+      "resumen": "Texto de prueba de una publicación retirada.",
+      "contenido": "Ejemplo sin datos de pacientes.",
+      "imagen": null,
+      "fechaInicio": "2026-11-01",
+      "fechaFin": "2026-11-10",
+      "modalidad": "virtual",
+      "lugar": null,
+      "contactoUrl": null,
+      "estado": "retirado"
+    },
+    {
+      "alias": "X1",
+      "proposito": "Borrador incompleto (sin resumen): al publicar debe informar los campos pendientes y conservar el borrador.",
+      "tipo": "actividad",
+      "titulo": "[DEMO QA] Actividad ficticia incompleta",
+      "resumen": "",
+      "contenido": "",
+      "imagen": null,
+      "fechaInicio": null,
+      "fechaFin": null,
+      "modalidad": null,
+      "lugar": null,
+      "contactoUrl": null,
+      "estado": "borrador"
+    },
+    {
+      "alias": "I1",
+      "proposito": "Fechas invertidas: la validación debe rechazarlo (fin anterior al inicio).",
+      "tipo": "actividad",
+      "titulo": "[DEMO QA] Actividad ficticia con fechas invertidas",
+      "resumen": "Texto de prueba.",
+      "contenido": "Ejemplo sin datos de pacientes.",
+      "imagen": null,
+      "fechaInicio": "2026-12-10",
+      "fechaFin": "2026-12-01",
+      "modalidad": "presencial",
+      "lugar": "Lugar ficticio de QA",
+      "contactoUrl": null,
+      "estado": "borrador"
+    }
+  ],
+  "resultadosEsperados": {
+    "listadoPublico": ["C1", "K1"],
+    "ocultasEnListadoPublico": ["A1", "R1", "X1", "I1"],
+    "borradoresVisiblesParaMarketingYAdministracion": ["A1", "X1", "I1"],
+    "publicarX1": "Rechazado con los campos pendientes; permanece en borrador.",
+    "guardarI1": "Rechazado por fecha de fin anterior a la de inicio."
+  }
+}

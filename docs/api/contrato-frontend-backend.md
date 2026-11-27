@@ -81,8 +81,7 @@ abajo se aplican en backend, independientemente del frontend.
 
 `POST /api/auth/refresh` · `@Public()` → `{ "refreshToken": "…" }` → misma respuesta que el login; 401 si ya no sirve.
 
-`POST /api/auth/logout` → 204 cuando el servicio termina sin error. La revocación del
-refresh token en Supabase real no está comprobada por FE-34; corresponde a FE-26/FE-27.
+`POST /api/auth/logout` → devuelve 204 cuando Supabase confirma el cierre de la sesión actual (scope=local) y el backend registra la auditoría. Si Supabase devuelve una respuesta inesperada, falla la comunicación o vence el plazo, la API responde 502, 503 o 504, respectivamente. En esos casos el frontend conserva el cierre local y avisa que la revocación remota quedó sin confirmar. La vigencia del access token y el comportamiento del refresh token se comprueban por separado en Supabase de QA.
 
 `GET /api/auth/me` → `{ id, nombreCompleto, rol }`.
 
@@ -336,7 +335,7 @@ inexistente responde 404 "Caso no encontrado"; marketing, 403. Fechas sin hora e
 | FE-77 | `POST /api/carpetas/:id/tareas` `{ sesionId, descripcion }` → 201 `{ tarea }` | Nace `pendiente`. 400 si la sesión es de otro caso. |
 | FE-77 | `PATCH /api/carpetas/:id/tareas/:tareaId/cumplimiento` `{ estado: 'pendiente' \| 'realizada' }` → `{ tarea }` | Si el estado no cambia, no registra otra actualización. |
 | FE-67 | `GET /api/carpetas/:id/diagnostico` → `{ diagnostico \| null }` | `null` = sin ficha (no es un error). |
-| FE-67 | `PUT /api/carpetas/:id/diagnostico` `{ fecha, diagnosticoIngreso, hipotesisRelacional?, comentariosClinicos? }` | Crea o reemplaza la ficha única; conserva `id`, `creadoPor` y `creadoEn`. |
+| FE-67 | `PUT /api/carpetas/:id/diagnostico` `{ fecha, evaluacionInicial, diagnosticoIngreso?, hipotesisRelacional?, comentariosClinicos? }` | Crea o actualiza la ficha única y conserva claves adicionales del JSON; conserva `id`, `creadoPor` y `creadoEn`. |
 | FE-62 | `GET /api/carpetas/:id/constancia` → `{ constancia \| null }` | Incluye `contextoJudicial` (o `null`). Fechas en `AAAA-MM-DD` desde el commit 8c77aa3. |
 | FE-62 | `PUT /api/carpetas/:id/constancia` `{ procedencia?, origenJudicial, estado, fechaConsentimiento?, referenciaEvidencia?, explicacion?, contextoJudicial? }` | `pendiente`: sin fecha, evidencia ni explicación. `registrado`: fecha y evidencia. `no_aplica`: explicación. `origenJudicial: true` exige `contextoJudicial` con `juzgado` (`nroExpediente`, `fechaDerivacion` y `observaciones` opcionales); `false` lo rechaza y borra el guardado. |
 | FE-87 | `GET /api/carpetas/:id/pagos` → `{ pagos }` | Solo administración (403 para terapeutas). `monto` es texto decimal con punto. |
@@ -445,6 +444,76 @@ Demostración integrada en navegador con frontend real, backend de `main` y Post
 Auth fue un Supabase de prueba local. Detalle, incidencias corregidas y guion en
 `docs/pruebas/FE-46-demostracion-integrada.md`.
 
+## Residencia del paciente (FE-136)
+
+- El alta de un paciente y la edición administrativa admiten
+  `ciudadResidencia` (`la_paz`, `el_alto`, `otra` o `null`) y `otraLocalidad`.
+  `otra` requiere una localidad. En la edición, omitir ambos campos conserva
+  la residencia y enviar `ciudadResidencia: null` la limpia.
+- El listado y el detalle de carpetas devuelven ambos campos dentro de `paciente`.
+- `GET /api/carpetas` admite `residencia=la_paz|el_alto|otra|sin_registrar`.
+  El filtro se combina con permisos y demás filtros antes de contar y paginar.
+- `GET /api/indicadores/por-residencia?desde=AAAA-MM-DD&hasta=AAAA-MM-DD`
+  es exclusivo de administración. Devuelve `periodo` y `porResidencia`, con
+  casos actuales, estados, sesiones y pagos en BOB para cada grupo.
+
+## Exportación a PDF y Word (FE-159)
+
+| Método y ruta | Resultado |
+| --- | --- |
+| `POST /api/carpetas/:casoId/exportaciones` | Genera el archivo y devuelve `201` con `{ "exportacionId": "..." }`. |
+| `GET /api/carpetas/:casoId/exportaciones/:exportacionId/archivo` | Descarga el PDF o DOCX después de volver a comprobar el acceso y verificar la integridad del archivo. |
+
+El POST recibe `documento` (`informe`, `ficha` o `historial`) y `formato`
+(`pdf` o `docx`). Para un informe requiere `informeVersionId` de una versión
+revisada del mismo caso. La ficha y el historial admiten `secciones`.
+`incluirPagos` solo se admite para administración y en el historial.
+
+El backend guarda los archivos fuera del directorio público, en la ruta
+absoluta configurada con `EXPORTACIONES_DIR` (vacía: `backend/almacenamiento/exportaciones`,
+ignorada por Git). En un despliegue, esa ruta debe apuntar a almacenamiento
+persistente y privado; los respaldos de la base no incluyen estos archivos. Si falla la escritura,
+la API devuelve `500` y registra la exportación como fallida.
+
+La ficha y el historial admiten `incluirGenograma: true` para adjuntar su representación
+visual. Un informe revisado conserva la selección y la clave del archivo de su fotografía:
+no admite cambiar opciones al exportar ni tomar silenciosamente el genograma vigente.
+El backend comprueba caso, acceso, tipo y SHA-256 antes de leer esa versión privada.
+PNG/JPEG se normalizan a PNG; un PDF legible de hasta 20 páginas se inserta completo,
+una página por anexo, manteniendo proporción. El texto y las tablas de DOCX siguen siendo
+editables; el genograma es una imagen. Si no existe genograma, se conserva la ausencia
+registrada; si el archivo no puede leerse/renderizarse, la exportación queda fallida y no
+se entrega un archivo vacío. Se limita la imagen de entrada a 25 millones de píxeles y la
+representación a un lado máximo de 3000 píxeles por página. La carga del genograma
+mantiene sus límites de tamaño existentes.
+
+## Importación histórica (FE-164)
+
+Solo administración puede usar estas rutas.
+
+| Método y ruta | Operación |
+| --- | --- |
+| `POST /api/importaciones` | Recibe `archivo` y, opcionalmente, `origen` en `multipart/form-data`. Devuelve `201` con la vista previa. |
+| `GET /api/importaciones/:id` | Consulta el estado, la versión, el resumen y las filas del lote. |
+| `PATCH /api/importaciones/:id/filas/:numeroFila/datos` | Recibe `version` y `datos`. Corrige las columnas enviadas y reclasifica el lote. |
+| `PATCH /api/importaciones/:id/filas/:numeroFila` | Recibe `version` y `decision` (`crear`, `vincular` o `excluir`). Para vincular se envía un único destino. |
+| `POST /api/importaciones/:id/confirmar` | Recibe `version` y, opcionalmente, `aceptaAvanceContador`. Devuelve el resultado de la confirmación. |
+
+Se admite CSV UTF-8 separado por comas o por punto y coma, o XLSX, hasta
+5 MiB. El XLSX debe tener la hoja `Importacion`. La primera fila lleva
+columnas de la plantilla en cualquier orden; puede traer solo una parte
+(por ejemplo, el formato de FE-162) y las que faltan quedan vacías. Una
+columna desconocida o repetida devuelve `400`. En el XLSX no se admiten
+fórmulas; los números se leen como texto (un teléfono guardado como número
+pierde los ceros iniciales: conviene guardarlo como texto) y las fechas
+deben ser fechas de Excel o texto AAAA-MM-DD.
+
+La vista previa no crea pacientes ni casos. Una versión desactualizada
+devuelve `409`; las filas sin resolver o un salto de contador sin aceptar
+devuelven `422`. Si los datos cambiaron al confirmar, la API puede
+responder `estado: "revisar"` sin aplicar el lote. Confirmar de nuevo un
+lote ya aplicado devuelve el mismo resultado sin duplicar registros.
+
 ## Ficha familiar y diagnóstico vigente (FE-126)
 
 Estas rutas requieren una sesión autenticada. Pueden usarlas
@@ -472,3 +541,109 @@ administración y la terapeuta asignada al caso.
 Si existe una ficha de diagnóstico, sus valores `null` se conservan.
 Los datos del alta quedan disponibles como antecedente. El contrato de
 `GET /api/carpetas/:id/diagnostico` se mantiene.
+
+## Genograma del caso (FE-131)
+
+Las operaciones requieren una sesión autenticada. El servidor comprueba
+que la persona sea administradora o la terapeuta asignada al caso.
+
+| Método y ruta | Solicitud | Respuesta exitosa |
+| --- | --- | --- |
+| `PUT /api/carpetas/:id/genograma` | Formulario `multipart/form-data` con el campo `archivo`. | `204` sin cuerpo. |
+| `GET /api/carpetas/:id/genograma` | Sin cuerpo. | `200` con `nombre`, `tipo`, `tamanio` en bytes, `autorId` y `actualizadoEn` en formato ISO 8601. |
+| `GET /api/carpetas/:id/genograma/archivo` | Sin cuerpo. | `200` con el archivo como adjunto. |
+
+La carga admite PDF, PNG y JPEG. El límite actual es de 5 MiB, pendiente
+de confirmación. Una carga sin archivo devuelve `400`. Si supera el
+límite devuelve `413`. Si el formato no coincide con los bytes iniciales
+o no está admitido, devuelve `415`.
+
+El servidor devuelve `404` si el caso no existe o la terapeuta no tiene
+acceso. La consulta y la descarga también devuelven `404` si el caso
+accesible todavía no tiene genograma.
+
+Un reemplazo inválido conserva el archivo vigente. Tras un `204`, el
+frontend puede consultar de nuevo los metadatos para refrescar la ficha.
+
+## Borradores de informes (FE-153)
+
+Las cuatro rutas requieren una terapeuta autenticada y asignada al caso.
+`versionId` es el `id` de la versión devuelta por el POST.
+
+| Método y ruta | Cuerpo | Respuesta |
+| --- | --- | --- |
+| `POST /api/carpetas/:id/informes` | `tipo` (`intervencion_sistemica` o `judicial`). Opcionales: `sesionesIds`, `incluirFamilia`, `incluirGenograma` y `objeto`. | `201` con `id`, `informeId`, `nroVersion`, `estado` y `creadoPor`. |
+| `GET /api/carpetas/:id/informes` | Sin cuerpo. | `200` con `informes`: las versiones del caso, la más reciente primero, con `id`, `informeId`, `tipo`, `nroVersion`, `estado`, `creadoPor`, `creadoEn`, `revisadoPor` y `revisadoEn` (sin las secciones). |
+| `GET /api/carpetas/:id/informes/:versionId` | Sin cuerpo. | `200` con las secciones, el estado y la autoría de la versión. |
+| `PATCH /api/carpetas/:id/informes/:versionId/revision` | `secciones`, una lista de objetos con `titulo` y `contenido`. | `200` con `id`, `estado`, `revisadoPor` y `revisadoEn`. |
+
+El POST devuelve `422` con `camposFaltantes` si faltan los mínimos.
+Para un informe judicial, se requiere un juzgado registrado y un `objeto`.
+El servidor devuelve `404` si el caso o la versión no están disponibles
+para la solicitante. Una segunda revisión de la misma versión devuelve `409`.
+
+Al revisar, se conserva la copia original de los datos del expediente.
+
+## Publicaciones de difusión (FE-143)
+
+| Método y ruta | Qué hace |
+| --- | --- |
+| `GET /api/publico/publicaciones` | Lista publicaciones visibles. Admite `tipo`, `pagina` y `tamano`. |
+| `GET /api/publico/publicaciones/:id` | Devuelve una publicación visible y su imagen principal, si existe. Un borrador o una publicación retirada devuelve `404`. |
+| `GET /api/difusion/publicaciones` | Lista publicaciones para administración y marketing. Admite también el filtro `estado`. |
+| `GET /api/difusion/publicaciones/:id` | Devuelve el detalle privado, la autoría y los recursos. |
+| `POST /api/difusion/publicaciones` | Crea un borrador. |
+| `PUT /api/difusion/publicaciones/:id` | Reemplaza los campos de contenido y conserva el estado. |
+| `PATCH /api/difusion/publicaciones/:id/estado` | Recibe `{ "estado": "publicado" }`, `"retirado"` o `"borrador"` según la transición. |
+| `POST /api/difusion/publicaciones/:id/recursos` | Asocia los metadatos de una imagen del bucket público. |
+| `DELETE /api/difusion/publicaciones/:id/recursos/:recursoId` | Quita la asociación y devuelve `204`. El objeto del bucket permanece. |
+
+Las rutas administrativas requieren una sesión de administración o marketing.
+El flujo es `borrador → publicado → retirado → borrador`. Una transición
+inválida devuelve `409`. Si falta el resumen al publicar, devuelve `422`
+con `camposFaltantes`. Los mínimos adicionales por tipo siguen pendientes
+de ratificación.
+
+Las imágenes admiten JPEG, PNG o WebP, hasta 5 MiB. El recurso requiere
+ruta relativa y texto alternativo. Una segunda imagen principal devuelve
+`409`. La API gestiona metadatos; la carga del archivo se hace aparte.
+
+## Investigación y exportación para Atlas.ti (FE-169)
+
+| Método y ruta | Operación |
+| --- | --- |
+| `GET /api/investigacion/categorias` | Consulta el catálogo y los conteos dentro del alcance del perfil. |
+| `POST /api/investigacion/categorias` | Crea una categoría. Solo administración. |
+| `PUT /api/investigacion/categorias/:id` | Edita o retira una categoría con `activa: false`. Solo administración. |
+| `GET /api/investigacion/seleccion` | Filtra casos autorizados por categorías, período y residencia. |
+| `POST /api/investigacion/casos/:casoId/etiquetas` | Etiqueta el caso o una ficha de diagnóstico o seguimiento del mismo caso. |
+| `POST /api/investigacion/exportaciones` | Recibe `casosIds`, `secciones`, `formato` (`txt` o `docx`) y, opcionalmente, `desde` y `hasta`. Devuelve `exportacionId`. |
+| `GET /api/investigacion/exportaciones/:id/manifiesto` | Consulta el manifiesto del paquete autorizado. |
+| `GET /api/investigacion/exportaciones/:id/documentos/:codigo` | Previsualiza un documento por su código `INV-…`. |
+| `GET /api/investigacion/exportaciones/:id/revision` | Devuelve el contenido a revisar, su `huella`, `revisadoEn` (o `null`) y `revisionVigente` (la revisión corresponde al contenido actual). |
+| `PATCH /api/investigacion/exportaciones/:id/revision` | Recibe `{ "huella": "..." }` y confirma la revisión si el contenido coincide. Repetirla con la misma huella devuelve la revisión existente. |
+| `GET /api/investigacion/exportaciones/:id/descarga` | Devuelve un ZIP con `manifiesto.json` y un archivo por caso. Requiere revisión vigente. |
+
+Administración y terapeutas acceden según su alcance. Una terapeuta solo
+puede seleccionar sus casos asignados. Marketing recibe `403`. Si el
+paquete incluye un caso ajeno, se rechaza la solicitud completa con `404`.
+
+La descarga devuelve `409` antes de la revisión o si el contenido cambió.
+Si el contenido cambió después de revisarlo, el PATCH también devuelve `409`:
+hay que preparar un paquete nuevo.
+La migración 019 conserva la huella revisada. El ZIP se genera en memoria
+al descargar.
+
+El texto libre puede contener identificadores y requiere revisión humana.
+El uso con datos reales sigue sujeto a ratificación. La prueba de
+importación en Atlas.ti corresponde a FE-171.
+
+## Evaluación inicial obligatoria y diagnóstico opcional · FE-123/FE-126
+
+Decisión de Andrea (PO), 26/11/2026: evaluación inicial obligatoria y diagnóstico de ingreso opcional. Implementada con apoyo de Andrea en FE-126/127/128; aplicar la migración 021 antes de desplegar esta versión.
+
+El PUT recibe `fecha`, `evaluacionInicial` (texto con contenido, hasta 10000 caracteres) y diagnóstico/hipótesis/comentarios opcionales (string hasta 10000 o null). Guardar normaliza espacios y conserva claves adicionales del JSON. Es un formulario completo: omitir o vaciar un opcional lo deja en null. La evaluación no se obtiene automáticamente de comentarios históricos.
+
+GET de diagnóstico, GET de fuente vigente e historial devuelven `evaluacionInicial` (null para fichas antiguas). Leer una ficha antigua sigue permitido; editar solicita completar la evaluación. Familia, genograma, ID y autoría se conservan. Un diagnóstico null de una ficha vigente no se completa desde el alta.
+
+La 021 amplía la vista y las fotografías: incluye evaluación cuando existe, sin reescribir fichas ni informes/exportaciones anteriores. Los informes nuevos usan plantilla v2. PDF, DOCX y los documentos seleccionados de investigación conservan la evaluación; la revisión de textos de investigación y sus permisos permanecen vigentes. Ver [contrato FE-123](../srs/sprint-3/FE-123-ficha-familiar-y-diagnostico.md) y [evidencia de verificación](../pruebas/sprint-3/evaluacion-inicial.md).

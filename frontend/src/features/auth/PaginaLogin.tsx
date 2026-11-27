@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { Corazon, Logo, OndaInferior, OndaSuperior, PieContacto } from '../../componentes/marca'
 import { iniciarSesion, mensajeErrorLogin } from './authApi'
 import { useSesion } from './sesion'
@@ -231,6 +231,12 @@ export function PaginaLogin() {
 
             <p className="mt-7 border-t border-linea pt-5 text-sm text-suave">
               ¿Olvidaste tu contraseña o necesitas una cuenta? Pídesela a la dirección del centro.
+            </p>
+            {/* FE-149: el visitante sin cuenta encuentra el portal público. */}
+            <p className="mt-3 text-sm">
+              <Link to="/publicaciones" className="font-semibold text-naranja-texto underline underline-offset-4">
+                Ver campañas, actividades y cursos
+              </Link>
             </p>
           </div>
         </main>

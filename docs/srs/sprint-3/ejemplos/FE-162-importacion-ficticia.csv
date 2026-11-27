@@ -1,0 +1,8 @@
+referenciaOrigen,nombreCompleto,fechaNacimiento,edadAlIngreso,telefono,tipo,numeroCorrelativo,fechaIngreso,clasificacion,ciudadResidencia,otraLocalidad,diagnosticoIngreso,hipotesisRelacional,comentariosClinicos
+QA-001,Paciente de importación QA 1,,,,voluntario,900001,2026-11-20,social,la_paz,,,,Antecedente ficticio QA
+QA-002,Paciente QA A,,12,,voluntario,101,2026-11-20,social,la_paz,,,,Coincidencia ficticia que requiere decisión
+QA-003,Paciente de importación QA 3,,,,voluntario,900003,2026-02-30,social,el_alto,,,,Fecha inválida de prueba
+QA-004,,,,,voluntario,900004,2026-11-20,social,la_paz,,,,Nombre ausente de prueba
+QA-005,Paciente de importación QA 5,,,,voluntario,900001,2026-11-20,social,la_paz,,,,Colisión ficticia dentro del lote
+QA-006,Paciente de importación QA 6,,,,voluntario,900006,2026-11-20,social,otra,,,,Falta localidad de prueba
+QA-007,Paciente nuevo QA 7,,,,derivado,900007,2026-11-20,privado,el_alto,,,,Antecedente ficticio nuevo

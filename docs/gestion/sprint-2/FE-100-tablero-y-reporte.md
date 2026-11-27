@@ -40,6 +40,26 @@ Decisiones de alcance:
 Margen consumido: 0 h de 24 (sin registro de horas todavía)
 ```
 
+## Reporte 2 — corte 2026-11-23 (`main` en `37ed16b`)
+
+```
+Terminado:
+- Las 8 HU del Sprint 2 integradas en main (merges del 2026-11-13) con su verificación de QA:
+  FE-49, FE-65, FE-70, FE-75, FE-80, FE-85, FE-90 y FE-95.
+- Interfaz del expediente clínico (merge d8ea18f) y reporte de pruebas (2026-11-22).
+- 3 defectos de QA corregidos y reverificados: FE-65-D1, FE-85-D1, FE-95-D1.
+Pendiente:
+- Registro de la aceptación integral por Andrea (FE-101 / FE-97).
+- Validación de las reglas de FE-61, FE-66 y FE-86 con la Fundación.
+- Aplicar en Supabase las migraciones 004 a 011 (Alejandro).
+- Review y retrospectiva del Sprint 2: sin fecha confirmada.
+Desviaciones de carga:
+- Horas reales por persona sin registrar. La daily de 30 min por día suma unas 5 h frente a las 2 h presupuestadas (ver FE-106).
+Decisiones de alcance:
+- Ninguna; no hubo que retirar FE-6.
+Margen consumido: sin dato (no hay registro de horas reales).
+```
+
 ## Formato de reporte (repetir en cada corte)
 
 ```

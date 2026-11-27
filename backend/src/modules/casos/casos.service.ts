@@ -13,12 +13,15 @@ import type { ListarCarpetasQuery } from './dto/listar-carpetas.query.js';
 import type { ActualizarEstadoCasoDto } from './dto/actualizar-estado-caso.dto.js';
 import type { ActualizarClasificacionDto } from './dto/actualizar-clasificacion.dto.js';
 import type { ActualizarConstanciaDto } from './dto/actualizar-constancia.dto.js';
+import type { ResidenciaPacienteDto } from './dto/residencia-paciente.dto.js';
+import { PoolClient } from "pg";
 
 const SELECT_CARPETA = `
   select c.id, c.tipo, c.numero_correlativo, c.estado,
          to_char(c.fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
          c.diagnostico_ingreso, c.hipotesis_relacional, c.comentarios_clinicos, c.creado_en,
          p.id as paciente_id, p.nombre_completo,
+         p.ciudad_residencia, p.otra_localidad,
          to_char(p.fecha_nacimiento, 'YYYY-MM-DD') as fecha_nacimiento,
          p.edad_al_ingreso, p.telefono,
          j.id as judicial_id, j.juzgado, j.nro_expediente,
@@ -33,6 +36,30 @@ const esNumeroDuplicado = (error: unknown) => {
   const e = error as { code?: string; constraint?: string };
   return e.code === "23505" && e.constraint === "uq_caso_numero";
 };
+
+function normalizarResidencia({
+  ciudadResidencia,
+  otraLocalidad,
+}: ResidenciaPacienteDto) {
+  const localidad = otraLocalidad?.trim() || null;
+
+  if (ciudadResidencia === undefined) {
+    if (otraLocalidad !== undefined) {
+      throw new BadRequestException('Indica la ciudad al enviar otraLocalidad');
+    }
+    return undefined;
+  }
+
+  if (ciudadResidencia === 'otra' && !localidad) {
+    throw new BadRequestException('Indica el nombre de la otra localidad');
+  }
+
+  if (ciudadResidencia !== 'otra' && localidad) {
+    throw new BadRequestException('Solo la ciudad "otra" admite una localidad');
+  }
+
+  return { ciudad: ciudadResidencia, localidad };
+}
 @Injectable()
 export class CasosService {
   constructor(private readonly db: DatabaseService) {}
@@ -50,6 +77,7 @@ export class CasosService {
     ) {
       throw new BadRequestException("El nombre del paciente no es válido");
     }
+    const residencia = normalizarResidencia(dto);
     await this.db.transaction(adminId, async (client) => {
       const { rows } = await client.query<{
         paciente_id: string;
@@ -84,11 +112,17 @@ export class CasosService {
           "La fecha de ingreso no puede ser anterior al nacimiento",
         );
       }
-      await client.query(
+            await client.query(
         `update pacientes
-            set nombre_completo = $1
+            set nombre_completo = $1${
+              residencia ? ', ciudad_residencia = $3, otra_localidad = $4' : ''
+            }
           where id = $2`,
-        [nombreCompleto, registro.paciente_id],
+        [
+          nombreCompleto,
+          registro.paciente_id,
+          ...(residencia ? [residencia.ciudad, residencia.localidad] : []),
+        ],
       );
       await client.query(
         `update casos
@@ -148,13 +182,18 @@ export class CasosService {
           throw new NotFoundException("Paciente no encontrado");
         idPaciente = pacienteId;
       } else {
+                const residencia = normalizarResidencia(paciente!);
+
         const pac = await client.query<{ id: string }>(
-          `insert into pacientes (nombre_completo, fecha_nacimiento, edad_al_ingreso, telefono, creado_por)
-         values ($1, $2::date,
-                 coalesce($3::int, case when $2::date is null then null
-                                        else date_part('year', age($4::date, $2::date))::int end),
-                 $5, $6)
-         returning id`,
+          `insert into pacientes (
+             nombre_completo, fecha_nacimiento, edad_al_ingreso, telefono,
+             creado_por, ciudad_residencia, otra_localidad
+           )
+           values ($1, $2::date,
+                   coalesce($3::int, case when $2::date is null then null
+                                          else date_part('year', age($4::date, $2::date))::int end),
+                   $5, $6, $7, $8)
+           returning id`,
           [
             nombre,
             paciente!.fechaNacimiento ?? null,
@@ -162,6 +201,8 @@ export class CasosService {
             fechaIngreso,
             limpiar(paciente!.telefono),
             adminId,
+            residencia?.ciudad ?? null,
+            residencia?.localidad ?? null,
           ],
         );
         idPaciente = pac.rows[0].id;
@@ -229,13 +270,14 @@ export class CasosService {
     return this.aCarpeta(rows[0]);
   }
 
-  async obtenerCarpetaAutorizada(id: string, usuario: Usuario) {
-    const { rows } = await this.db.query(
+  async obtenerCarpetaAutorizada(id: string, usuario: Usuario, client?: PoolClient) {
+    const sql =
       `select c.id, c.tipo, c.numero_correlativo, c.estado, c.clasificacion,
           to_char(c.fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
           c.diagnostico_ingreso, c.hipotesis_relacional,
           c.comentarios_clinicos, c.creado_en,
           p.id as paciente_id, p.nombre_completo,
+          p.ciudad_residencia, p.otra_localidad,
           to_char(p.fecha_nacimiento, 'YYYY-MM-DD') as fecha_nacimiento,
           p.edad_al_ingreso, p.telefono,
           t.id as terapeuta_id,
@@ -293,9 +335,12 @@ export class CasosService {
           $2 = 'terapeuta'
           and a.perfil_id = $3
         )
-      )`,
-      [id, usuario.rol, usuario.id],
-    );
+            )`;
+
+    const parametros = [id, usuario.rol, usuario.id];
+    const { rows } = client
+      ? await client.query(sql, parametros)
+      : await this.db.query(sql, parametros);
 
     if (!rows[0]) {
       throw new NotFoundException("Caso no encontrado");
@@ -314,6 +359,8 @@ export class CasosService {
       paciente: {
         id: carpeta.paciente_id,
         nombreCompleto: carpeta.nombre_completo,
+        ciudadResidencia: carpeta.ciudad_residencia ?? null,
+        otraLocalidad: carpeta.otra_localidad ?? null,
       },
 
       terapeuta: carpeta.terapeuta_id
@@ -368,6 +415,14 @@ export class CasosService {
         valores.push(filtros.estado);
         condiciones.push(`c.estado = $${valores.length}`);
       }
+      
+      if (filtros.residencia === 'sin_registrar') {
+      condiciones.push('p.ciudad_residencia is null');
+        } else if (filtros.residencia !== undefined) {
+        valores.push(filtros.residencia);
+        condiciones.push(`p.ciudad_residencia = $${valores.length}`);
+      }
+
     const busqueda = filtros.busqueda?.trim();
     if (busqueda && /^[0-9]+$/.test(busqueda)) {
       const numero = busqueda.replace(/^0+/, '') || '0';
@@ -397,6 +452,7 @@ export class CasosService {
       `select c.id, c.numero_correlativo, c.tipo, c.estado, c.clasificacion,
         to_char(c.fecha_ingreso, 'YYYY-MM-DD') as fecha_ingreso,
         p.id as paciente_id, p.nombre_completo,
+        p.ciudad_residencia, p.otra_localidad,
         t.id as terapeuta_id, t.nombre_completo as terapeuta_nombre
       ${origen}
       order by c.fecha_ingreso desc, c.numero_correlativo desc, c.id asc
@@ -411,7 +467,9 @@ export class CasosService {
         estado: fila.estado,
         clasificacion: fila.clasificacion,
         fechaIngreso: fila.fecha_ingreso,
-        paciente: { id: fila.paciente_id, nombreCompleto: fila.nombre_completo },
+        paciente: { id: fila.paciente_id, nombreCompleto: fila.nombre_completo, 
+          ciudadResidencia: fila.ciudad_residencia ?? null, otraLocalidad: fila.otra_localidad ?? null,
+        },
         terapeuta: fila.terapeuta_id
           ? { id: fila.terapeuta_id, nombreCompleto: fila.terapeuta_nombre }
           : null,
@@ -521,6 +579,8 @@ export class CasosService {
         fechaNacimiento: f.fecha_nacimiento,
         edadAlIngreso: f.edad_al_ingreso,
         telefono: f.telefono,
+        ciudadResidencia: f.ciudad_residencia ?? null,
+        otraLocalidad: f.otra_localidad ?? null,
       },
       contextoJudicial: f.judicial_id
         ? {

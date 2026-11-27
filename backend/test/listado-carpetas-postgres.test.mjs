@@ -107,7 +107,7 @@ test('FE-40 PG: admin ve vigentes, sin responsable y solo campos de resumen', op
   assert.deepEqual(new Set(pagina.carpetas.map((c) => c.id)), new Set(carpetas.slice(0, 5).map((c) => c.id)));
   for (const c of pagina.carpetas) {
     assert.deepEqual(Object.keys(c).sort(), ['id', 'numero', 'tipo', 'estado', 'clasificacion', 'fechaIngreso', 'paciente', 'terapeuta'].sort());
-    assert.deepEqual(Object.keys(c.paciente).sort(), ['id', 'nombreCompleto']);
+    assert.deepEqual(Object.keys(c.paciente).sort(), ['ciudadResidencia', 'id', 'nombreCompleto', 'otraLocalidad',]);
     assert.match(c.fechaIngreso, /^\d{4}-\d{2}-\d{2}$/);
     const original = carpetas.find((fila) => fila.id === c.id);
     assert.equal(c.paciente.id, original.paciente.id);
@@ -379,4 +379,138 @@ test('FE-38 PG: dos asignaciones HTTP bloqueadas conservan una sola responsable'
   const ajena = autorizada === 'terapeutaA' ? 'terapeutaB' : 'terapeutaA';
   assert.equal((await detalleComo(id, autorizada)).status, 200);
   assert.equal((await detalleComo(id, ajena)).status, 404);
+});
+
+test('FE-136: la residencia se combina con filtros y permisos antes de paginar', opciones, async () => {
+  await conexion.query(
+    `update pacientes set ciudad_residencia = 'la_paz'
+      where id = any($1::uuid[])`,
+    [[carpetas[0].paciente.id, carpetas[4].paciente.id]],
+  );
+  await conexion.query(
+    `update pacientes set ciudad_residencia = 'el_alto' where id = $1`,
+    [carpetas[1].paciente.id],
+  );
+  await conexion.query(
+    `update casos set clasificacion = 'social' where id = $1`,
+    [carpetas[0].id],
+  );
+
+  const laPaz = await listado({ residencia: 'la_paz', tamano: 1 }, 'terapeutaA');
+  assert.equal(laPaz.total, 2);
+  assert.equal(laPaz.carpetas.length, 1);
+
+  const combinada = await listado(
+    { residencia: 'la_paz', clasificacion: 'social', tamano: 1 },
+    'terapeutaA',
+  );
+  assert.equal(combinada.total, 1);
+  assert.deepEqual(combinada.carpetas.map(({ id }) => id), [carpetas[0].id]);
+
+  const elAlto = await listado({ residencia: 'el_alto' });
+  assert.deepEqual(elAlto.carpetas.map(({ id }) => id), [carpetas[1].id]);
+  assert.equal(elAlto.carpetas[0].paciente.ciudadResidencia, 'el_alto');
+  assert.equal(elAlto.carpetas[0].paciente.otraLocalidad, null);
+
+  const respuestaDetalle = await api.detalle(carpetas[1].id);
+  assert.equal(respuestaDetalle.status, 200);
+
+  const detalle = await respuestaDetalle.json();
+  assert.equal(detalle.paciente.ciudadResidencia, 'el_alto');
+  assert.equal(detalle.paciente.otraLocalidad, null);
+
+  const ajena = await listado({ residencia: 'el_alto' }, 'terapeutaA');
+  assert.equal(ajena.total, 0);
+  assert.deepEqual(ajena.carpetas, []);
+
+  const sinRegistrar = await listado({ residencia: 'sin_registrar' }, 'terapeutaB');
+  assert.equal(sinRegistrar.total, 1);
+  assert.deepEqual(sinRegistrar.carpetas.map(({ id }) => id), [carpetas[2].id]);
+
+  const invalida = await api.listar({ residencia: 'ciudad_invalida' });
+  assert.equal(invalida.status, 400);
+  await invalida.json();
+});
+
+test('FE-136: editar residencia conserva el dato al omitirlo y permite limpiarlo', opciones, async () => {
+  const caso = carpetas[0];
+  const ruta = `/carpetas/${caso.id}`;
+  const editar = (residencia = {}, token = 'fixture') =>
+    api.solicitar(ruta, {
+      metodo: 'PATCH',
+      token,
+      cuerpo: {
+        nombreCompleto: 'María Gutiérrez QA',
+        fechaIngreso: caso.fechaIngreso,
+        ...residencia,
+      },
+    });
+
+  const guardar = async (residencia) => {
+    const respuesta = await editar(residencia);
+    const cuerpo = await respuesta.json();
+    assert.equal(respuesta.status, 200, JSON.stringify(cuerpo));
+    return cuerpo.paciente;
+  };
+
+  const otra = await guardar({
+    ciudadResidencia: 'otra',
+    otraLocalidad: '  Viacha ficticia  ',
+  });
+  assert.equal(otra.ciudadResidencia, 'otra');
+  assert.equal(otra.otraLocalidad, 'Viacha ficticia');
+
+  const conservada = await guardar();
+  assert.equal(conservada.ciudadResidencia, 'otra');
+  assert.equal(conservada.otraLocalidad, 'Viacha ficticia');
+
+  const invalida = await editar({ ciudadResidencia: 'otra' });
+  assert.equal(invalida.status, 400);
+  await invalida.json();
+
+  const denegada = await editar({ ciudadResidencia: 'el_alto' }, 'terapeutaA');
+  assert.equal(denegada.status, 403);
+  await denegada.json();
+
+  const detalle = await api.detalle(caso.id);
+  assert.equal(detalle.status, 200);
+  assert.equal((await detalle.json()).paciente.otraLocalidad, 'Viacha ficticia');
+
+  const limpia = await guardar({ ciudadResidencia: null });
+  assert.equal(limpia.ciudadResidencia, null);
+  assert.equal(limpia.otraLocalidad, null);
+});
+
+test('FE-136: el alta guarda la residencia y rechaza ciudades inválidas', opciones, async () => {
+  const solicitud = datos('Paciente de residencia QA');
+  solicitud.paciente.ciudadResidencia = 'el_alto';
+
+  const respuesta = await api.post(solicitud);
+  const creada = await respuesta.json();
+
+  assert.equal(respuesta.status, 201, JSON.stringify(creada));
+  assert.equal(creada.paciente.ciudadResidencia, 'el_alto');
+  assert.equal(creada.paciente.otraLocalidad, null);
+
+  const { rows: [paciente] } = await conexion.query(
+    `select ciudad_residencia, residencia_actualizada_por
+       from pacientes where id = $1`,
+    [creada.paciente.id],
+  );
+
+  assert.equal(paciente.ciudad_residencia, 'el_alto');
+  assert.equal(paciente.residencia_actualizada_por, actor);
+
+  const invalida = datos('Paciente con ciudad inválida QA');
+  invalida.paciente.ciudadResidencia = 'desconocida';
+
+  const rechazada = await api.post(invalida);
+  assert.equal(rechazada.status, 400);
+  await rechazada.json();
+
+  const { rowCount } = await conexion.query(
+    'select id from pacientes where nombre_completo = $1',
+    [invalida.paciente.nombreCompleto],
+  );
+  assert.equal(rowCount, 0);
 });

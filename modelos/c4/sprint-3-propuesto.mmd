@@ -1,0 +1,12 @@
+flowchart TB
+  admin["Administración"] --> interno["Portal del personal"]
+  terapeuta["Terapeuta asignada"] --> interno
+  marketing["Marketing"] --> interno
+  visitante["Visitante"] --> publico["Portal público"]
+  geno["GenoPro externo"] -->|"PDF o imagen, carga manual"| interno
+  interno --> protegida["API por rol y caso"]
+  publico --> publicaciones["API de contenido publicado"]
+  protegida --> db["PostgreSQL"]
+  publicaciones --> db
+  protegida --> privados["Archivos clínicos privados"]
+  protegida -->|"Documentos seleccionados"| atlas["ATLAS.ti externo"]

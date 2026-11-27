@@ -1,4 +1,3 @@
-
 import { ErrorDeCarga } from '../../componentes/ErrorDeCarga'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
@@ -10,9 +9,13 @@ import { useSesion } from '../auth/sesion'
 import { AsignacionTerapeuta } from './AsignacionTerapeuta'
 import { ClasificacionYEstado } from './ClasificacionYEstado'
 import { FormularioEditarPaciente } from './FormularioEditarPaciente'
-import { APARTADOS } from '../expediente/apartados'
+import { apartadosVisibles } from '../expediente/apartados'
+import { ResumenFicha } from '../expediente/ResumenFicha'
+import { ExportarDocumento } from '../expediente/exportacion/ExportarDocumento'
 import { obtenerCarpeta } from './carpetasApi'
 import { EtiquetaClasificacion, EtiquetaEstado } from './Etiquetas'
+import { EtiquetaResidencia } from './EtiquetaResidencia'
+import { textoResidencia } from './residencia'
 import {
   NOMBRE_TIPO,
   numeroCarpeta,
@@ -22,15 +25,19 @@ import {
   type EstadoCaso,
 } from './tipos'
 
+const EN_CONTEXTO = ['familia', 'genograma', 'diagnostico']
+
 /**
  * Resumen de la carpeta del paciente.
  * FE-31: Consulta de carpeta.
  * FE-36: Asignación de terapeuta.
  * FE-47: Clasificación y estado del caso.
  * FE-52: Edición de datos básicos del paciente.
+ * FE-138: Ciudad de residencia en el encabezado, el resumen y la edición.
  * Sprint 2: accesos al expediente clínico (historial, constancia, diagnóstico, sesiones y pagos).
+ * FE-127: contexto del paciente (familia, genograma y diagnóstico) antes del historial.
  *
- * El administrador puede modificar nombre y fecha de ingreso.
+ * El administrador puede modificar nombre, fecha de ingreso y residencia.
  * El número de carpeta permanece inalterable.
  */
 export function PaginaCarpeta() {
@@ -38,39 +45,34 @@ export function PaginaCarpeta() {
   const { tieneRol } = useSesion()
   const ubicacion = useLocation()
 
-  const estadoNavegacion = (ubicacion.state as {
-    recienCreada?: boolean
-    posiblesDuplicados?: AltaCarpeta['posiblesDuplicados']
-  } | null) ?? {}
+  const estadoNavegacion =
+    (ubicacion.state as {
+      recienCreada?: boolean
+      posiblesDuplicados?: AltaCarpeta['posiblesDuplicados']
+    } | null) ?? {}
   const recienCreada = Boolean(estadoNavegacion.recienCreada)
   // FE-11: nombres parecidos que devolvió POST /api/casos. Son UUID de pacientes,
   // no de carpetas, así que se enlazan a la búsqueda por nombre y no a /carpetas/:id.
   const posiblesDuplicados = estadoNavegacion.posiblesDuplicados ?? []
 
-  const { datos, error, recargar } = useCarga(
-    () => obtenerCarpeta(id),
-    [id],
-  )
+  const { datos, error, recargar } = useCarga(() => obtenerCarpeta(id), [id])
 
   // Conserva la última versión confirmada por el backend.
-  const [actualizada, setActualizada] =
-    useState<CarpetaDetalle | null>(null)
+  const [actualizada, setActualizada] = useState<CarpetaDetalle | null>(null)
 
   // FE-52: Control del formulario de edición.
   const [editando, setEditando] = useState(false)
   const [edicionExitosa, setEdicionExitosa] = useState(false)
 
-  const carpeta =
-    actualizada && actualizada.id === datos?.id
-      ? actualizada
-      : datos
+  const carpeta = actualizada && actualizada.id === datos?.id ? actualizada : datos
 
   const esAdministrador = tieneRol('administrador')
   // FE-47: administración o la terapeuta asignada. Si una terapeuta ve la carpeta es porque
   // se la asignaron; el backend lo vuelve a comprobar en cada guardado.
   const puedeClasificar = tieneRol('administrador', 'terapeuta')
   const cambioVigente = useRef(0)
-  const apartados = APARTADOS.filter((ap) => !ap.soloAdministracion || esAdministrador)
+  // Familia, genograma y diagnóstico ya tienen su acceso en «Contexto del paciente».
+  const apartados = apartadosVisibles(tieneRol).filter((a) => !EN_CONTEXTO.includes(a.ruta))
 
   const refExito = useRef<HTMLDivElement>(null)
   const refEdicionExitosa = useRef<HTMLDivElement>(null)
@@ -132,29 +134,20 @@ export function PaginaCarpeta() {
       <EnlaceVolver a="/carpetas">Volver a carpetas</EnlaceVolver>
 
       {recienCreada && error !== undefined && (
-        <Aviso tipo="info">
-          El registro se guardó. Puedes reintentar la consulta del detalle de esta carpeta.
-        </Aviso>
+        <Aviso tipo="info">El registro se guardó. Puedes reintentar la consulta del detalle de esta carpeta.</Aviso>
       )}
 
       {error !== undefined ? (
-        error instanceof ErrorApi &&
-        (error.estado === 404 || error.estado === 403) ? (
+        error instanceof ErrorApi && (error.estado === 404 || error.estado === 403) ? (
           <div className="max-w-prose">
-            <h1 className="text-2xl font-semibold text-verde-oscuro">
-              No encontramos esta carpeta
-            </h1>
+            <h1 className="text-2xl font-semibold text-verde-oscuro">No encontramos esta carpeta</h1>
 
             <p className="mt-2 text-suave">
-              Puede que el enlace no sea correcto o que la carpeta
-              no esté asignada a tu cuenta.
+              Puede que el enlace no sea correcto o que la carpeta no esté asignada a tu cuenta.
             </p>
           </div>
         ) : (
-          <ErrorDeCarga
-            error={error}
-            alReintentar={recargar}
-          />
+          <ErrorDeCarga error={error} alReintentar={recargar} />
         )
       ) : !carpeta ? (
         <Cargando texto="Abriendo carpeta…" />
@@ -164,21 +157,13 @@ export function PaginaCarpeta() {
           {recienCreada && (
             <Aviso ref={refExito} tipo="exito">
               <p className="text-base">
-                Carpeta{' '}
-                <strong>
-                  {numeroCarpeta(carpeta.numero)}
-                </strong>{' '}
-                ({NOMBRE_TIPO[carpeta.tipo].toLowerCase()})
-                {' '}abierta para{' '}
-                {carpeta.paciente.nombreCompleto}.
+                Carpeta <strong>{numeroCarpeta(carpeta.numero)}</strong> ({NOMBRE_TIPO[carpeta.tipo].toLowerCase()}){' '}
+                abierta para {carpeta.paciente.nombreCompleto}.
               </p>
 
               <p className="mt-1">
                 Puedes encontrarla buscando ese número.{' '}
-                <Link
-                  to="/carpetas/nueva"
-                  className="font-semibold underline underline-offset-2"
-                >
+                <Link to="/carpetas/nueva" className="font-semibold underline underline-offset-2">
                   Registrar otro paciente
                 </Link>
               </p>
@@ -208,10 +193,7 @@ export function PaginaCarpeta() {
 
           {/* FE-52: Mensaje de actualización correcta */}
           {edicionExitosa && !editando && (
-            <Aviso
-              ref={refEdicionExitosa}
-              tipo="exito"
-            >
+            <Aviso ref={refEdicionExitosa} tipo="exito">
               Los datos del paciente se actualizaron correctamente.
             </Aviso>
           )}
@@ -221,9 +203,7 @@ export function PaginaCarpeta() {
             <div>
               <p className="text-lg font-semibold text-naranja-texto">
                 Carpeta {numeroCarpeta(carpeta.numero)}
-                <span className="font-normal text-suave">
-                  {' '}({NOMBRE_TIPO[carpeta.tipo]})
-                </span>
+                <span className="font-normal text-suave"> ({NOMBRE_TIPO[carpeta.tipo]})</span>
               </p>
 
               <h1 className="text-2xl font-semibold text-verde-oscuro sm:text-3xl">
@@ -234,15 +214,14 @@ export function PaginaCarpeta() {
             <div className="flex flex-wrap items-center gap-3">
               <EtiquetaClasificacion clasificacion={carpeta.clasificacion} />
               <EtiquetaEstado estado={carpeta.estado} />
+              <EtiquetaResidencia
+                ciudadResidencia={carpeta.paciente.ciudadResidencia ?? null}
+                otraLocalidad={carpeta.paciente.otraLocalidad ?? null}
+              />
 
               {/* Solo administración puede editar */}
               {esAdministrador && !editando && (
-                <Boton
-                  type="button"
-                  variante="secundario"
-                  icono="editar"
-                  onClick={iniciarEdicion}
-                >
+                <Boton type="button" variante="secundario" icono="editar" onClick={iniciarEdicion}>
                   Editar datos
                 </Boton>
               )}
@@ -259,12 +238,53 @@ export function PaginaCarpeta() {
             />
           )}
 
+          {/* FE-124 · Datos generales antes del contexto familiar y del historial. */}
+          <Tarjeta>
+            <h2 className="text-lg font-semibold text-verde-oscuro">Resumen</h2>
+
+            <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+              <Dato titulo="Número de carpeta">{numeroCarpeta(carpeta.numero)}</Dato>
+
+              <Dato titulo="Tipo de ingreso">{NOMBRE_TIPO[carpeta.tipo]}</Dato>
+
+              <Dato titulo="Fecha de ingreso">{fechaLarga(carpeta.fechaIngreso)}</Dato>
+
+              <Dato titulo="Clasificación">
+                <EtiquetaClasificacion clasificacion={carpeta.clasificacion} />
+              </Dato>
+
+              <Dato titulo="Estado">
+                <EtiquetaEstado estado={carpeta.estado} />
+              </Dato>
+
+              <Dato titulo="Ciudad de residencia" ancho>
+                {textoResidencia({
+                  ciudadResidencia: carpeta.paciente.ciudadResidencia ?? null,
+                  otraLocalidad: carpeta.paciente.otraLocalidad ?? null,
+                })}
+              </Dato>
+
+              <Dato titulo="Registrada por" ancho>
+                {carpeta.creadoPor?.nombreCompleto ?? 'Sin dato'}, el {fechaLarga(carpeta.creadoEn)}
+              </Dato>
+
+              {carpeta.actualizadoEn && (
+                <Dato titulo="Última actualización" ancho>
+                  {carpeta.actualizadoPor?.nombreCompleto ?? 'Sin dato'}, el {fechaLarga(carpeta.actualizadoEn)}
+                </Dato>
+              )}
+            </dl>
+          </Tarjeta>
+
+          {/* FE-127 · Contexto del paciente (familia, genograma, diagnóstico) antes del historial (FE-123 §1) */}
+          <ResumenFicha carpeta={carpeta} />
+
           {/* Sprint 2 · Expediente clínico: lo más usado, justo bajo el encabezado */}
           <Tarjeta>
             <h2 className="text-lg font-semibold text-verde-oscuro">Expediente clínico</h2>
             <ul
               className={`mt-4 grid gap-3 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2 lg:[&>li:last-child:nth-child(odd)]:col-span-1 ${
-                apartados.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+                apartados.length % 4 === 0 ? 'lg:grid-cols-4' : 'lg:grid-cols-4 xl:grid-cols-5'
               }`}
             >
               {apartados.map((a) => (
@@ -281,51 +301,9 @@ export function PaginaCarpeta() {
             </ul>
           </Tarjeta>
 
-          {/* Resumen y asignación */}
-          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-            <Tarjeta>
-              <h2 className="text-lg font-semibold text-verde-oscuro">
-                Resumen
-              </h2>
-
-              <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
-                <Dato titulo="Número de carpeta">
-                  {numeroCarpeta(carpeta.numero)}
-                </Dato>
-
-                <Dato titulo="Tipo de ingreso">
-                  {NOMBRE_TIPO[carpeta.tipo]}
-                </Dato>
-
-                <Dato titulo="Fecha de ingreso">
-                  {fechaLarga(carpeta.fechaIngreso)}
-                </Dato>
-
-                <Dato titulo="Clasificación">
-                  <EtiquetaClasificacion clasificacion={carpeta.clasificacion} />
-                </Dato>
-
-                <Dato titulo="Estado">
-                  <EtiquetaEstado estado={carpeta.estado} />
-                </Dato>
-
-                <Dato titulo="Registrada por" ancho>
-                  {carpeta.creadoPor?.nombreCompleto ??
-                    'Sin dato'}
-                  , el {fechaLarga(carpeta.creadoEn)}
-                </Dato>
-
-                {carpeta.actualizadoEn && (
-                  <Dato titulo="Última actualización" ancho>
-                    {carpeta.actualizadoPor?.nombreCompleto ??
-                      'Sin dato'}
-                    , el {fechaLarga(carpeta.actualizadoEn)}
-                  </Dato>
-                )}
-              </dl>
-            </Tarjeta>
-
-            <div className="space-y-6">
+          {/* Acciones de administración y exportación, después de la lectura del contexto. */}
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
               <ClasificacionYEstado
                 carpeta={carpeta}
                 puedeEditar={puedeClasificar}
@@ -337,33 +315,29 @@ export function PaginaCarpeta() {
                 puedeAsignar={esAdministrador}
                 alActualizar={actualizarAsignacion}
               />
+
+              {/* FE-160 · Exportar ficha o historial */}
+              <Tarjeta>
+                <ExportarDocumento
+                  carpetaId={carpeta.id}
+                  numeroCarpeta={carpeta.numero}
+                  puedeIncluirPagos={esAdministrador}
+                />
+              </Tarjeta>
             </div>
           </div>
-
         </>
       )}
     </div>
   )
 }
 
-function Dato({
-  titulo,
-  children,
-  ancho = false,
-}: {
-  titulo: string
-  children: ReactNode
-  ancho?: boolean
-}) {
+function Dato({ titulo, children, ancho = false }: { titulo: string; children: ReactNode; ancho?: boolean }) {
   return (
     <div className={ancho ? 'sm:col-span-2' : undefined}>
-      <dt className="text-sm text-suave">
-        {titulo}
-      </dt>
+      <dt className="text-sm text-suave">{titulo}</dt>
 
-      <dd className="mt-0.5 font-medium text-texto">
-        {children}
-      </dd>
+      <dd className="mt-0.5 font-medium text-texto">{children}</dd>
     </div>
   )
 }

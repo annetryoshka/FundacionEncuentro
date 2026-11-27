@@ -78,6 +78,26 @@ export async function montarApp(ruta: string, como: keyof typeof CUENTAS = 'dire
   return { usuario, fetchEspia }
 }
 
+/** Abre `ruta` sin iniciar sesión (portal público, FE-149). */
+export function montarSinSesion(ruta: string) {
+  const fetchEspia = usarApiSimulada()
+  const usuario = userEvent.setup()
+  render(
+    <MemoryRouter initialEntries={[ruta]}>
+      <ProveedorSesion>
+        <App />
+      </ProveedorSesion>
+    </MemoryRouter>,
+  )
+  return { usuario, fetchEspia }
+}
+
+/** Publicaciones de demostración (FE-141) en la API simulada. */
+export const PUBLICACION_CAMPANA = '50000000-0000-4000-8000-000000000001' // C1 publicada
+export const PUBLICACION_BORRADOR = '50000000-0000-4000-8000-000000000002' // A1 borrador
+export const PUBLICACION_RETIRADA = '50000000-0000-4000-8000-000000000004' // R1 retirada
+export const PUBLICACION_SIN_RESUMEN = '50000000-0000-4000-8000-000000000005' // X1 borrador incompleto
+
 /** Peticiones hechas con un método y ruta (sin query string). */
 export function llamadas(fetchEspia: ReturnType<typeof usarApiSimulada>, metodo: string, ruta: string) {
   return fetchEspia.mock.calls.filter(([url, init]) => {

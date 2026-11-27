@@ -22,16 +22,16 @@ Se usa el guion de aceptación de Andrea, [FE-96](../../pruebas/FE-96-aceptacion
 
 | HU | Puntos | Estado (Aceptada / Pendiente) | Aceptada por | Evidencia |
 | --- | --- | --- | --- | --- |
-| FE-14 | 3 | Pendiente (backend integrado; falta pantalla y pruebas P-01/P-02) | Andrea | |
-| FE-50 | 3 | Pendiente | Andrea | |
-| FE-13 | 5 | Pendiente | Andrea | |
-| FE-55 | 5 | Pendiente | Andrea | |
-| FE-56 | 3 | Pendiente | Andrea | |
-| FE-57 | 3 | Pendiente | Andrea | |
-| FE-7 | 5 | Pendiente | Andrea | |
-| FE-6 | 3 | Pendiente | Andrea | |
+| FE-14 | 3 | Integrada y verificada por QA; aceptación de Andrea pendiente de registro | Andrea | `docs/pruebas/FE-49-verificacion-clasificacion-filtros.md` (14 aprobadas); ver también `FE-47-filtros-y-controles.md` |
+| FE-50 | 3 | Integrada y verificada por QA; aceptación pendiente de registro | Andrea | `docs/pruebas/FE-65-verificacion-constancia.md` |
+| FE-13 | 5 | Integrada y verificada por QA; aceptación pendiente de registro | Andrea | `docs/pruebas/FE-70-verificacion-diagnostico.md` (8 aprobadas) |
+| FE-55 | 5 | Integrada y verificada por QA; aceptación pendiente de registro | Andrea | `docs/pruebas/FE-75-verificacion-sesiones.md` (10 aprobadas) |
+| FE-56 | 3 | Integrada y verificada por QA; aceptación pendiente de registro | Andrea | `docs/pruebas/FE-80-verificacion-tareas.md` (11 aprobadas) |
+| FE-57 | 3 | Integrada y verificada por QA; aceptación pendiente de registro | Andrea | `docs/pruebas/FE-85-verificacion-historial.md` (8 de 8) |
+| FE-7 | 5 | Integrada y verificada por QA; aceptación pendiente de registro | Andrea | `docs/pruebas/FE-90-verificacion-pagos.md` (12 aprobadas) |
+| FE-6 | 3 | Integrada y verificada por QA; aceptación pendiente de registro | Andrea | `docs/pruebas/FE-95-verificacion-indicadores.md` (11 de 11) |
 
-Estado al 2026-11-09. Se cambia a *Aceptada* solo cuando Andrea acepta con la evidencia de FE-97.
+Estado al **2026-11-23** (`main` en `37ed16b`). Las verificaciones de QA se ejecutaron con PostgreSQL local y datos ficticios. Una HU pasa a *Aceptada* solo cuando Andrea la acepta con la evidencia de FE-97; la columna "Aceptada por" indica quién debe aceptarla, no que ya lo hizo.
 
 Una HU se acepta solo con criterios verificados y evidencia; el código o una captura aislada no bastan.
 

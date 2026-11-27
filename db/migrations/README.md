@@ -16,11 +16,16 @@
    | `migrations/009_tareas_por_sesion.sql` | FE-79: cada tarea pertenece a una sesión del mismo caso; quién cambió el cumplimiento |
    | `migrations/010_pagos_por_sesion.sql` | FE-89: un pago por sesión del mismo caso; monto sin redondeo silencioso |
    | `migrations/011_indicadores_operativos.sql` | FE-94: función `indicadores_operativos(desde, hasta)` para el dashboard de FE-6 |
+   | `migrations/012_genograma_archivos.sql` | FE-130: archivo privado del genograma (PDF/PNG/JPEG) con versiones; `genogramas.archivo_clave` apunta al vigente |
    | `migrations/013_residencia_pacientes.sql` | FE-135: ciudad de residencia del paciente y `indicadores_por_residencia(desde, hasta)` |
    | `migrations/014_difusion_publicaciones.sql` | FE-142: publicaciones de difusión, imágenes y vista pública `v_publicaciones_publicas` |
    | `migrations/015_familiares_caso.sql` | FE-125: composición familiar por caso y vista `v_fuente_clinica_vigente` |
    | `migrations/016_fotografia_informes.sql` | FE-152: versiones de informes con la fotografía de los datos usados y `fotografia_informe(...)` |
    | `migrations/017_importacion_historica.sql` | FE-163: lotes de importación histórica, coincidencias y `confirmar_importacion(...)` |
+   | `migrations/018_investigacion_categorias.sql` | FE-168: categorías de investigación, selección autorizada y paquete para Atlas.ti con manifiesto |
+   | `migrations/020_registro_exportaciones.sql` | FE-158: exportaciones PDF/Word de informe revisado, ficha o historial con sus datos, archivo privado y trazabilidad (019 la usa FE-169) |
+   | `migrations/022_gastos_funcionamiento.sql` | FE-173: gastos de funcionamiento en `movimientos_contables` (egreso), corrección y anulación con auditoría, `consultar_gastos_mes(mes)` |
+   | `migrations/023_investigaciones_publicas.sql` | FE-183: artículos de investigación en `publicaciones_foro` (borrador/publicado/retirado), sin comentarios, vista pública `v_investigaciones_publicas` |
 
    ## Modelo del Sprint 2
 
@@ -78,6 +83,21 @@
    - RLS activo y sin acceso para `anon`/`authenticated`: todo pasa por el backend.
 
    Las fechas de sesión y pago no tienen valor por defecto: las envía la API en fecha de Bolivia. `current_date` en Supabase usa UTC.
+
+   ## Genograma (FE-130)
+
+   ```
+   casos 1 ─ n    genograma_archivos   (una fila por archivo subido; contenido bytea inmutable)
+         1 ─ 0..1 genogramas           (archivo_clave = versión vigente)
+   ```
+
+   - La clave es `<caso_id>/<uuid>`. Un check y la FK compuesta `(archivo_clave, caso_id)` impiden usar el archivo de otro caso.
+   - Primero se guarda el archivo sin activar; luego, en una transacción, se activa (nombre, autor, fecha) y se cambia la referencia. Si falla, el vigente anterior no cambia.
+   - Las versiones anteriores se conservan. No se borra el archivo vigente (FK `restrict`).
+   - Archivos que nunca se activaron (carga fallida), descartables: `select clave from genograma_archivos where activado_en is null and creado_en < now() - interval '1 day'`.
+   - `sha256` es una columna generada. Comprobación de integridad: `select clave from genograma_archivos where sha256 <> sha256(contenido)` debe devolver 0 filas.
+   - `genograma_archivos` no tiene trigger de auditoría (copiaría el archivo entero); el cambio de vigente se audita en `genogramas`.
+   - Respaldo y recuperación: los archivos están en la base, así que un `pg_dump` los incluye. Restaurar y correr la comprobación de integridad anterior. Procedimiento probado en `docs/pruebas/FE-130-almacenamiento-genograma.md`.
 
    ## Composición familiar (FE-125)
 
@@ -177,6 +197,162 @@
    - Lote confirmado o descartado: no se modifica ni elimina (`23514`). Descartar: `update importaciones set estado = 'descartada'`.
    - Solo el backend accede (RLS, sin permisos para `anon`/`authenticated`). Que sea solo administración lo controla la API.
 
+   ## Investigación y paquete para Atlas.ti (FE-168)
+
+   Propuesta de FE-167 (catálogo, perfiles e identificadores pendientes de ratificar). El sistema prepara documentos
+   DOCX/TXT y un manifiesto; no exporta códigos ni proyectos de Atlas.ti.
+
+   ```
+   categorias_investigacion 1 ─ n categorias_investigacion   (padre_id; sin ciclos)
+                            1 ─ n caso_categorias            (en el caso, su diagnóstico o una sesión del mismo caso)
+   exportaciones (tipo atlas_ti) 1 ─ n exportacion_documentos  (INV-001 ↔ caso, solo en el sistema)
+   ```
+
+   - **Catálogo:** `codigo` (`QA-CAT-01`; mayúsculas, números y guiones; no cambia), `nombre` único en su nivel sin distinguir
+     mayúsculas, `activa`. Una categoría con etiquetas o subcategorías no se borra (`23503`): se retira con `activa = false`.
+   - **Etiquetas:** `insert into caso_categorias (caso_id, categoria_id, ficha_diagnostico_id | ficha_seguimiento_id, fragmento, nota)`.
+     Ficha de otro caso → `23503`; la misma categoría en el mismo destino → `23505`; categoría retirada, carpeta dada de baja
+     o cambio de caso/categoría/ficha → `23514`. La base pone `etiquetado_por`; `fragmento` y `nota` se editan.
+   - **Alcance:** administración, todos los casos activos; terapeuta, sus casos asignados; marketing o cuenta inactiva, ninguno.
+   - `seleccion_investigacion(perfil, categorias[], desde, hasta, residencias[])`: casos del alcance con `tipo`, número,
+     `categorias` (códigos), `sesiones_en_periodo` y `tiene_diagnostico`. Categorías: cualquiera de las elegidas, con sus
+     subcategorías. Período: al menos una sesión entre las fechas (inclusivas). Residencias: `la_paz`, `el_alto`, `otra`,
+     `sin_registrar`. Filtro inválido → `22023`.
+   - `conteo_categorias(perfil, desde, hasta, residencias[])`: todo el catálogo con casos y etiquetas por ámbito (caso,
+     diagnóstico, sesión) dentro del alcance; no suma subcategorías.
+
+   Flujo para la API (FE-169), cada paso en una transacción con `app.usuario_id`:
+
+   1. **Preparar:** `select preparar_exportacion_investigacion(casos[], secciones[], formato, desde, hasta, criterios)` → id.
+      Secciones `diagnostico`, `seguimiento`, `tareas` (con seguimiento); formato `docx` o `txt`; `criterios` = filtros usados
+      (jsonb, para trazabilidad). Un caso inexistente, dado de baja o no autorizado anula todo (`P0002` → 404); marketing o
+      sin `app.usuario_id` → `42501`. Numera `INV-001…` sin seguir el número de carpeta.
+   2. **Vista previa y revisión:** `manifiesto_exportacion(id)` y `datos_documento_investigacion(id, 'INV-001')`. Solo los lee
+      quien preparó el paquete o administración, y solo si el caso sigue autorizado (si no, `P0002`). Mostrar el texto libre
+      (evolución, fragmentos, notas) para revisar nombres u otros identificadores: la base no los quita.
+   3. **Confirmar revisión:** `select marcar_revision_exportacion(id)` (una vez; repetir → `23514`).
+   4. **Generar y registrar:** con los mismos datos, un archivo por documento con el nombre de `archivo` y `manifiesto.json`;
+      después `update exportaciones set archivo_path = ...` (antes de revisar → `23514`).
+
+   - **Manifiesto** (`formatoVersion: 1`): `formato`, `periodo`, `catalogo` (`[{ codigo, nombre, descripcion, padre }]` de las
+     categorías usadas y sus superiores) y `documentos` (`[{ idExportacion, archivo, categorias, secciones }]`).
+     Sin id del paquete, casos, carpetas ni personas.
+   - **Documento:** `categorias` (`[{ codigo, nombre, ambito, nroSesion, fragmento, nota }]`), `diagnostico` (fuente vigente)
+     y `seguimiento` (`[{ nroSesion, mes, evolucion, tareas? }]`, mes `AAAA-MM`). Nunca nombres, teléfono, nacimiento,
+     residencia, número de carpeta, datos judiciales, familia, pagos ni responsables.
+   - **Correspondencia:** un documento por caso y por archivo; las categorías del manifiesto son las de su documento (las del
+     caso, las de su diagnóstico si se exporta y las de sus sesiones del período si se exporta seguimiento). Si cambian
+     después de preparar, manifiesto, documento y revisión fallan con `FEX01` → 409 (DETAIL: JSON con los `idExportacion`):
+     preparar otro paquete.
+   - Un paquete preparado no cambia ni pierde documentos (`23514`); se puede eliminar completo.
+
+   ## Exportación de documentos PDF y Word (FE-158)
+
+   Propuesta de FE-156. Cada exportación de un informe revisado, una ficha o un historial es una fila de `exportaciones`
+   (tipo `pdf` o `word`) con el caso, quién la preparó, los parámetros, los datos exactos del documento y su archivo.
+
+   ```
+   exportaciones (pdf | word) → casos                  (siempre un caso; los datos son de ese caso)
+                              → informe_versiones      (solo documento = informe; versión revisada del mismo caso)
+   estado: preparada → generada (archivo registrado) | fallida (error del generador)
+   ```
+
+   - **Parámetros** (`formatoVersion: 1`): `documento` (`informe`, `ficha`, `historial`), `formato` (`pdf`, `docx`), `secciones`,
+     `informeVersionId`, `incluirGenograma`, `incluirPagos`. La base los guarda en forma canónica; una clave desconocida → `22023`.
+     - Informe: solo `informeVersionId`. Se exporta tal como se revisó (texto y fotografía de `informe_versiones`); no se regenera
+       aunque el expediente cambie. Versión en borrador → `23514`; de otro caso o inexistente → `P0002`.
+     - Ficha: `identificacion`, `familia`, `diagnostico` (por defecto identificación y diagnóstico).
+     - Historial: además `sesiones` (por defecto las cuatro). `incluirPagos` solo aquí y solo administración (`42501`).
+     - `incluirGenograma` requiere la 012 (si falta, `0A000`).
+   - **Datos** (`datos_origen`): `documento`, `caso` (siempre), `seleccion` y las claves de las secciones pedidas: `paciente`,
+     `responsable`, `judicial` (identificación), `familia`, `diagnostico` (fuente vigente), `sesiones` (todas, por fecha y número,
+     con tareas), `genograma`, `pagos` (`[{ fecha, monto: "50.50", moneda, metodo, referencia, nroSesion, sesionId }]`).
+     Se leen una sola vez, al preparar, en una misma instantánea (reutiliza `fotografia_informe`). El archivo se genera desde aquí.
+   - **Alcance:** administración, cualquier caso activo; terapeuta, sus casos asignados. Caso ajeno, dado de baja o inexistente →
+     `P0002` (404); marketing, cuenta inactiva o sin `app.usuario_id` → `42501`.
+
+   Flujo para la API (FE-159/FE-160), cada paso en una transacción con `app.usuario_id`:
+
+   1. **Vista previa (opcional):** `select datos_exportacion_actuales(caso, parametros)` devuelve los datos que se registrarían.
+   2. **Preparar:** `select preparar_exportacion_documento(caso, parametros, datosMostrados)` → id. Con `datosMostrados` (la vista
+      previa), si el expediente cambió entretanto → `23514`: volver a pedir la vista previa. Sin él, usa los datos actuales.
+   3. **Generar:** `datos_exportacion_documento(id)` → `{ exportacionId, documento, formato, estado, archivoNombre, archivoPath, datos }`.
+      Generar el archivo desde `datos` y guardarlo en `archivoPath` (`<caso_id>/<id>.pdf|.docx`, privado).
+   4. **Registrar:** `select registrar_archivo_exportacion(id, sha256Hex, bytes)` (tamaño 0 → `22023`) o, si el generador falla,
+      `select registrar_fallo_exportacion(id, mensaje)`. Una vez; después `23514`. Para reintentar, preparar otra exportación.
+   5. **Descargar:** `archivo_exportacion(id)` → `{ archivoPath, archivoNombre, tipoContenido, bytes, sha256 }`. Sin archivo
+      registrado → `55000` (409). Comprobar el sha256 al leer el archivo.
+
+   - **Lectura** (pasos 3–5): quien la preparó o administración, mientras el caso siga autorizado; con pagos, solo administración.
+     Si no, `P0002`. El nombre de descarga (`exportacion-<id>.pdf`) no tiene datos personales.
+   - **Trazabilidad:** `select * from exportaciones_documentos_caso(caso)`: documento, formato, versión del informe, secciones,
+     pagos/genograma, autor, fecha, estado y nombre. Administración ve todas las del caso; terapeuta, las suyas. Cada alta y cierre
+     queda además en `auditoria`.
+   - Una exportación no cambia ni se elimina (`23514`). La ruta del archivo la fija la base: no se registra bajo otro caso.
+   - `informes.formato` y `archivo_path` quedan sin uso: un informe puede exportarse varias veces, cada una con su fila.
+
+   ## Gastos de funcionamiento (FE-173)
+
+   Contrato de FE-172 (HU5). Un gasto es una fila de `movimientos_contables` con `tipo = 'egreso'`; los ingresos no cambian.
+   No hay distribución de ingresos.
+
+   | Columna | Regla |
+   |---|---|
+   | `categoria` | `internet`, `electricidad`, `alquiler` u `otros`. Obligatoria. |
+   | `fecha` | Obligatoria, desde 2000-01-01 y no futura (hora de Bolivia). Sin valor por defecto: la envía la API. El mes sale de esta fecha. |
+   | `monto` | Positivo, hasta dos decimales, máximo 99999999.99. Un tercer decimal se rechaza; no se redondea. Se guarda con dos decimales. |
+   | `descripcion` | Hasta 200 caracteres, no solo espacios. Obligatoria para `otros`. |
+   | `pago_id` | Siempre NULL en un gasto: no es un pago de sesión. |
+   | `registrado_por`, `creado_en`, `actualizado_por`, `actualizado_en` | Los pone la base desde `app.usuario_id`; lo que envíe el cliente se ignora. |
+   | `anulado_en`, `anulado_por`, `motivo_anulacion` | Los pone `anular_gasto`. Motivo opcional, hasta 200. |
+
+   Flujo para la API (FE-174), cada paso en una transacción con `app.usuario_id`:
+
+   - **Registrar:** `insert into movimientos_contables (tipo, categoria, fecha, monto, descripcion) values ('egreso', ...) returning *`
+     y responder con `select gasto_json(m) from movimientos_contables m where id = $1`.
+   - **Consultar:** `select consultar_gastos_mes('2026-11')` (null = mes actual en Bolivia) devuelve
+     `{ mes, gastos: [gasto], totalMes, cantidadVigentes, cantidadAnulados, totalesPorCategoria: [{ categoria, cantidad, total }] }`.
+     Los anulados aparecen en `gastos` con `anulado: true`, pero no suman. Las cuatro categorías aparecen siempre, en el orden del contrato.
+     Montos como texto con dos decimales (`"1700.00"`). Mes que no sea `AAAA-MM` → `22023` (400).
+   - **Corregir:** `update movimientos_contables set categoria/fecha/monto/descripcion ... where id = $1 and tipo = 'egreso' returning *`
+     (0 filas = 404). Si cambia la fecha a otro mes, el gasto sale de un total y entra en el otro.
+   - **Anular:** `select anular_gasto(id, motivo)`. Repetirlo devuelve el mismo gasto sin escribir ni restar otra vez.
+     Inexistente o un ingreso → `P0002` (404).
+
+   - Solo administración activa: otro rol, cuenta inactiva o sin `app.usuario_id` → `42501` (403), también al consultar.
+   - Un gasto anulado no se modifica y ningún gasto se elimina (`23514`). Cambiar el `tipo` de un movimiento → `23514`.
+   - Errores para traducir: `23514` y `23502` → 400, `22008` (fecha imposible) → 400, `42501` → 403, `P0002` → 404.
+   - Cada alta, corrección y anulación queda en `auditoria` con su autor (trigger de la 001).
+
+   ## Investigaciones públicas (FE-183)
+
+   Contrato de FE-182 con el alcance acordado el 26/11/2026: artículos publicados por administración o marketing y
+   consulta pública. **Sin comentarios de visitantes:** `comentarios_foro` (001) queda sin uso, sin acceso ni vista.
+   Un artículo es una fila de `publicaciones_foro` (001), separada de lo clínico: sus FK solo apuntan a `perfiles`.
+
+   | Columna | Regla |
+   |---|---|
+   | `titulo` | 1–150, no solo espacios. |
+   | `resumen` | Hasta 500. Obligatorio para publicar. |
+   | `contenido` | 1–20 000, texto: la API y la interfaz no lo interpretan como HTML. |
+   | `autor_visible` | Autoría que ve el público (hasta 150); NULL si no se autorizó mostrarla. |
+   | `autor_id` | Quién lo creó en el sistema; lo pone la base y no se publica. |
+   | `imagen_ruta`, `imagen_texto_alternativo`, `imagen_ancho`, `imagen_alto` | Opcionales. Con ruta, texto alternativo obligatorio (hasta 300); misma regla de ruta que `recursos_difusion`. Sin ruta, todo NULL. |
+   | `estado` | Como difusión: se crea en `borrador`; `borrador → publicado → retirado → borrador`. Otra transición → `23514`. |
+   | `publicado_en/por`, `retirado_en/por`, `creado_en`, `actualizado_en/por` | Los pone la base desde `app.usuario_id`; lo que envíe el cliente se ignora. |
+
+   Para la API (FE-184), cada escritura en una transacción con `app.usuario_id`:
+
+   - **Gestión:** `insert` / `update` sobre `publicaciones_foro` (publicar o retirar = cambiar `estado`). Solo administración o
+     marketing activos; otro rol, cuenta inactiva o sin usuario → `42501` (403). Listado interno: la tabla, con su `estado`.
+   - **Eliminar:** solo lo que nunca se publicó; publicado, retirado o vuelto a borrador después de publicarse → `23514` (retirar).
+   - **Consulta pública:** solo desde `v_investigaciones_publicas` (`id`, `titulo`, `resumen`, `contenido`, `autor`,
+     `fecha_publicacion`, `publicado_en`, `imagen_*`), ordenada por `publicado_en desc`. Borrador o retirado = no existe (404).
+     `fecha_publicacion` es la fecha en Bolivia (`AAAA-MM-DD` de `InvestigacionPublica.fechaPublicacion`).
+   - Errores para traducir: `23514` y `23502` → 400, `42501` → 403.
+   - La imagen usa el mismo bucket `difusion-publica` que difusión, que todavía no existe: hoy solo se registran los metadatos.
+   - Cada alta, cambio y baja queda en `auditoria` con su autor.
+
    ## Pruebas de las migraciones con PostgreSQL local
 
    Cada archivo `backend/test/*-postgres.test.mjs` del Sprint 2 crea una base desechable, aplica todas las migraciones, carga datos ficticios y la borra al terminar. Nunca usa Supabase.
@@ -202,6 +378,12 @@
    | FE-142 | `difusion-postgres.test.mjs` |
    | FE-125 | `familiares-postgres.test.mjs` (aplica la 015 sobre una base con datos existentes) |
    | FE-152 | `informes-postgres.test.mjs` (aplica la 016 sobre una base con datos existentes) |
+   | FE-168 | `investigacion-postgres.test.mjs` (aplica la 018 sobre una base con datos existentes) |
+   | FE-158 | `exportaciones-postgres.test.mjs` (aplica la 020 sobre una base con datos existentes) |
+   | FE-173 | `gastos-postgres.test.mjs` (aplica la 022 sobre una base con datos existentes) |
+   | FE-183 | `investigaciones-publicas-postgres.test.mjs` (aplica la 023 sobre una base con un artículo existente) |
+
+   | FE-130 | `genograma-postgres.test.mjs` (también la API con base real) |
 
    `npm run datos:demo` también carga los datos de demostración del Sprint 2.
 
@@ -254,3 +436,20 @@ usuario en Auth y asociar su perfil mediante una transacción auditada; después
 reutiliza POST `/api/usuarios`. Generar contraseñas temporales fuera de Git y no
 copiar hashes. Las pruebas automatizadas de FE-23 generan sus credenciales
 ficticias en memoria y no crean cuentas reales.
+
+## Actualización y recuperación (FE-197)
+
+Guía completa: `docs/operacion/sprint-3/actualizacion-y-recuperacion.md`.
+
+- Antes de aplicar en Supabase: respaldo del esquema `public` con `pg_dump` 17, ensayo local y prueba en seco con `rollback`.
+- Comprobar si una migración está aplicada con un objeto que **ella crea** (012 → `genograma_archivos`, no `genogramas`).
+- Revertir = restaurar el respaldo previo. Restaurar en tres secciones (`pre-data`, `data`, `post-data`);
+  fuera de Supabase, llenar `auth.users` desde `perfiles` antes de `post-data`.
+- El respaldo incluye los archivos de genograma (bytea). No incluye `auth.users` ni archivos de Supabase Storage.
+- Ensayo automático (PostgreSQL local): `backend/scripts/ensayo-actualizacion.mjs`.
+
+## Evaluación inicial independiente (021 · FE-126)
+
+Aplicar `021_evaluacion_inicial.sql` después de la 020 y antes de desplegar la API nueva. Añade la evaluación a la vista y a las fotografías; no ejecuta UPDATE sobre fichas ni transforma comentarios/diagnósticos antiguos. Las fotografías sin evaluación conservan su estructura, y los informes revisados y archivos anteriores no se reescriben.
+
+El PUT de la API pide evaluación al crear o editar; las fichas antiguas siguen siendo legibles. Se probó la 021 sobre una base con ficha histórica e informe revisado, verificando igualdad del JSON, fotografía e informe previo. Ver [evidencia](../../docs/pruebas/sprint-3/evaluacion-inicial.md). Esta ejecución se hizo en PostgreSQL local; no acredita aplicación de la migración en Supabase.

@@ -8,7 +8,7 @@ import { Cargando, EnlaceVolver } from '../../componentes/ui'
 import { useSesion } from '../auth/sesion'
 import { obtenerCarpeta } from '../carpetas/carpetasApi'
 import { NOMBRE_TIPO, numeroCarpeta, type CarpetaDetalle } from '../carpetas/tipos'
-import { APARTADOS } from './apartados'
+import { apartadosVisibles } from './apartados'
 
 interface Props {
   titulo: string
@@ -40,7 +40,7 @@ export function SeccionCarpeta({ titulo, children }: Props) {
   }
   if (!carpeta) return <Cargando texto="Abriendo carpeta…" />
 
-  const apartados = APARTADOS.filter((a) => !a.soloAdministracion || tieneRol('administrador'))
+  const apartados = apartadosVisibles(tieneRol)
 
   return (
     <div className="space-y-6">
