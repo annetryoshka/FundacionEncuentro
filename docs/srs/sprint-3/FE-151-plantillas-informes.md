@@ -6,7 +6,7 @@
 
 **Base revisada:** `main` en `37ed16bcca9bb3d6842c62f41b58a1bf17f7616f`.
 
-**Estado del entregable:** análisis preparado; no acredita implementación ni validación de la Fundación.
+**Estado vigente:** estructuras aceptadas por Andrea como PO para Sprint 3 el 26/11/2026. La conformidad institucional sigue pendiente y se registra en FE-212 para Sprint 4.
 
 HU FE-15 · RF-16/RF-17. Desbloquea FE-152/153/154/155 y [FE-156](FE-156-exportacion-documentos.md).
 
@@ -106,3 +106,11 @@ Implementación efectiva: POST `/api/carpetas/:id/informes`, GET `/:versionId` y
 Fuentes: `plantilla-sistemica.ts`, `plantilla-judicial.ts`, `informe-fotografia.ts` y migración 021. La foto de origen conserva familia/genograma seleccionados; sus metadatos no sustituyen una relación familiar ni una conclusión clínica. Los informes revisados anteriores no se reescriben. No se incluyen pagos en estas plantillas.
 
 Las pruebas de generación/revisión/versiones y permisos están en `backend/test/informes-generacion-postgres.test.mjs` y `frontend/src/features/expediente/informes/Informes.test.tsx`; el recorrido de navegador de FE-196 completa el cotejo funcional. **No se recibió un modelo institucional de informe ni una aprobación de estructura, destinatarios y mínimos por la Fundación.** FE-151 mantiene esa validación externa pendiente. Se entregan las dos estructuras y el mapeo actual sin afirmar una aprobación clínica que no ocurrió.
+
+## Aceptación de las estructuras por la PO · 26/11/2026
+
+Andrea aprobó para esta entrega la estructura sistémica (identificación, evaluación, intervención/evolución y conclusiones profesionales) y la judicial, que añade juzgado, referencia y objeto. Su respuesta fue: «Los apruebo como PO para esta entrega; la validación de la Fundación queda pendiente».
+
+FE-151 queda aceptada en Sprint 3 sobre las dos plantillas v2 implementadas y su mapeo. El modelo institucional, destinatarios y mínimos se contrastarán con la Fundación mediante [FE-212](https://andreanarvaezort-1786202493806.atlassian.net/browse/FE-212) en Sprint 4. Esto sustituye el criterio de cierre anterior de Sprint 3, conservando explícitamente la validación externa como pendiente. No se atribuye a la Fundación la aceptación de la PO.
+
+La exportación gráfica y la edición de Word ya se verificaron en FE-156/FE-161 mediante PR #79. La aceptación actual no agrega datos, conclusiones, firma ni destinatario ficticios a un informe real ni altera los informes previamente revisados.
