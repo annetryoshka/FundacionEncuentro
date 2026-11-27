@@ -127,3 +127,11 @@ Administración y terapeuta asignada mantienen el acceso clínico actual; terape
 - El resumen funciona en móvil sin convertir los datos en texto ilegible.
 
 **Pendiente para cierre:** contrastar campos con ficha de referencia o caso ficticio validado por la Fundación y registrar la validación externa. La adaptación de la regla acordada ya cuenta con evidencia local; el despliegue de la 021 en Supabase sigue el procedimiento de la base.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+La decisión de mínimo clínico ya tiene implementación en `main` por PR #73 (`18ae1cf`): evaluación obligatoria independiente, diagnóstico opcional, lectura histórica sin reinterpretación y combinación del JSON que conserva claves adicionales. La migración 021 no rellena ni renombra fichas antiguas; debe aplicarse en Supabase antes de iniciar la API actualizada. Ver [evidencia de ejecución](../../pruebas/sprint-3/evaluacion-inicial.md).
+
+FE-124 completa el resumen con parentesco, edad/referencia temporal, ocupación y lugar de trabajo/estudio, datos desconocidos y acceso a todos los integrantes. Los datos generales de la carpeta preceden a familia, genograma y evaluación/historial. No hay una carpeta nueva por cada familiar ni sincronización automática con una imagen de GenoPro.
+
+La revisión técnica y las fichas ficticias A/B permiten probar el contrato. **Sigue pendiente recibir/contrastar la ficha de referencia de la Fundación y registrar su validación externa.** No se vuelve a solicitar la decisión de evaluación/diagnóstico ya confirmada. Esa única validación documental pendiente se conserva en FE-123 sin pedir rehacer FE-126/127/128.
