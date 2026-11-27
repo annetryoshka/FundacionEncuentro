@@ -2,7 +2,7 @@
 
 Tarea padre: FE-119 · Responsable: Gemina Ponce · Estimación: 4 h-persona
 
-Estado: **borrador al 2026-11-23**. Incluye lo que ya existe en `main` (`37ed16b`) y deja marcado lo del Sprint 3, que todavía no está construido. FE-203 pide registrar comentarios reales de la Fundación y cómo operará y mantendrá el personal el producto: esas partes están **pendientes** porque no constan en el repositorio. Todas las pruebas usan datos ficticios.
+Estado: **borrador al 2026-11-26**. Incluye lo que existe en `main` (`c806c34`) y deja marcado lo que todavía no está disponible. FE-203 pide registrar comentarios reales de la Fundación y cómo operará y mantendrá el personal el producto: esas partes están **pendientes** porque no constan en el repositorio. Todas las pruebas usan datos ficticios.
 
 ## 1. Quién puede hacer qué
 
@@ -42,17 +42,38 @@ Reglas que conviene recordar:
 
 Fuente: `docs/pruebas/sprint-2-expediente-frontend.md` y `docs/srs/sprint-2/`.
 
-## 4. Funciones del Sprint 3 (pendientes de construir)
+## 4. Funciones del Sprint 3 (corte 2026-11-26)
 
-| Función | Historia | Estado de esta guía |
+### Disponibles
+
+| Qué se hace | Dónde | Quién |
 | --- | --- | --- |
-| Ficha y genograma | Por confirmar en Jira | Pendiente |
-| Ciudad de residencia y filtro La Paz / El Alto | FE-111 | Pendiente (requiere el contrato FE-134) |
-| Difusión: portal público, campañas, actividades y cursos | FE-112, FE-113 | Pendiente (requiere el contrato FE-140) |
-| Exportación a PDF y Word editable | FE-114 | Pendiente (requiere las plantillas FE-156) |
-| Planificación de personal, gastos y foro de investigaciones | FE-4, FE-5, FE-116 | Pendiente de ratificación del alcance |
+| Consultar y editar la composición familiar | `/carpetas/:id/familia` | Administración y terapeuta asignada |
+| Cargar, ver y descargar el genograma (PDF, PNG o JPEG, hasta 5 MiB) | `/carpetas/:id/genograma` | Administración y terapeuta asignada |
+| Generar, revisar y versionar informes | `/carpetas/:id/informes` | Solo la terapeuta asignada |
+| Exportar a PDF o Word («Exportar a PDF o Word») | En la carpeta y en el informe revisado | Según el permiso sobre el caso |
+| Registrar la ciudad de residencia y filtrar por La Paz o El Alto | Ficha, listado de carpetas e indicadores | Según el permiso de cada pantalla |
+| Crear, publicar y retirar campañas, actividades y cursos | `/difusion` | Administración y marketing |
+| Ver la presentación y las publicaciones sin iniciar sesión | `/fundacion` y `/publicaciones` | Visitantes |
+| Importar datos históricos (CSV o XLSX) revisando antes de confirmar | `/importaciones` | Solo administración |
+| Categorizar casos y exportar para investigación | `/investigacion` | Administración y terapeuta |
 
-Cada sección se completa cuando la función esté integrada en `main` y se pueda recorrer.
+Reglas que conviene recordar:
+- La evaluación inicial es obligatoria y el diagnóstico es opcional.
+- Se admite un solo pago por sesión, por QR o transferencia; se puede atender con la constancia de consentimiento pendiente.
+- Una publicación en borrador o retirada no se ve en el portal público.
+- La importación se revisa y se confirma: no escribe nada antes de confirmar.
+
+### Todavía no disponibles
+
+| Función | Estado (acta FE-196) |
+| --- | --- |
+| Gastos (FE-5) | Sin API ni pantalla |
+| Publicación de artículos de investigación, sin comentarios (FE-116) | Solo componentes visuales |
+| Genograma insertado dentro de las exportaciones | Pendiente |
+| Planificación de personal (FE-4) | Retirada del proyecto |
+
+Fuentes: `frontend/src/App.tsx`, `docs/pruebas/sprint-3/aceptacion-integrada.md` y `docs/srs/sprint-3/`.
 
 ## 5. Recorrido de demostración
 
