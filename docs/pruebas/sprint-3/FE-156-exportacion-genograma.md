@@ -22,9 +22,9 @@ Exportación gráfica implementada y comprobada por HTTP con Nest y PostgreSQL 1
 ## Pruebas automatizadas
 
 - `backend/src/modules/exportaciones/tests/exportar-genograma.spec.ts`: 4 comprobaciones de selección, clave de la fotografía, autorización de consulta e integridad.
-- `backend/test/exportaciones-genograma-postgres.test.mjs`: 8 escenarios reales de API/base y análisis de los archivos, incluido PDF multipágina y captura de bytes para revisión visual.
+- `backend/test/exportaciones-genograma-postgres.test.mjs`: 9 escenarios reales de API/base (8 de FE-156 y el apoyo adicional de FE-161) y análisis de los archivos, incluido PDF multipágina y captura de bytes para revisión visual.
 - `frontend/src/features/expediente/exportacion/ExportarDocumento.test.tsx`: 4 escenarios de selección expresa, omisión por defecto, informe inmutable y reintento.
-- Regresión final backend: compilación, 283 pruebas unitarias aprobadas y 421 de integración aprobadas; 13 omitidas por sus condiciones de entorno, cero fallos. Incluye las suites anteriores de autorización, descargas, persistencia y evaluación inicial.
+- Regresión final backend: compilación, 283 pruebas unitarias aprobadas y 422 de integración aprobadas; 13 omitidas por sus condiciones de entorno, cero fallos. Incluye las suites anteriores de autorización, descargas, persistencia y evaluación inicial.
 - Frontend: 289 pruebas aprobadas, compilación y lint. Navegador real Chromium 1366×900 y 390×844 con API simulada: selección/formato, descarga, informe revisado sin opción de reemplazo y ausencia de desborde/errores de JavaScript. Los bytes reales se verifican con la API local, no con el simulador.
 
 ## Reproducir

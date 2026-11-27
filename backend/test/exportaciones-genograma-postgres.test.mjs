@@ -11,7 +11,7 @@ import PDFDocument from 'pdfkit';
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { ExportacionesModule } from '../dist/modules/exportaciones/exportaciones.module.js';
 import { servidor } from './helpers/casos.mjs';
-import { comoUsuario, crearBase, crearCaso, opciones, PERFILES } from './helpers/pg-qa.mjs';
+import { comoUsuario, crearBase, crearCaso, crearSesion, opciones, PERFILES } from './helpers/pg-qa.mjs';
 
 let base, api, carpeta;
 const conUsuario = (fn) => comoUsuario(base.cliente, PERFILES.t1, fn);
@@ -75,11 +75,11 @@ async function activar(caso, contenido, tipo, nombre = 'genograma-ficticio.png')
   return clave;
 }
 
-async function descargar(caso, pedido, nombre) {
-  const creada = await solicitud(caso, pedido);
+async function descargar(caso, pedido, nombre, token = 't1') {
+  const creada = await solicitud(caso, pedido, token);
   assert.equal(creada.status, 201, await creada.clone().text());
   const { exportacionId } = await creada.json();
-  const descarga = await api.solicitar(`/carpetas/${caso.id}/exportaciones/${exportacionId}/archivo`, { token: 't1' });
+  const descarga = await api.solicitar(`/carpetas/${caso.id}/exportaciones/${exportacionId}/archivo`, { token });
   assert.equal(descarga.status, 200);
   const contenido = Buffer.from(await descarga.arrayBuffer());
   if (process.env.FE156_ARTEFACTOS && nombre) {
@@ -204,5 +204,30 @@ test('FE-156: historial extenso conserva tablas, texto y anexo sin ocultar datos
       const zip = await JSZip.loadAsync(bytes);
       assert.match(await zip.file('word/document.xml').async('string'), /Familiar ficticio 24/);
     }
+  }
+});
+
+test('FE-161: los PDF/DOCX separan casos y excluyen pagos del archivo clínico de la terapeuta', opciones, async () => {
+  const a = await crearCaso(base.cliente, { nombre: 'Paciente A ficticio FE161', terapeuta: PERFILES.t1 });
+  const b = await crearCaso(base.cliente, { nombre: 'Paciente B ficticio FE161', terapeuta: PERFILES.t1 });
+  const sesion = await crearSesion(base.cliente, a.id, { evolucion: 'Evolución exclusiva de A FE161' });
+  await crearSesion(base.cliente, b.id, { evolucion: 'Evolución exclusiva de B FE161' });
+  await comoUsuario(base.cliente, PERFILES.admin, () => base.cliente.query(
+    `insert into pagos(caso_id,sesion_id,fecha,monto,metodo,referencia)
+       values($1,$2,'2026-11-20',73.25,'qr','REF-FE161-PRIVADA')`, [a.id, sesion.id],
+  ));
+  const extraerTexto = async (bytes, formato) => formato === 'pdf'
+    ? (await paginasPdf(bytes)).join(' ')
+    : (await (await JSZip.loadAsync(bytes)).file('word/document.xml').async('string'));
+  for (const formato of ['pdf', 'docx']) {
+    const deA = await extraerTexto(await descargar(a, { documento: 'historial', formato }), formato);
+    const deB = await extraerTexto(await descargar(b, { documento: 'historial', formato }), formato);
+    assert.match(deA, /Paciente A ficticio FE161/); assert.match(deA, /Evolución exclusiva de A FE161/);
+    assert.doesNotMatch(deA, /Paciente B ficticio FE161|Evolución exclusiva de B FE161|73\.25|REF-FE161-PRIVADA/);
+    assert.match(deB, /Paciente B ficticio FE161/); assert.match(deB, /Evolución exclusiva de B FE161/);
+    assert.doesNotMatch(deB, /Paciente A ficticio FE161|Evolución exclusiva de A FE161|REF-FE161-PRIVADA/);
+    const admin = await extraerTexto(await descargar(a, { documento: 'historial', formato, incluirPagos: true }, undefined, 'admin'), formato);
+    assert.match(admin, /73\.25/); assert.match(admin, /REF-FE161-PRIVADA/);
+    assert.doesNotMatch(admin, /Paciente B ficticio FE161|Evolución exclusiva de B FE161/);
   }
 });
