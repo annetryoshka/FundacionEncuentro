@@ -5,6 +5,7 @@ import { useCarga } from '../../api/useCarga'
 import { ErrorDeCarga } from '../../componentes/ErrorDeCarga'
 import { Aviso, Boton, CampoTexto, Cargando, EnlaceVolver, Insignia, Tarjeta } from '../../componentes/ui'
 import { mensajeNoGuardado } from '../expediente/errores'
+import { TablaRevisionImportacion } from './TablaRevisionImportacion'
 import {
   COLUMNAS,
   NOMBRE_COLUMNA,
@@ -188,19 +189,31 @@ function Revision({
           No hay filas en esta vista.
         </p>
       ) : (
-        <ul className="space-y-3">
-          {visibles.map((f) => (
-            <li key={`${f.numeroFila}-${lote.version}`}>
-              <TarjetaFila
-                fila={f}
-                lote={lote}
-                motivo={motivos[f.numeroFila]}
-                bloqueado={conflicto}
-                aplicar={aplicar}
-              />
-            </li>
-          ))}
-        </ul>
+        <div className="min-w-0 space-y-4">
+          <TablaRevisionImportacion
+            filas={visibles}
+            bloqueada={conflicto}
+            alRevisar={(numeroFila) => document.getElementById(`revision-fila-${numeroFila}`)?.focus()}
+          />
+          <ul className="space-y-3">
+            {visibles.map((f) => (
+              <li
+                key={`${f.numeroFila}-${lote.version}`}
+                id={`revision-fila-${f.numeroFila}`}
+                tabIndex={-1}
+                className="rounded-3xl focus-visible:outline-3 focus-visible:outline-naranja"
+              >
+                <TarjetaFila
+                  fila={f}
+                  lote={lote}
+                  motivo={motivos[f.numeroFila]}
+                  bloqueado={conflicto}
+                  aplicar={aplicar}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <Confirmacion
