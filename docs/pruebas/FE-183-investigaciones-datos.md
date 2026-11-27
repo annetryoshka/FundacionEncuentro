@@ -86,5 +86,18 @@ permisos a `anon` y a los comentarios, y la fecha en Bolivia: las 13 mutaciones 
 - **FE-187:** conectar `ListadoInvestigaciones`/`TarjetaInvestigacion` y el detalle con la API; sin formulario de comentarios.
 - **FE-185:** artículos ficticios de QA y recorrido borrador → publicado → retirado.
 - Imágenes: falta el bucket `difusion-publica` (mismo pendiente que difusión).
-- Supabase: 023 no aplicada. Comprobación previa de solo lectura (26/11/2026): `publicaciones_foro` y `comentarios_foro`
-  vacías, sin nombres en uso. Requiere antes la 022 (ya aplicada).
+
+## Aplicación en Supabase (26/11/2026)
+
+La 023 se aplicó después de la 022. No depende de la 019 ni de la 021, que siguen sin aplicar en Supabase.
+
+| Paso | Resultado |
+|---|---|
+| Comprobación previa (solo lectura) | `publicaciones_foro` y `comentarios_foro` vacías; sin función, vista ni índice con los nombres nuevos |
+| Respaldo del esquema `public` (`pg_dump` 17) | `fundacion-public-20261126-2127.dump`, fuera del repositorio |
+| Ensayo sobre el respaldo restaurado (`ensayo-actualizacion.mjs --desde-respaldo … --aplicar 023`) | Sin error, filas previas sin cambios, RLS activo, `anon` sin filas; respaldo, restauración y reversión idénticos |
+| Prueba en seco con `rollback` y aplicación en una transacción | 31 tablas, RLS en todas, vista con `security_invoker`, ninguna función `security definer` para `anon`, conteos iguales |
+| Prueba de humo con `rollback` (marketing) | Borrador fuera de la vista; publicado visible con autor y fecha en Bolivia; retirado fuera; terapeuta → `42501`; `anon` sobre la vista → `42501`; después, 0 filas y auditoría sin cambios |
+
+`anon` puede ejecutar la función de trigger `controlar_investigacion_publica`, como en la 012, la 020 y la 022: PostgreSQL no
+permite llamarla fuera de un trigger.
