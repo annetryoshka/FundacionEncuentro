@@ -19,7 +19,7 @@ Tarea: FE-121 · Coordina y entrega: Gemina Ponce · Revisión funcional: Andrea
 
 Resumen: en el Sprint 2 el equipo integró en `main` las ocho historias del incremento clínico y administrativo: clasificación y filtros, constancia de consentimiento, ficha de diagnóstico, sesiones y seguimiento, tareas terapéuticas, historial clínico, pagos por sesión e indicadores. Cada una tiene verificación de QA con prueba positiva, negativa y de permisos, y la interfaz del expediente clínico quedó integrada.
 
-Porcentaje de avance: **Pendiente.** El repositorio no contiene un cronograma con el que sustentarlo. Se calculará solo cuando exista ese cronograma.
+Avance en horas del Sprint 2: **96,7 %** (116 h verificables de 120 h planificadas, según FE-58 y las horas informadas por Andrea). La diferencia de 4 h corresponde a una subtarea eliminada porque no se revisó. Es un indicador de horas del sprint, no el avance del proyecto completo.
 
 ## 2. Hitos
 
@@ -50,16 +50,19 @@ Porcentaje de avance: **Pendiente.** El repositorio no contiene un cronograma co
 
 ## 4. Horas ejecutadas y acumuladas
 
-**Pendiente.** Cada integrante confirma sus horas reales y evidencias. No se convierten horas estimadas en ejecutadas.
+Horas verificables del Sprint 2 informadas por Andrea (PO) el 2026-11-26.
 
-| Integrante | Rol | Horas ejecutadas en el Sprint 2 | Acumuladas | Confirmó |
-| --- | --- | --- | --- | --- |
-| Andrea Narváez | Analista y PO | | | |
-| Jorge Calizaya | Frontend | | | |
-| Adriana Pando | Arquitectura y backend | | | |
-| Alejandro Bobarin | Frontend y BD | | | |
-| Gemina Ponce | Scrum Master y PM | | | |
-| Emilia Crespo | QA y backend | | | |
+| Integrante | Rol | Horas verificables en el Sprint 2 | Planificadas |
+| --- | --- | ---: | ---: |
+| Andrea Narváez | Analista y PO | 16 | 20 |
+| Jorge Calizaya | Frontend | 20 | 20 |
+| Adriana Pando | Arquitectura y backend | 20 | 20 |
+| Alejandro Bobarin | Frontend y BD | 20 | 20 |
+| Gemina Ponce | Scrum Master y PM | 20 | 20 |
+| Emilia Crespo | QA y backend | 20 | 20 |
+| **Total** | | **116** | **120** |
+
+Horas acumuladas (Sprint 1 + Sprint 2): **pendientes**, porque no se dispone de las horas del Sprint 1. La confirmación individual de cada integrante también está pendiente.
 
 ## 5. Requisitos críticos con prueba y evidencia
 
