@@ -30,6 +30,9 @@ export interface VersionInforme {
   revisadoEn: string | null
 }
 
+/** Elemento de GET /api/carpetas/:id/informes: cada generación es un informe propio (versión 1), sin el texto. */
+export type ResumenInforme = Omit<VersionInforme, 'secciones' | 'versionPlantilla'>
+
 export interface PedidoInforme {
   tipo: TipoInforme
   sesionesIds: string[]
@@ -50,6 +53,10 @@ export const generarInforme = (carpetaId: string, pedido: PedidoInforme) =>
       cuerpo: pedido,
     },
   )
+
+/** Informes del caso, el más reciente primero. */
+export const listarInformes = (carpetaId: string) =>
+  peticion<{ informes: ResumenInforme[] }>(ruta(carpetaId)).then((r) => r.informes)
 
 export const obtenerInforme = (carpetaId: string, versionId: string) =>
   peticion<VersionInforme>(`${ruta(carpetaId)}/${encodeURIComponent(versionId)}`)

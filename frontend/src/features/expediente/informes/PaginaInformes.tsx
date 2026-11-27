@@ -3,13 +3,15 @@ import { Link, useNavigate } from 'react-router'
 import { ErrorApi } from '../../../api/cliente'
 import { useCarga } from '../../../api/useCarga'
 import { ErrorDeCarga } from '../../../componentes/ErrorDeCarga'
-import { AreaTexto, Aviso, Boton, Cargando, GrupoOpciones, Tarjeta } from '../../../componentes/ui'
+import { AreaTexto, Aviso, Boton, Cargando, GrupoOpciones, Insignia, Tarjeta } from '../../../componentes/ui'
 import { fechaLarga } from '../../../utilidades/fechas'
+import { useSesion } from '../../auth/sesion'
 import type { CarpetaDetalle } from '../../carpetas/tipos'
+import { crearNombrador } from '../autoria'
 import { mensajeNoGuardado } from '../errores'
 import { listarSesiones } from '../expedienteApi'
 import { SeccionCarpeta } from '../SeccionCarpeta'
-import { CAMPO_FALTANTE, NOMBRE_TIPO_INFORME, generarInforme, type TipoInforme } from './informes'
+import { CAMPO_FALTANTE, NOMBRE_TIPO_INFORME, generarInforme, listarInformes, type TipoInforme } from './informes'
 
 const TIPOS: { valor: TipoInforme; nombre: string; descripcion: string }[] = [
   {
@@ -205,10 +207,54 @@ function GenerarInforme({ carpeta }: { carpeta: CarpetaDetalle }) {
           </fieldset>
         </form>
       </Tarjeta>
-      <p className="text-sm text-suave">
-        Para volver a un informe ya generado, abre su enlace. El listado de informes del caso todavía no está disponible
-        en la API.
-      </p>
+      <InformesDelCaso carpeta={carpeta} />
     </div>
+  )
+}
+
+/** Borradores y versiones revisadas ya generados, para volver a abrirlos. */
+function InformesDelCaso({ carpeta }: { carpeta: CarpetaDetalle }) {
+  const { usuario } = useSesion()
+  const { datos, error, recargar } = useCarga(() => listarInformes(carpeta.id), [carpeta.id])
+  const nombre = crearNombrador(carpeta, usuario)
+
+  return (
+    <Tarjeta>
+      <h2 className="text-lg font-semibold text-verde-oscuro">Informes del caso</h2>
+      {error !== undefined ? (
+        <ErrorDeCarga error={error} alReintentar={recargar} contexto="No se pudieron cargar los informes." className="mt-2" />
+      ) : !datos ? (
+        <Cargando texto="Cargando informes…" />
+      ) : datos.length === 0 ? (
+        <p className="mt-1.5 text-sm text-suave">Todavía no se generó ningún informe para este caso.</p>
+      ) : (
+        <ul className="mt-3 divide-y divide-linea">
+          {datos.map((i) => {
+            const esBorrador = i.estado === 'borrador'
+            return (
+              <li key={i.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-texto">{NOMBRE_TIPO_INFORME[i.tipo]}</span>
+                    <Insignia color={esBorrador ? 'naranja' : 'verde'}>{esBorrador ? 'Borrador' : 'Revisado'}</Insignia>
+                  </div>
+                  <p className="mt-0.5 text-sm text-suave">
+                    Generado por {nombre(i.creadoPor)} el {fechaLarga(i.creadoEn)}
+                    {i.revisadoEn && ` · revisado el ${fechaLarga(i.revisadoEn)}`}
+                  </p>
+                </div>
+                <Link
+                  to={`/carpetas/${carpeta.id}/informes/${i.id}`}
+                  aria-label={`${esBorrador ? 'Revisar borrador' : 'Abrir'}: ${NOMBRE_TIPO_INFORME[i.tipo]} del ${fechaLarga(i.creadoEn)}`}
+                  className="inline-flex min-h-11 items-center font-semibold text-naranja-texto underline-offset-4 hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
+                >
+                  {esBorrador ? 'Revisar borrador' : 'Abrir'}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </Tarjeta>
   )
 }

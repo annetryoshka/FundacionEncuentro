@@ -843,6 +843,13 @@ manejadores.push((ctx) => {
   const caso = casoAccesible(ctx, casoId)
   if (!caso) return ctx.error(404, 'Caso no encontrado')
   if (!versionId && ctx.metodo === 'POST') return generarInformeSim(ctx, caso)
+  if (!versionId && ctx.metodo === 'GET') {
+    const lista = informes(ctx)
+      .filter((v) => v.casoId === caso.id)
+      .sort((a, b) => b.creadoEn.localeCompare(a.creadoEn))
+      .map(({ casoId: _caso, secciones: _s, versionPlantilla: _p, ...resto }) => resto)
+    return ctx.json(200, { informes: lista })
+  }
   const version = informes(ctx).find((v) => v.id === versionId && v.casoId === caso.id)
   if (versionId && !revision && ctx.metodo === 'GET') {
     if (!version) return ctx.error(404, 'Versión de informe no encontrada')
