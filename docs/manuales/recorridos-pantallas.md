@@ -46,6 +46,9 @@ Los pasos están en `frontend/src/features/recorridos/recorridos.ts`; cada eleme
 | 20 | Difusión | `/difusion` | A M | Listado de publicaciones (campañas, actividades y cursos) con filtros. | borrador |
 | 21 | Nueva publicación | `/difusion/nueva` | A M | Crear una publicación; queda en borrador. | pendiente |
 | 22 | Publicación | `/difusion/:id` | A M | Editar, publicar, retirar y gestionar la imagen de una publicación. | pendiente |
+| 22b | Artículos de investigación | `/articulos` | A M | Listado de artículos para «Investigaciones» del portal, con filtro por estado (FE-187). | borrador |
+| 22c | Nuevo artículo | `/articulos/nuevo` | A M | Crear un artículo; queda en borrador. | pendiente |
+| 22d | Artículo | `/articulos/:id` | A M | Editar, publicar, retirar o eliminar un borrador nunca publicado. | pendiente |
 
 ## Administración
 
@@ -54,6 +57,7 @@ Los pasos están en `frontend/src/features/recorridos/recorridos.ts`; cada eleme
 | 23 | Importar registros históricos | `/importaciones` | A | Paso 1 del asistente: subir el archivo; el sistema lo valida y muestra una vista previa. | pendiente |
 | 24 | Lote de importación | `/importaciones/:id` | A | Pasos 2 y 3: revisar cada fila (decidir, corregir) y confirmar la importación. | pendiente |
 | 25 | Indicadores | `/indicadores` | A | Casos actuales y por estado, sesiones y pagos del período elegido, desglose por ciudad. | pendiente |
+| 25b | Gastos del mes | `/gastos` | A | Gastos de funcionamiento (internet, electricidad, alquiler, otros) del mes, con totales; registrar, corregir y anular (FE-175). | borrador |
 | 26 | Cuentas del personal | `/usuarios` | A | Listado y formulario de cuentas del personal. | pendiente |
 
 ## Portal público (sin cuenta)
@@ -63,6 +67,8 @@ Los pasos están en `frontend/src/features/recorridos/recorridos.ts`; cada eleme
 | 27 | Fundación | `/fundacion` | público | Presentación, servicios y contacto de la Fundación. | no aplica |
 | 28 | Publicaciones | `/publicaciones` | público | Campañas, actividades y cursos publicados. | no aplica |
 | 29 | Detalle de publicación | `/publicaciones/:id` | público | Una publicación abierta. | no aplica |
+| 30 | Investigaciones | `/investigaciones` | público | Artículos de investigación publicados, sin comentarios (FE-187). | no aplica |
+| 31 | Detalle de investigación | `/investigaciones/:id` | público | Un artículo abierto. | no aplica |
 
 ## Avisos (sin recorrido)
 

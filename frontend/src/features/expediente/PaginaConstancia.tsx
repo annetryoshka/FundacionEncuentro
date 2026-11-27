@@ -12,7 +12,9 @@ import { SeccionCarpeta } from './SeccionCarpeta'
 import { NOMBRE_ESTADO_CONSTANCIA, type Constancia, type EstadoConstancia } from './tipos'
 
 /**
- * FE-62 · Origen del caso y constancia de consentimiento (reglas FE-61). El origen técnico (voluntario o
+ * FE-62 · Origen del caso y constancia de consentimiento (reglas FE-61).
+ * FE-190 · Regla ratificada (FE-188, DEC-C02): con el consentimiento pendiente se puede atender y registrar
+ * sesiones; la pantalla lo dice y no presenta la constancia como registrada. El origen técnico (voluntario o
  * derivado) es de solo lectura. Pendiente no lleva datos; Registrada exige fecha y referencia de evidencia;
  * No aplica exige una explicación. Si el origen es judicial, se guarda también el contexto judicial
  * (juzgado obligatorio; expediente, fecha de derivación y observaciones opcionales) en el mismo PUT.
@@ -105,6 +107,14 @@ function VistaConstancia({ carpeta }: { carpeta: CarpetaDetalle }) {
             <Dato titulo="Estado">
               <EtiquetaConstancia estado={constancia.estado} />
             </Dato>
+            {constancia.estado === 'pendiente' && (
+              <div className="sm:col-span-2">
+                <Aviso tipo="info">
+                  El consentimiento todavía no está registrado. La atención puede continuar y las sesiones se registran
+                  con normalidad; cuando llegue la constancia firmada, regístrala aquí.
+                </Aviso>
+              </div>
+            )}
             {constancia.estado === 'registrado' && (
               <>
                 <Dato titulo="Fecha del consentimiento">
@@ -322,7 +332,11 @@ function FormularioConstancia({
           alCambiar={setEstado}
           error={errores.estado}
           opciones={[
-            { valor: 'pendiente', nombre: 'Pendiente', descripcion: 'Todavía no se firmó o no se recibió.' },
+            {
+              valor: 'pendiente',
+              nombre: 'Pendiente',
+              descripcion: 'Todavía no se firmó o no se recibió. La atención puede continuar mientras tanto.',
+            },
             { valor: 'registrado', nombre: 'Registrada', descripcion: 'Requiere fecha y referencia de evidencia.' },
             { valor: 'no_aplica', nombre: 'No aplica', descripcion: 'Requiere una explicación.' },
           ]}

@@ -19,7 +19,9 @@ const SECCIONES: Seccion[] = [
   { ruta: '/carpetas', nombre: 'Carpetas', roles: ['administrador', 'terapeuta'] },
   { ruta: '/investigacion', nombre: 'Investigación', roles: ['administrador', 'terapeuta'] },
   { ruta: '/difusion', nombre: 'Difusión', roles: ['administrador', 'marketing'] },
+  { ruta: '/articulos', nombre: 'Artículos', roles: ['administrador', 'marketing'] },
   { ruta: '/indicadores', nombre: 'Indicadores', roles: ['administrador'] },
+  { ruta: '/gastos', nombre: 'Gastos', roles: ['administrador'] },
   { ruta: '/usuarios', nombre: 'Cuentas del personal', roles: ['administrador'] },
 ]
 

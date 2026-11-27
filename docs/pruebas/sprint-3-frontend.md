@@ -58,3 +58,32 @@ Datos de FE-134 §4: casos A, B, C y D con 2, 1, 0 y 0 sesiones entre el 20 y el
 5. **CORS:** para leer el nombre del archivo en otro dominio, el backend debe exponer `Content-Disposition` (`exposedHeaders`). El front usa un nombre de respaldo si no lo recibe.
 6. **Huella de investigación:** una vez, el primer paquete preparado cambió de huella después de confirmar la revisión, y la descarga respondió 409. No se pudo reproducir. El front ofrece «Volver a leer» y «Preparar un paquete nuevo».
 7. **Pendiente por API:** las investigaciones públicas (FE-187) y la inserción del genograma en los archivos exportados (FE-159 lo deja pendiente).
+
+## 5. Segunda entrega (27/11/2026): FE-175, FE-187, FE-190 y FE-199
+
+Base: `main` 6baa8c5, que incluye los recorridos guiados de Alejandro. Backend de prueba: `main` + PR #95 (FE-184), con las migraciones 021 a 023 aplicadas en PostgreSQL 16. Todos los datos son ficticios.
+
+| Subtarea | Pantallas | API |
+|---|---|---|
+| FE-175 Gastos del mes | `/gastos` (solo administración): mes en la URL con flechas y calendario; total del mes y por tipo; registrar (tipo, fecha, monto en Bs con coma o punto, descripción obligatoria en «Otros gastos»); corregir; anular con confirmación y motivo. Los anulados quedan visibles, tachados, y no suman. Guardar se desactiva mientras envía y Cancelar no escribe. | `GET/POST /gastos`, `PATCH /gastos/:id`, `POST /gastos/:id/anular` |
+| FE-190 Constancia y pagos | Constancia: con «Pendiente» se avisa que la atención continúa, sin presentarla como registrada (DEC-C02). Pagos: «un solo pago por sesión, sin cuotas» y «solo QR o transferencia, sin efectivo» (DEC-P01/P02); el 409 se explica con la regla. Los campos judiciales no cambian. | Sin cambios de contrato |
+| FE-187 Artículos | `/articulos`, `/articulos/nuevo` y `/articulos/:id` (administración y marketing): filtro por estado, formulario, vista previa con la tarjeta de Gemina, ciclo borrador → publicado → retirado → borrador, 422 por falta de resumen, 409 y eliminación solo de borradores nunca publicados. Portal: `/investigaciones` y `/investigaciones/:id` sin sesión y sin comentarios; en móvil, una segunda fila de navegación. | `/investigaciones/articulos…`, `/publico/investigaciones…` |
+| FE-199 | Quedan integrados todos los componentes de apoyo: residencia (FE-137), tarjetas públicas (FE-148) e investigaciones (FE-186). | — |
+
+**Recorridos guiados:** `/gastos` y `/articulos` tienen recorrido con sus marcas `data-recorrido`. `/articulos/nuevo` y `/articulos/:id` figuran en `RECORRIDOS` con `null`, como las demás pantallas de edición. El inventario está actualizado en `docs/manuales/recorridos-pantallas.md`.
+
+**Pruebas automáticas:** 40 archivos y 342 pruebas aprobadas. `tsc`, `oxlint` sin advertencias, Prettier y `build` sin errores.
+
+**E2E contra el backend real (Playwright):**
+
+| Comprobación | Resultado |
+|---|---|
+| Ejemplo de FE-172 §5: 120 + 80 + 1500 = Bs 1.700,00 → corregir electricidad a 85 → Bs 1.705,00 → anular internet → Bs 1.585,00, con recarga | Aprobado |
+| Mes sin gastos → Bs 0,00; «Otros gastos» sin descripción no se envía; la terapeuta no accede | Aprobado |
+| Pago repetido con otros datos → 409 real («La sesión ya tiene un pago registrado con otros datos»); `metodo: efectivo` → 400 | Aprobado (verificado por la API; la pantalla solo ofrece sesiones sin pago) |
+| Constancia pendiente: aviso de que la atención continúa | Aprobado |
+| Artículos: crear, 422 sin resumen, publicar, verlo como visitante en móvil (390 px sin desborde), retirar → «no disponible», volver a borrador, no ofrecer eliminar uno ya publicado, eliminar un borrador nuevo (204), la terapeuta sin acceso | Aprobado |
+
+**Observaciones:**
+1. El PR #95 (FE-184) tiene conflicto con `main` en `backend/src/app.module.ts`, porque los dos agregan un módulo (GastosModule y ArticulosModule). Hay que conservar los dos. FE-187 funciona en cuanto ese PR se fusione.
+2. Corregir o anular un pago no está habilitado: queda para FE-211 (Sprint 4), según FE-188.

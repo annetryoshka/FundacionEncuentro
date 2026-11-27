@@ -19,6 +19,11 @@ import { PaginaSesiones } from './features/expediente/PaginaSesiones'
 import { PaginaIndicadores } from './features/indicadores/PaginaIndicadores'
 import { PaginaDifusion } from './features/difusion/PaginaDifusion'
 import { PaginaEditarPublicacion, PaginaNuevaPublicacion } from './features/difusion/PaginaEditarPublicacion'
+import { PaginaGastos } from './features/gastos/PaginaGastos'
+import { PaginaArticulos } from './features/articulos/PaginaArticulos'
+import { PaginaEditarArticulo, PaginaNuevoArticulo } from './features/articulos/PaginaEditarArticulo'
+import { PaginaInvestigaciones } from './features/publico/PaginaInvestigaciones'
+import { PaginaDetalleInvestigacion } from './features/publico/PaginaDetalleInvestigacion'
 import { PaginaImportacion } from './features/importacion/PaginaImportacion'
 import { PaginaLoteImportacion } from './features/importacion/PaginaLoteImportacion'
 import { PaginaCategoriasCaso } from './features/investigacion/PaginaCategoriasCaso'
@@ -45,6 +50,12 @@ export default function App() {
       </Route>
 
       {/* FE-149 · Portal público: sin sesión y sin navegación clínica */}
+      {/* FE-187 · Investigaciones públicas: artículos publicados, sin comentarios */}
+      <Route path="/investigaciones" element={<PlantillaPublica />}>
+        <Route index element={<PaginaInvestigaciones />} />
+        <Route path=":id" element={<PaginaDetalleInvestigacion />} />
+        <Route path="*" element={<PaginaPublicaNoEncontrada />} />
+      </Route>
       <Route path="/publicaciones" element={<PlantillaPublica />}>
         <Route index element={<PaginaPublicaciones />} />
         <Route path=":id" element={<PaginaDetallePublicacion />} />
@@ -247,6 +258,40 @@ export default function App() {
           element={
             <RutaProtegida roles={['administrador']}>
               <PaginaIndicadores />
+            </RutaProtegida>
+          }
+        />
+        {/* FE-187 · Artículos de investigación: marketing y administración */}
+        <Route
+          path="articulos"
+          element={
+            <RutaProtegida roles={['administrador', 'marketing']}>
+              <PaginaArticulos />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="articulos/nuevo"
+          element={
+            <RutaProtegida roles={['administrador', 'marketing']}>
+              <PaginaNuevoArticulo />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="articulos/:id"
+          element={
+            <RutaProtegida roles={['administrador', 'marketing']}>
+              <PaginaEditarArticulo />
+            </RutaProtegida>
+          }
+        />
+        {/* FE-175 · Gastos de funcionamiento: solo administración */}
+        <Route
+          path="gastos"
+          element={
+            <RutaProtegida roles={['administrador']}>
+              <PaginaGastos />
             </RutaProtegida>
           }
         />

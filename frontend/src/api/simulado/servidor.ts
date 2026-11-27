@@ -61,8 +61,8 @@ interface DatosSim {
   sprint3: Sprint3Sim
 }
 
-// v5: Sprint 3 agrega la residencia del paciente y los datos de ./sprint3.ts.
-const CLAVE_ALMACEN = 'fundacion-encuentro:api-simulada:v5'
+// v6: Sprint 3 agrega residencia, los datos de ./sprint3.ts, gastos (FE-175) y artículos (FE-187).
+const CLAVE_ALMACEN = 'fundacion-encuentro:api-simulada:v6'
 const DURACION_TOKEN_S = 3600 // lo mismo que Supabase por defecto
 let retardoMs = 350
 // Se inicializa al final del módulo, cuando ya existen los datos ficticios.

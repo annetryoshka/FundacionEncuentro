@@ -19,14 +19,14 @@ describe('Plantilla y navegación', () => {
     expect(menu().queryByRole('link', { name: 'Cuentas del personal' })).not.toBeInTheDocument()
   })
 
-  it('apoyo/marketing no ve ninguna sección clínica; solo Inicio y Difusión (FE-144)', async () => {
+  it('apoyo/marketing no ve ninguna sección clínica; solo Inicio, Difusión y Artículos (FE-144, FE-187)', async () => {
     await montarApp('/inicio', 'apoyo')
     const menu = screen.getByRole('navigation', { name: 'Secciones' })
     expect(
       within(menu)
         .getAllByRole('link')
         .map((a) => a.textContent),
-    ).toEqual(['Inicio', 'Difusión'])
+    ).toEqual(['Inicio', 'Difusión', 'Artículos'])
     expect(screen.getByText(/no tiene acceso a la información clínica/)).toBeInTheDocument()
   })
 

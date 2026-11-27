@@ -42,6 +42,14 @@ export function PlantillaPublica() {
             >
               Publicaciones
             </NavLink>
+            <NavLink
+              to="/investigaciones"
+              className={({ isActive }) =>
+                `hidden rounded-full px-3 py-2 text-sm font-semibold sm:inline-block ${isActive ? 'text-verde-oscuro underline underline-offset-4' : 'text-suave hover:text-verde-oscuro'}`
+              }
+            >
+              Investigaciones
+            </NavLink>
             <Link
               to="/login"
               className="inline-flex items-center gap-1.5 rounded-full border border-verde px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-verde hover:bg-verde hover:text-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja"
@@ -51,6 +59,26 @@ export function PlantillaPublica() {
             </Link>
           </nav>
         </div>
+        {/* En móvil las secciones del portal van en una segunda fila para que no se oculten. */}
+        <nav aria-label="Secciones del portal" className="border-t border-linea sm:hidden">
+          <ul className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-1.5">
+            {[
+              ['/publicaciones', 'Publicaciones'],
+              ['/investigaciones', 'Investigaciones'],
+            ].map(([ruta, nombre]) => (
+              <li key={ruta}>
+                <NavLink
+                  to={ruta}
+                  className={({ isActive }) =>
+                    `block rounded-full px-3 py-1.5 text-sm font-semibold whitespace-nowrap ${isActive ? 'bg-verde/10 text-verde-oscuro' : 'text-suave'}`
+                  }
+                >
+                  {nombre}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </header>
       <main id="contenido" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-8 sm:py-10">
         <Outlet />

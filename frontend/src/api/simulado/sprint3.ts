@@ -565,6 +565,7 @@ function paginar<T>(lista: T[], params: URLSearchParams) {
 /** Rutas @Public: se atienden antes del guard de sesión. */
 export function atenderPublico(ctx: Pick<Contexto3, 'metodo' | 'ruta' | 'params' | 'estado' | 'json' | 'error'>) {
   if (ctx.metodo !== 'GET') return null
+  if (ctx.ruta.startsWith('/publico/investigaciones')) return atenderInvestigacionesPublicas(ctx)
   if (ctx.ruta === '/publico/publicaciones') {
     const tipo = ctx.params.get('tipo')
     if (tipo !== null && !TIPOS_PUB.includes(tipo))
@@ -776,7 +777,14 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
   const terapeuta = ctx.perfiles.find((p) => p.id === caso.asignacion?.perfilId)?.nombreCompleto ?? 'Sin asignar'
   const diag = ctx.expediente.diagnosticos.find((d) => d.casoId === caso.id)
-  const seguimiento = sesiones.map((s) => [`Sesión ${s.numero} (${s.fecha}): ${s.evolucion}`, ...ctx.expediente.tareas.filter((t) => t.sesionId === s.id).map((t) => `• ${t.descripcion}`)].join('\n')).join('\n')
+  const seguimiento = sesiones
+    .map((s) =>
+      [
+        `Sesión ${s.numero} (${s.fecha}): ${s.evolucion}`,
+        ...ctx.expediente.tareas.filter((t) => t.sesionId === s.id).map((t) => `• ${t.descripcion}`),
+      ].join('\n'),
+    )
+    .join('\n')
   const familia = c.incluirFamilia
     ? (ctx.estado.familias[caso.id]?.familiares ?? [])
         .map((f) => `${f.parentesco}: ${f.nombreCompleto ?? 'sin nombre'}`)
@@ -797,7 +805,9 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
       { titulo: 'Destinatario', contenido: juzgado },
       { titulo: 'Identificación', contenido: caso.paciente.nombreCompleto },
       { titulo: 'Profesional responsable', contenido: terapeuta },
-      ...(c.incluirFamilia ? [{ titulo: 'Contexto familiar', contenido: familia || 'Sin integrantes familiares registrados.' }] : []),
+      ...(c.incluirFamilia
+        ? [{ titulo: 'Contexto familiar', contenido: familia || 'Sin integrantes familiares registrados.' }]
+        : []),
       { titulo: 'Objeto del informe', contenido: objeto },
       ...(diag?.evaluacionInicial ? [{ titulo: 'Evaluación inicial', contenido: diag.evaluacionInicial }] : []),
       { titulo: 'Intervención y observaciones', contenido: seguimiento || 'Sin sesiones seleccionadas.' },
@@ -807,8 +817,15 @@ function generarInformeSim(ctx: Contexto3, caso: CasoSprint3) {
     secciones = [
       { titulo: 'Identificación', contenido: caso.paciente.nombreCompleto },
       { titulo: 'Profesional responsable', contenido: terapeuta },
-      ...(c.incluirFamilia ? [{ titulo: 'Contexto familiar', contenido: familia || 'Sin integrantes familiares registrados.' }] : []),
-      { titulo: 'Evaluación', contenido: [diag?.evaluacionInicial, diag?.diagnosticoIngreso, diag?.hipotesisRelacional].filter(Boolean).join('\n') || 'Sin datos registrados.' },
+      ...(c.incluirFamilia
+        ? [{ titulo: 'Contexto familiar', contenido: familia || 'Sin integrantes familiares registrados.' }]
+        : []),
+      {
+        titulo: 'Evaluación',
+        contenido:
+          [diag?.evaluacionInicial, diag?.diagnosticoIngreso, diag?.hipotesisRelacional].filter(Boolean).join('\n') ||
+          'Sin datos registrados.',
+      },
       { titulo: 'Intervención y evolución', contenido: seguimiento || 'Sin sesiones seleccionadas.' },
       { titulo: 'Conclusiones y recomendaciones', contenido: 'Pendiente de redacción profesional.' },
     ]
@@ -1762,6 +1779,381 @@ manejadores.push((ctx) => {
   if (m[2].startsWith('documentos/') && ctx.metodo === 'GET') {
     const doc = contenido.documentos.find((d) => d.idExportacion === m[2].slice('documentos/'.length))
     return doc ? ctx.json(200, doc) : ctx.error(404, 'Documento no encontrado')
+  }
+  return null
+})
+
+// ---- FE-174 · Gastos de funcionamiento (solo administración) --------------------------
+
+interface GastoSim {
+  id: string
+  fecha: string
+  categoria: string
+  descripcion: string | null
+  monto: string
+  anulado: boolean
+  anuladoEn: string | null
+  anuladoPor: string | null
+  motivoAnulacion: string | null
+  registradoPor: string | null
+  creadoEn: string
+  actualizadoPor: string | null
+  actualizadoEn: string
+}
+
+const CATEGORIAS_GASTO = ['internet', 'electricidad', 'alquiler', 'otros']
+
+/** Un gasto de octubre de 2026 para que el mes anterior no esté vacío; noviembre empieza sin gastos (FE-172 §5). */
+semillas.push((estado, ids) => {
+  estado.gastos = [
+    {
+      id: '70000000-0000-4000-8000-000000000001',
+      fecha: '2026-10-05',
+      categoria: 'alquiler',
+      descripcion: 'Alquiler ficticio de octubre',
+      monto: '1500.00',
+      anulado: false,
+      anuladoEn: null,
+      anuladoPor: null,
+      motivoAnulacion: null,
+      registradoPor: ids.direccion,
+      creadoEn: '2026-10-05T14:00:00.000Z',
+      actualizadoPor: null,
+      actualizadoEn: '2026-10-05T14:00:00.000Z',
+    },
+  ] satisfies GastoSim[]
+})
+
+/** Suma exacta en centavos: los montos son texto decimal, nunca se suman como float. */
+const centavos = (monto: string) => {
+  const [entero, decimal = ''] = monto.split('.')
+  return Number(entero) * 100 + Number(decimal.padEnd(2, '0'))
+}
+const aMonto = (c: number) => `${Math.floor(c / 100)}.${String(c % 100).padStart(2, '0')}`
+
+function leerGasto(
+  ctx: Contexto3,
+): { datos: Pick<GastoSim, 'categoria' | 'fecha' | 'monto' | 'descripcion'> } | { error: Response } {
+  const c = ctx.cuerpo as Record<string, unknown>
+  const extra = Object.keys(c).filter((k) => !['categoria', 'fecha', 'monto', 'descripcion'].includes(k))
+  if (extra.length)
+    return {
+      error: ctx.error(
+        400,
+        extra.map((k) => `property ${k} should not exist`),
+      ),
+    }
+  const errores: string[] = []
+  if (!CATEGORIAS_GASTO.includes(c.categoria as string))
+    errores.push('El tipo de gasto debe ser internet, electricidad, alquiler u otros')
+  if (!fechaValida(c.fecha)) errores.push('La fecha del gasto no es válida')
+  if (typeof c.monto !== 'string') errores.push('El monto debe enviarse como texto decimal, por ejemplo "120.00"')
+  else if (!/^(?:0|[1-9]\d{0,7})(?:\.\d{1,2})?$/.test(c.monto))
+    errores.push('El monto debe tener hasta 8 enteros y 2 decimales, usando punto')
+  else if (!/[1-9]/.test(c.monto)) errores.push('El monto debe ser mayor que cero')
+  const d = c.descripcion
+  if (d !== undefined && d !== null && (typeof d !== 'string' || d.length > 200 || !/\S/.test(d)))
+    errores.push('La descripción no puede quedar en blanco')
+  if (errores.length) return { error: ctx.error(400, errores) }
+  if ((c.fecha as string) > hoy() || (c.fecha as string) < '2000-01-01')
+    return { error: ctx.error(400, 'La fecha del gasto no puede ser futura') }
+  const descripcion = typeof d === 'string' ? d.trim() : null
+  if (c.categoria === 'otros' && !descripcion)
+    return { error: ctx.error(400, 'Describe el gasto cuando el tipo es otros') }
+  return {
+    datos: {
+      categoria: c.categoria as string,
+      fecha: c.fecha as string,
+      monto: aMonto(centavos(c.monto as string)),
+      descripcion,
+    },
+  }
+}
+
+manejadores.push((ctx) => {
+  const m = ctx.ruta.match(/^\/gastos(?:\/([^/]+)(\/anular)?)?$/)
+  if (!m) return null
+  if (ctx.yo.rol !== 'administrador') return ctx.error(403, 'No tienes permiso para realizar esta acción')
+  const lista = ctx.estado.gastos as GastoSim[]
+  const [, id, anular] = m
+
+  if (!id && ctx.metodo === 'GET') {
+    const mes = ctx.params.get('mes') ?? hoy().slice(0, 7)
+    if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(mes)) return ctx.error(400, ['El mes debe tener formato AAAA-MM'])
+    const gastos = lista
+      .filter((g) => g.fecha.startsWith(mes))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.creadoEn.localeCompare(b.creadoEn))
+    const vigentes = gastos.filter((g) => !g.anulado)
+    return ctx.json(200, {
+      mes,
+      gastos,
+      totalMes: aMonto(vigentes.reduce((s, g) => s + centavos(g.monto), 0)),
+      cantidadVigentes: vigentes.length,
+      cantidadAnulados: gastos.length - vigentes.length,
+      totalesPorCategoria: CATEGORIAS_GASTO.map((categoria) => {
+        const deCategoria = vigentes.filter((g) => g.categoria === categoria)
+        return {
+          categoria,
+          cantidad: deCategoria.length,
+          total: aMonto(deCategoria.reduce((s, g) => s + centavos(g.monto), 0)),
+        }
+      }),
+    })
+  }
+  if (!id && ctx.metodo === 'POST') {
+    const leido = leerGasto(ctx)
+    if ('error' in leido) return leido.error
+    const momento = ahora()
+    const gasto: GastoSim = {
+      id: crypto.randomUUID(),
+      ...leido.datos,
+      anulado: false,
+      anuladoEn: null,
+      anuladoPor: null,
+      motivoAnulacion: null,
+      registradoPor: ctx.yo.id,
+      creadoEn: momento,
+      actualizadoPor: null,
+      actualizadoEn: momento,
+    }
+    lista.push(gasto)
+    return ctx.json(201, gasto)
+  }
+  if (!id) return null
+  if (!UUID.test(id)) return ctx.error(400, 'Validation failed (uuid is expected)')
+  const gasto = lista.find((g) => g.id === id)
+  if (!anular && ctx.metodo === 'PATCH') {
+    const leido = leerGasto(ctx)
+    if ('error' in leido) return leido.error
+    if (!gasto) return ctx.error(404, 'Gasto no encontrado')
+    if (gasto.anulado) return ctx.error(409, 'El gasto está anulado y no se puede corregir')
+    Object.assign(gasto, leido.datos, { actualizadoPor: ctx.yo.id, actualizadoEn: ahora() })
+    return ctx.json(200, gasto)
+  }
+  if (anular && ctx.metodo === 'POST') {
+    const motivo = (ctx.cuerpo as { motivo?: unknown }).motivo
+    if (motivo !== undefined && motivo !== null && (typeof motivo !== 'string' || motivo.length > 200)) {
+      return ctx.error(400, ['El motivo admite hasta 200 caracteres'])
+    }
+    if (!gasto) return ctx.error(404, 'Gasto no encontrado')
+    if (!gasto.anulado) {
+      Object.assign(gasto, {
+        anulado: true,
+        anuladoEn: ahora(),
+        anuladoPor: ctx.yo.id,
+        motivoAnulacion: typeof motivo === 'string' ? motivo.trim() || null : null,
+      })
+    }
+    return ctx.json(200, gasto)
+  }
+  return null
+})
+
+// ---- FE-184 · Artículos de investigación (sin comentarios) ----------------------------
+
+interface ArticuloSim {
+  id: string
+  titulo: string
+  resumen: string | null
+  contenido: string
+  estado: 'borrador' | 'publicado' | 'retirado'
+  autorVisible: string | null
+  imagen: { ruta: string; textoAlternativo: string; ancho?: number | null; alto?: number | null } | null
+  creadoPor: string | null
+  creadoEn: string
+  actualizadoPor: string | null
+  actualizadoEn: string
+  publicadoEn: string | null
+  publicadoPor: string | null
+  retiradoEn: string | null
+  retiradoPor: string | null
+}
+
+/** Artículos de demostración de FE-185 (docs/contenido/investigaciones/articulos-demostracion.json). */
+semillas.push((estado, ids) => {
+  const articulo = (n: number, datos: Partial<ArticuloSim>): ArticuloSim => ({
+    id: `80000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+    titulo: '',
+    resumen: 'Resumen de prueba.',
+    contenido: 'Texto de ejemplo.',
+    estado: 'borrador',
+    autorVisible: null,
+    imagen: null,
+    creadoPor: ids.diego,
+    creadoEn: '2026-11-20T14:00:00.000Z',
+    actualizadoPor: null,
+    actualizadoEn: '2026-11-20T14:00:00.000Z',
+    publicadoEn: null,
+    publicadoPor: null,
+    retiradoEn: null,
+    retiradoPor: null,
+    ...datos,
+  })
+  estado.articulos = [
+    articulo(1, {
+      titulo: '[DEMO QA] Artículo ficticio publicado',
+      resumen: 'Resumen de prueba de un artículo inventado.',
+      contenido: 'Texto de ejemplo sin datos de pacientes ni conclusiones clínicas.',
+      autorVisible: 'Autor ficticio',
+      estado: 'publicado',
+      publicadoEn: '2026-11-22T14:00:00.000Z',
+      publicadoPor: ids.diego,
+    }),
+    articulo(2, { titulo: '[DEMO QA] Artículo ficticio en borrador' }),
+    articulo(3, {
+      titulo: '[DEMO QA] Artículo ficticio retirado',
+      autorVisible: 'Autor ficticio',
+      estado: 'retirado',
+      publicadoEn: '2026-11-10T14:00:00.000Z',
+      retiradoEn: '2026-11-18T14:00:00.000Z',
+    }),
+  ] satisfies ArticuloSim[]
+})
+
+const fechaBolivia = (iso: string) => new Date(new Date(iso).getTime() - 4 * 3600_000).toISOString().slice(0, 10)
+
+function investigacionPublica(a: ArticuloSim, conContenido: boolean) {
+  return {
+    id: a.id,
+    titulo: a.titulo,
+    resumen: a.resumen,
+    autor: a.autorVisible,
+    fechaPublicacion: a.publicadoEn ? fechaBolivia(a.publicadoEn) : null,
+    imagen: a.imagen,
+    ...(conContenido ? { contenido: a.contenido } : {}),
+  }
+}
+
+/** GET /publico/investigaciones… (sin sesión). Se llama desde atenderPublico. */
+export function atenderInvestigacionesPublicas(
+  ctx: Pick<Contexto3, 'metodo' | 'ruta' | 'params' | 'estado' | 'json' | 'error'>,
+) {
+  if (ctx.metodo !== 'GET') return null
+  const lista = (ctx.estado.articulos as ArticuloSim[]).filter((a) => a.estado === 'publicado')
+  if (ctx.ruta === '/publico/investigaciones') {
+    const ordenados = [...lista].sort((a, b) => (b.publicadoEn ?? '').localeCompare(a.publicadoEn ?? ''))
+    const { elementos, ...resto } = paginar(ordenados, ctx.params)
+    return ctx.json(200, { investigaciones: elementos.map((a) => investigacionPublica(a, false)), ...resto })
+  }
+  const una = ctx.ruta.match(/^\/publico\/investigaciones\/([^/]+)$/)
+  if (una) {
+    if (!UUID.test(una[1])) return ctx.error(400, 'Validation failed (uuid is expected)')
+    const a = lista.find((x) => x.id === una[1])
+    return a ? ctx.json(200, investigacionPublica(a, true)) : ctx.error(404, 'Investigación no encontrada')
+  }
+  return null
+}
+
+function leerArticulo(ctx: Contexto3) {
+  const c = ctx.cuerpo as Record<string, unknown>
+  const permitidos = ['titulo', 'resumen', 'contenido', 'autorVisible', 'imagen']
+  const extra = Object.keys(c).filter((k) => !permitidos.includes(k))
+  if (extra.length)
+    return {
+      error: ctx.error(
+        400,
+        extra.map((k) => `property ${k} should not exist`),
+      ),
+    }
+  const errores: string[] = []
+  const texto = (v: unknown, max: number) => v === undefined || v === null || (typeof v === 'string' && v.length <= max)
+  if (typeof c.titulo !== 'string' || !/\S/.test(c.titulo) || c.titulo.length > 150)
+    errores.push('El título es obligatorio')
+  if (typeof c.contenido !== 'string' || !/\S/.test(c.contenido) || c.contenido.length > 20000)
+    errores.push('El contenido es obligatorio')
+  if (!texto(c.resumen, 500)) errores.push('resumen must be shorter than or equal to 500 characters')
+  if (!texto(c.autorVisible, 150)) errores.push('autorVisible must be shorter than or equal to 150 characters')
+  const imagen = c.imagen as ArticuloSim['imagen'] | undefined
+  if (imagen) {
+    if (typeof imagen.ruta !== 'string' || !/^(?!.*\.\.)[A-Za-z0-9_-][A-Za-z0-9/_.-]*$/.test(imagen.ruta))
+      errores.push('La ruta de la imagen no es válida')
+    if (typeof imagen.textoAlternativo !== 'string' || !/\S/.test(imagen.textoAlternativo))
+      errores.push('La imagen necesita un texto alternativo')
+  }
+  if (errores.length) return { error: ctx.error(400, errores) }
+  const limpio = (v: unknown) => (typeof v === 'string' ? v.trim() || null : null)
+  return {
+    datos: {
+      titulo: (c.titulo as string).trim(),
+      contenido: (c.contenido as string).trim(),
+      resumen: limpio(c.resumen),
+      autorVisible: limpio(c.autorVisible),
+      imagen: imagen ? { ...imagen, ruta: imagen.ruta.trim(), textoAlternativo: imagen.textoAlternativo.trim() } : null,
+    },
+  }
+}
+
+manejadores.push((ctx) => {
+  const m = ctx.ruta.match(/^\/investigaciones\/articulos(?:\/([^/]+)(\/estado)?)?$/)
+  if (!m) return null
+  if (ctx.yo.rol !== 'administrador' && ctx.yo.rol !== 'marketing')
+    return ctx.error(403, 'No tienes permiso para realizar esta acción')
+  const lista = ctx.estado.articulos as ArticuloSim[]
+  const [, id, estado] = m
+  if (!id) {
+    if (ctx.metodo === 'GET') {
+      const filtro = ctx.params.get('estado')
+      const filtrados = lista
+        .filter((a) => !filtro || a.estado === filtro)
+        .sort((a, b) => b.actualizadoEn.localeCompare(a.actualizadoEn))
+      const { elementos, ...resto } = paginar(filtrados, ctx.params)
+      return ctx.json(200, { articulos: elementos, ...resto })
+    }
+    if (ctx.metodo === 'POST') {
+      const leido = leerArticulo(ctx)
+      if (leido.error) return leido.error
+      const momento = ahora()
+      const nuevo: ArticuloSim = {
+        id: crypto.randomUUID(),
+        ...leido.datos!,
+        estado: 'borrador',
+        creadoPor: ctx.yo.id,
+        creadoEn: momento,
+        actualizadoPor: ctx.yo.id,
+        actualizadoEn: momento,
+        publicadoEn: null,
+        publicadoPor: null,
+        retiradoEn: null,
+        retiradoPor: null,
+      }
+      lista.push(nuevo)
+      return ctx.json(201, nuevo)
+    }
+    return null
+  }
+  if (!UUID.test(id)) return ctx.error(400, 'Validation failed (uuid is expected)')
+  const a = lista.find((x) => x.id === id)
+  if (!estado && ctx.metodo === 'GET') return a ? ctx.json(200, a) : ctx.error(404, 'Investigación no encontrada')
+  if (!estado && ctx.metodo === 'PUT') {
+    const leido = leerArticulo(ctx)
+    if (leido.error) return leido.error
+    if (!a) return ctx.error(404, 'Investigación no encontrada')
+    if (a.estado === 'publicado' && !leido.datos!.resumen)
+      return ctx.error(422, 'Faltan datos para publicar', { camposFaltantes: ['resumen'] })
+    Object.assign(a, leido.datos, { actualizadoPor: ctx.yo.id, actualizadoEn: ahora() })
+    return ctx.json(200, a)
+  }
+  if (!estado && ctx.metodo === 'DELETE') {
+    if (!a) return ctx.error(404, 'Investigación no encontrada')
+    if (a.publicadoEn) return ctx.error(409, 'Una investigación ya publicada no se elimina: se retira')
+    lista.splice(lista.indexOf(a), 1)
+    return new Response(null, { status: 204 })
+  }
+  if (estado && ctx.metodo === 'PATCH') {
+    const nuevo = (ctx.cuerpo as { estado?: string }).estado
+    if (!['borrador', 'publicado', 'retirado'].includes(nuevo ?? ''))
+      return ctx.error(400, ['estado must be one of the following values: borrador, publicado, retirado'])
+    if (!a) return ctx.error(404, 'Investigación no encontrada')
+    const permitido = { borrador: 'publicado', publicado: 'retirado', retirado: 'borrador' }[a.estado]
+    if (nuevo !== permitido) return ctx.error(409, `No se puede pasar de ${a.estado} a ${nuevo}`)
+    if (nuevo === 'publicado' && !a.resumen)
+      return ctx.error(422, 'Faltan datos para publicar', { camposFaltantes: ['resumen'] })
+    const momento = ahora()
+    a.estado = nuevo as ArticuloSim['estado']
+    if (nuevo === 'publicado') Object.assign(a, { publicadoEn: momento, publicadoPor: ctx.yo.id })
+    if (nuevo === 'retirado') Object.assign(a, { retiradoEn: momento, retiradoPor: ctx.yo.id })
+    Object.assign(a, { actualizadoPor: ctx.yo.id, actualizadoEn: momento })
+    return ctx.json(200, a)
   }
   return null
 })
