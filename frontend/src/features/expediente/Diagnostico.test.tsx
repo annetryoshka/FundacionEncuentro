@@ -14,7 +14,8 @@ describe('Ficha de diagnóstico', () => {
     const fecha = screen.getByLabelText('Fecha de evaluación')
     await usuario.clear(fecha)
     await usuario.type(fecha, '2026-11-03')
-    await usuario.type(screen.getByLabelText('Diagnóstico de ingreso'), '  Conflicto parental  ')
+    await usuario.type(screen.getByLabelText('Evaluación inicial'), '  Entrevista inicial QA  ')
+    await usuario.type(screen.getByLabelText('Diagnóstico de ingreso (opcional)'), '  Conflicto parental  ')
     await usuario.click(screen.getByRole('button', { name: 'Guardar ficha' }))
 
     expect(await screen.findByText('Ficha de diagnóstico guardada.')).toBeInTheDocument()
@@ -24,28 +25,29 @@ describe('Ficha de diagnóstico', () => {
     expect(screen.getByText(/Creada por Sofía Mamani \(tú\)/)).toBeInTheDocument()
     expect(cuerpo(llamadas(fetchEspia, 'PUT', `/api/carpetas/${CARPETA_VACIA_DE_SOFIA}/diagnostico`)[0])).toEqual({
       fecha: '2026-11-03',
+      evaluacionInicial: 'Entrevista inicial QA',
       diagnosticoIngreso: 'Conflicto parental',
       hipotesisRelacional: null,
       comentariosClinicos: null,
     })
   })
 
-  it('no guarda un diagnóstico de solo espacios ni una fecha vacía', async () => {
+  it('no guarda una evaluación de solo espacios ni una fecha vacía', async () => {
     const { usuario, fetchEspia } = await montarApp(`/carpetas/${CARPETA_VACIA_DE_SOFIA}/diagnostico`, 'sofia')
     await usuario.click(await screen.findByRole('button', { name: 'Crear ficha' }))
     await usuario.clear(screen.getByLabelText('Fecha de evaluación'))
-    await usuario.type(screen.getByLabelText('Diagnóstico de ingreso'), '   ')
+    await usuario.type(screen.getByLabelText('Evaluación inicial'), '   ')
     await usuario.click(screen.getByRole('button', { name: 'Guardar ficha' }))
 
     expect(await screen.findByText('Indica la fecha de la evaluación.')).toBeInTheDocument()
-    expect(screen.getByText('Escribe el diagnóstico de ingreso.')).toBeInTheDocument()
+    expect(screen.getByText('Describe la evaluación inicial.')).toBeInTheDocument()
     expect(llamadas(fetchEspia, 'PUT', `/api/carpetas/${CARPETA_VACIA_DE_SOFIA}/diagnostico`)).toHaveLength(0)
   })
 
   it('cancelar una edición conserva la ficha anterior sin enviar nada', async () => {
     const { usuario, fetchEspia } = await montarApp(`/carpetas/${CARPETA_DE_SOFIA}/diagnostico`, 'sofia')
     await usuario.click(await screen.findByRole('button', { name: 'Editar ficha' }))
-    const campo = screen.getByLabelText('Diagnóstico de ingreso')
+    const campo = screen.getByLabelText('Diagnóstico de ingreso (opcional)')
     await usuario.clear(campo)
     await usuario.type(campo, 'Texto que se descarta')
     await usuario.click(screen.getByRole('button', { name: 'Cancelar' }))

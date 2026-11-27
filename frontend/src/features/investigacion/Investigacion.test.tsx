@@ -58,6 +58,7 @@ describe('Investigación', () => {
 
     expect(await screen.findByRole('heading', { name: 'Revisar paquete para Atlas.ti' })).toBeInTheDocument()
     const doc = within(screen.getByRole('article', { name: /INV-001/ }))
+    expect(doc.getByText('Entrevista inicial ficticia con la familia.')).toBeInTheDocument()
     expect(doc.getByText(/Dificultades de comunicación/)).toBeInTheDocument()
     expect(doc.getByText(/Sesión 1 · 2026-10:/)).toBeInTheDocument()
     expect(doc.queryByText(/Mariana/)).not.toBeInTheDocument()

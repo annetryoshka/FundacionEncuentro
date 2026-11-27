@@ -91,6 +91,7 @@ function VistaDiagnostico({ carpeta }: { carpeta: CarpetaDetalle }) {
           </Boton>
         </div>
         <dl className="mt-5 space-y-5">
+          <Campo titulo="Evaluación inicial">{ficha.evaluacionInicial ?? 'Sin evaluación inicial registrada'}</Campo>
           <Campo titulo="Diagnóstico de ingreso">{ficha.diagnosticoIngreso}</Campo>
           <Campo titulo="Hipótesis relacional">{ficha.hipotesisRelacional}</Campo>
           <Campo titulo="Comentarios clínicos">{ficha.comentariosClinicos}</Campo>
@@ -113,7 +114,7 @@ function Campo({ titulo, children }: { titulo: string; children: ReactNode }) {
 
 interface Errores {
   fecha?: string
-  diagnosticoIngreso?: string
+  evaluacionInicial?: string
 }
 
 function FormularioDiagnostico({
@@ -128,6 +129,7 @@ function FormularioDiagnostico({
   alGuardar: (ficha: Diagnostico) => void
 }) {
   const [fecha, setFecha] = useState(actual?.fecha ?? hoyIso())
+  const [evaluacionInicial, setEvaluacionInicial] = useState(actual?.evaluacionInicial ?? '')
   const [diagnosticoIngreso, setDiagnosticoIngreso] = useState(actual?.diagnosticoIngreso ?? '')
   const [hipotesisRelacional, setHipotesis] = useState(actual?.hipotesisRelacional ?? '')
   const [comentariosClinicos, setComentarios] = useState(actual?.comentariosClinicos ?? '')
@@ -135,7 +137,7 @@ function FormularioDiagnostico({
   const [guardando, setGuardando] = useState(false)
   const [fallo, setFallo] = useState<string | null>(null)
   const refFecha = useRef<HTMLInputElement>(null)
-  const refDiagnostico = useRef<HTMLTextAreaElement>(null)
+  const refEvaluacion = useRef<HTMLTextAreaElement>(null)
   const refFallo = useRef<HTMLDivElement>(null)
 
   async function enviar(evento: FormEvent) {
@@ -144,18 +146,19 @@ function FormularioDiagnostico({
     const encontrados: Errores = {}
     if (!fecha) encontrados.fecha = 'Indica la fecha de la evaluación.'
     else if (!esFechaValida(fecha)) encontrados.fecha = 'La fecha no es válida.'
-    if (!tieneTexto(diagnosticoIngreso)) encontrados.diagnosticoIngreso = 'Escribe el diagnóstico de ingreso.'
+    if (!tieneTexto(evaluacionInicial)) encontrados.evaluacionInicial = 'Describe la evaluación inicial.'
     setErrores(encontrados)
     setFallo(null)
     if (encontrados.fecha) return refFecha.current?.focus()
-    if (encontrados.diagnosticoIngreso) return refDiagnostico.current?.focus()
+    if (encontrados.evaluacionInicial) return refEvaluacion.current?.focus()
 
     setGuardando(true)
     try {
       alGuardar(
         await guardarDiagnostico(carpetaId, {
           fecha,
-          diagnosticoIngreso: diagnosticoIngreso.trim(),
+          evaluacionInicial: evaluacionInicial.trim(),
+          diagnosticoIngreso: diagnosticoIngreso.trim() || null,
           hipotesisRelacional: hipotesisRelacional.trim() || null,
           comentariosClinicos: comentariosClinicos.trim() || null,
         }),
@@ -181,13 +184,29 @@ function FormularioDiagnostico({
           error={errores.fecha}
           className="max-w-xs"
         />
+        {actual && !actual.evaluacionInicial && (
+          <Aviso tipo="info">Completa la evaluación inicial para guardar los cambios.</Aviso>
+        )}
         <AreaTexto
-          ref={refDiagnostico}
-          etiqueta="Diagnóstico de ingreso"
+          ref={refEvaluacion}
+          etiqueta="Evaluación inicial"
+          required
+          value={evaluacionInicial}
+          maxLength={LIMITE_TEXTO_LARGO}
+          onChange={(e) => {
+            const texto = e.target.value
+            setEvaluacionInicial(texto)
+            if (errores.evaluacionInicial && tieneTexto(texto)) {
+              setErrores((anteriores) => ({ ...anteriores, evaluacionInicial: undefined }))
+            }
+          }}
+          error={errores.evaluacionInicial}
+        />
+        <AreaTexto
+          etiqueta="Diagnóstico de ingreso (opcional)"
           value={diagnosticoIngreso}
           maxLength={LIMITE_TEXTO_LARGO}
           onChange={(e) => setDiagnosticoIngreso(e.target.value)}
-          error={errores.diagnosticoIngreso}
         />
         <AreaTexto
           etiqueta="Hipótesis relacional (opcional)"
