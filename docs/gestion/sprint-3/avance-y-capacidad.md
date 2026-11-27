@@ -65,3 +65,19 @@ Pendiente: contratos FE-134, FE-140 y FE-156; ratificación de FE-4, FE-5 y FE-1
 Desviaciones de carga: carga de Gemina estimada en 54 h frente a 24 h supuestas.
 Decisiones de alcance: pendientes con Andrea (ver propuesta).
 ```
+
+## Corte actualizado de backlog · 26/11/2026
+
+Andrea retiró FE-4 y sus subtareas. La tabla anterior conserva el corte histórico del 23/11; FE-181 ya no forma parte del trabajo de Gemina. La consulta completa actual de subtareas con etiqueta sprint-3 arroja:
+
+| Persona | Horas estimadas actuales |
+|---|---:|
+| Andrea | 56 |
+| Alejandro | 54 |
+| Adriana | 58 |
+| Jorge | 52 |
+| Emilia | 54 |
+| Gemina | 43 |
+| Total de 83 subtareas | 317 |
+
+Estas cifras sustituyen 345 h/54 h para el seguimiento vigente; no representan horas ejecutadas ni capacidad confirmada. El cambio total respecto del corte anterior no se atribuye exclusivamente a HU4, porque el backlog puede contener otros ajustes del equipo. HU5 conserva sus estimaciones asignadas y se simplifica a gastos básicos sin reparto. No se reasigna ni registra como realizada ninguna tarea automáticamente.
