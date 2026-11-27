@@ -3,7 +3,7 @@
 **Responsable:** Andrea Carolina Narváez Ortega.  
 **Fecha:** 23/11/2026.  
 **Base revisada:** `main` en `37ed16bcca9bb3d6842c62f41b58a1bf17f7616f`.  
-**Estado del entregable:** contrato de análisis preparado; las validaciones pendientes se indican expresamente. No acredita implementación ni pruebas del producto.
+**Estado vigente:** contrato de Sprint 3 consolidado con tres reglas ratificadas. Andrea dispuso el 26/11/2026 resolver las cinco reglas restantes en Sprint 4 mediante FE-211; esas reglas no están aprobadas.
 
 HU FE-117. Amplía [FE-61](../sprint-2/FE-61-contexto-y-constancia.md) y [FE-86](../sprint-2/FE-86-reglas-de-pago-por-sesion.md). Desbloquea FE-189, FE-190 y FE-191.
 
@@ -106,3 +106,11 @@ Andrea indicó en esta sesión que la Fundación **sí confirmó exactamente** l
 Las validaciones ya integradas conservan los tres estados y los campos condicionales del apartado 1, autorización administrativa para pagos, importe decimal e idempotencia. La suite de PostgreSQL de la base integrada `18ae1cf` verificó constancia y pagos; no se repite ni se altera su implementación al registrar este acuerdo.
 
 **Límite de la confirmación recibida:** la respuesta no define el soporte documental concreto admitido, las situaciones de No aplica, el alcance de consentimiento familiar/genograma, una política nueva de edición clínica por administración ni corrección/anulación de pagos. DEC-C01/C03/C04/C05/P03 permanecen explícitas para validación; no se inventa un acuerdo sobre esos puntos. El contrato técnico actual se conserva hasta recibir otra regla. FE-188 mantiene abierta esa validación externa, con las tres decisiones principales ya resueltas.
+
+## Decisión de alcance para el cierre de Sprint 3 · 26/11/2026
+
+Andrea aclaró: «no tenemos las reglas todavía, son arreglos que haremos en el sprint 4». Se conserva el contrato actual y las tres reglas ya ratificadas (atención con consentimiento pendiente, un pago por sesión, QR/transferencia). No se habilitan cuotas, correcciones por segundo POST, cambios de permisos ni supuestos nuevos de consentimiento.
+
+DEC-C01/C03/C04/C05/P03 se transfieren a [FE-211](https://andreanarvaezort-1786202493806.atlassian.net/browse/FE-211), prevista en FE Sprint 4. La tarea exige obtener las decisiones reales, actualizar contratos y probar solo las diferencias aprobadas. La falta de reglas queda registrada; no se convierte una postergación en aceptación del negocio.
+
+Con ese alcance expresamente decidido por la PO, FE-188 completa en Sprint 3 la consolidación de las reglas confirmadas y la trazabilidad de pendientes. La política definitiva seguirá abierta en FE-211. Se mantienen las estimaciones originales como planificación; no se registran horas reales ni una reunión no acreditada.

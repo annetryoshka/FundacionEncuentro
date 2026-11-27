@@ -21,3 +21,7 @@ El [esquema base](../../../db/migrations/001_esquema_base.sql) dispone de `conte
 ## Revisión de la entrega integrada por Andrea · 26/11/2026
 
 Andrea confirmó que la Fundación permite registrar atención con la constancia en estado pendiente. Esta decisión se aplica al incremento actual sin presentar Pendiente como consentimiento otorgado. Se conservan los campos condicionales implementados; la definición del soporte admisible y los supuestos de No aplica se controlan en [FE-188](../sprint-3/FE-188-decisiones-consentimiento-pagos.md). No se modifica el corte histórico del Sprint 2.
+
+## Seguimiento de reglas institucionales para Sprint 4
+
+El 26/11/2026 Andrea dispuso resolver en Sprint 4 la evidencia admitida, los supuestos de No aplica, el alcance familiar/genograma y la política de edición clínica que aún no están definidos. Se siguen en [FE-211](https://andreanarvaezort-1786202493806.atlassian.net/browse/FE-211) y [FE-188](../sprint-3/FE-188-decisiones-consentimiento-pagos.md). La atención con consentimiento pendiente ya fue ratificada; la postergación de los otros puntos no equivale a su aprobación.
