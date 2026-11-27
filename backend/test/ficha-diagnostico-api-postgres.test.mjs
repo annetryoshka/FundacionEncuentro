@@ -147,6 +147,7 @@ const guardarFicha = (id, cuerpo, token = "fixture") =>
     token,
   });
 const fichaValida = {
+  evaluacionInicial: "Entrevista inicial ficticia QA",
   fecha: "2026-10-12",
   diagnosticoIngreso: "Evaluación inicial ficticia QA",
 };
@@ -238,6 +239,7 @@ test(
   async () => {
     const res = await guardarFicha(casoA.id, {
       fecha: "2026-10-12",
+      evaluacionInicial: "  Entrevista QA  ",
       diagnosticoIngreso: "  Evaluación QA  ",
       hipotesisRelacional: "   ",
     });
@@ -260,8 +262,8 @@ test(
       { ...fichaValida, fecha: "12/10/2026" },
       { ...fichaValida, fecha: "" },
       { diagnosticoIngreso: "Sin fecha QA" },
-      { ...fichaValida, diagnosticoIngreso: "     " },
-      { ...fichaValida, diagnosticoIngreso: "" },
+      { ...fichaValida, evaluacionInicial: "     " },
+      { ...fichaValida, evaluacionInicial: "" },
       { fecha: "2026-10-12" },
       { ...fichaValida, diagnosticoIngreso: "x".repeat(10001) },
       { ...fichaValida, creadoPor: terapeutaB },

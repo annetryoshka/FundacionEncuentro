@@ -1,0 +1,47 @@
+{
+  "fuente": "Chromium real, API simulada local y datos ficticios; sin Supabase",
+  "results": [
+    {
+      "device": "escritorio",
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "result": "aprobado",
+      "checks": [
+        "evaluacion_requerida",
+        "diagnostico_opcional",
+        "cancelacion",
+        "recarga",
+        "resumen",
+        "historial",
+        "lectura_antigua",
+        "edicion_antigua",
+        "comentarios_conservados",
+        "sin_desplazamiento_horizontal",
+        "sin_errores_js"
+      ]
+    },
+    {
+      "device": "movil",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "result": "aprobado",
+      "checks": [
+        "evaluacion_requerida",
+        "diagnostico_opcional",
+        "cancelacion",
+        "recarga",
+        "resumen",
+        "historial",
+        "lectura_antigua",
+        "edicion_antigua",
+        "comentarios_conservados",
+        "sin_desplazamiento_horizontal",
+        "sin_errores_js"
+      ]
+    }
+  ]
+}

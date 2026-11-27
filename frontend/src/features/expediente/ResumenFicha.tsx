@@ -146,7 +146,8 @@ function BloqueDiagnostico({ carpetaId, enlace }: { carpetaId: string; enlace: s
       ) : (
         <>
           {datos.fichaFecha && <p className="text-suave">Evaluación del {fechaLarga(datos.fichaFecha)}</p>}
-          <p className="mt-1 line-clamp-4 whitespace-pre-line">{datos.diagnosticoIngreso ?? 'Sin texto.'}</p>
+          <p className="mt-1 line-clamp-4 whitespace-pre-line">{datos.evaluacionInicial ?? 'Sin evaluación inicial registrada.'}</p>
+          <p className="mt-2 text-suave">Diagnóstico de ingreso: {datos.diagnosticoIngreso ?? 'Sin registro'}</p>
         </>
       )}
     </Bloque>

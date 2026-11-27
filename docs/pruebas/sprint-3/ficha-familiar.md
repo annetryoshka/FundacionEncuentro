@@ -1,5 +1,7 @@
 # FE-128 — Verificar la ficha ampliada y la regresión del diagnóstico
 
+**Actualización posterior:** la adecuación de evaluación inicial obligatoria y diagnóstico opcional está implementada y verificada con apoyo de Andrea; ver [evidencia actual](evaluacion-inicial.md). El informe siguiente conserva el corte histórico y los resultados de las versiones identificadas.
+
 - **Historia:** FE-110, registrar la composición familiar y consultar el resumen inicial de la ficha.
 - **Base probada:** rama `feature/FE-126-ficha-familiar`, commit `1c7ad98` (API de Adriana, FE-126), que ya incluye `836d5da` (migración 015 de Alejandro, FE-125).
 - **Referencia:** contrato FE-123 (`docs/srs/sprint-3/FE-123-ficha-familiar-y-diagnostico.md`, commit `832d464`), FE-66 y FE-70.
@@ -80,3 +82,7 @@ La ejecución del backend no encontró defectos: la API y la base cumplen los cr
 Andrea confirmó evaluación inicial obligatoria y diagnóstico de ingreso opcional. El cambio de FE-126 que combina el JSON conserva claves adicionales y se mantiene como protección de integridad. En la API actual, omitir hipótesis/comentarios todavía los limpia: no confundir ese PUT de formulario completo con una edición parcial.
 
 Los resultados anteriores corresponden a los commits identificados en este informe y no certifican la nueva regla. Tras adaptar API y formulario, verificar: evaluación sin diagnóstico, evaluación vacía rechazada, lectura de fichas antiguas, edición con evaluación, diagnóstico `null` sin recuperación desde el alta, conservación de claves adicionales/familia/genograma y propagación a historial/informes/exportaciones. El contrato actualizado está en FE-123 §4.
+
+## Adecuación posterior realizada por Andrea · 26/11/2026
+
+Se completaron API, migración 021, formulario, tipos, historial, informes/exportaciones y simulador. Regresión: 279 unitarias backend, 275 frontend, 413 de integración con PostgreSQL local y dos recorridos en Chromium (escritorio y móvil emulado). Cero fallos; 13 pruebas de integración omitidas con motivo registrado. La evaluación puede guardarse sin diagnóstico, y las fichas antiguas y sus informes revisados no se reescriben. La [evidencia actual](evaluacion-inicial.md) detalla los casos y el paso de despliegue de la 021 en Supabase.

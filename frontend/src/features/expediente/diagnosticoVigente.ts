@@ -5,6 +5,7 @@ export interface DiagnosticoVigente {
   origen: 'ficha' | 'alta' | 'sin_datos'
   fichaId: string | null
   fichaFecha: string | null
+  evaluacionInicial: string | null
   diagnosticoIngreso: string | null
   hipotesisRelacional: string | null
   comentariosClinicos: string | null

@@ -13,6 +13,7 @@ export type DocumentoInvestigacion = {
     nota: string | null;
   }[];
   diagnostico?: {
+    evaluacionInicial?: string | null;
     origen: string;
     diagnosticoIngreso: string | null;
     hipotesisRelacional: string | null;
@@ -42,6 +43,9 @@ function lineasDocumento(doc: DocumentoInvestigacion): string[] {
     const diagnostico = doc.diagnostico;
     lineas.push('', 'Diagnóstico');
     lineas.push(`Origen: ${diagnostico?.origen ?? 'sin datos'}`);
+    if (diagnostico?.evaluacionInicial !== undefined) {
+      lineas.push(`Evaluación inicial: ${diagnostico.evaluacionInicial ?? 'Sin registro'}`);
+    }
     lineas.push(`Diagnóstico de ingreso: ${diagnostico?.diagnosticoIngreso ?? 'Sin registro'}`);
     lineas.push(`Hipótesis relacional: ${diagnostico?.hipotesisRelacional ?? 'Sin registro'}`);
     lineas.push(`Comentarios clínicos: ${diagnostico?.comentariosClinicos ?? 'Sin registro'}`);

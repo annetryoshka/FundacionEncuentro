@@ -335,7 +335,7 @@ inexistente responde 404 "Caso no encontrado"; marketing, 403. Fechas sin hora e
 | FE-77 | `POST /api/carpetas/:id/tareas` `{ sesionId, descripcion }` → 201 `{ tarea }` | Nace `pendiente`. 400 si la sesión es de otro caso. |
 | FE-77 | `PATCH /api/carpetas/:id/tareas/:tareaId/cumplimiento` `{ estado: 'pendiente' \| 'realizada' }` → `{ tarea }` | Si el estado no cambia, no registra otra actualización. |
 | FE-67 | `GET /api/carpetas/:id/diagnostico` → `{ diagnostico \| null }` | `null` = sin ficha (no es un error). |
-| FE-67 | `PUT /api/carpetas/:id/diagnostico` `{ fecha, diagnosticoIngreso, hipotesisRelacional?, comentariosClinicos? }` | Crea o reemplaza la ficha única; conserva `id`, `creadoPor` y `creadoEn`. |
+| FE-67 | `PUT /api/carpetas/:id/diagnostico` `{ fecha, evaluacionInicial, diagnosticoIngreso?, hipotesisRelacional?, comentariosClinicos? }` | Crea o actualiza la ficha única y conserva claves adicionales del JSON; conserva `id`, `creadoPor` y `creadoEn`. |
 | FE-62 | `GET /api/carpetas/:id/constancia` → `{ constancia \| null }` | Incluye `contextoJudicial` (o `null`). Fechas en `AAAA-MM-DD` desde el commit 8c77aa3. |
 | FE-62 | `PUT /api/carpetas/:id/constancia` `{ procedencia?, origenJudicial, estado, fechaConsentimiento?, referenciaEvidencia?, explicacion?, contextoJudicial? }` | `pendiente`: sin fecha, evidencia ni explicación. `registrado`: fecha y evidencia. `no_aplica`: explicación. `origenJudicial: true` exige `contextoJudicial` con `juzgado` (`nroExpediente`, `fechaDerivacion` y `observaciones` opcionales); `false` lo rechaza y borra el guardado. |
 | FE-87 | `GET /api/carpetas/:id/pagos` → `{ pagos }` | Solo administración (403 para terapeutas). `monto` es texto decimal con punto. |
@@ -626,8 +626,12 @@ El texto libre puede contener identificadores y requiere revisión humana.
 El uso con datos reales sigue sujeto a ratificación. La prueba de
 importación en Atlas.ti corresponde a FE-171.
 
-## Adaptación clínica acordada, pendiente de implementación · FE-123
+## Evaluación inicial obligatoria y diagnóstico opcional · FE-123/FE-126
 
-Decisión de Andrea (PO), 26/11/2026: evaluación inicial obligatoria y diagnóstico de ingreso opcional. La API de main e6c89bd aún conserva sus validadores anteriores; esta sección describe el objetivo de adaptación, no una ruta ya modificada.
+Decisión de Andrea (PO), 26/11/2026: evaluación inicial obligatoria y diagnóstico de ingreso opcional. Implementada con apoyo de Andrea en FE-126/127/128; aplicar la migración 021 antes de desplegar esta versión.
 
-El PUT de diagnóstico debe incorporar `evaluacionInicial` (texto de 1 a 10000 caracteres después de quitar espacios exteriores), admitir `diagnosticoIngreso: null` y mantener hipótesis/comentarios independientes y opcionales. Se conserva el guardado del formulario completo y la combinación del JSON para proteger claves adicionales. Las fichas históricas se leen sin transformación automática de su contenido; una edición solicita la evaluación faltante. Familia, genograma, autoría e ID se conservan. Deben actualizarse también fuente clínica, historial, informes/exportación, frontend y pruebas. Ver [decisión y aceptación de FE-123](../srs/sprint-3/FE-123-ficha-familiar-y-diagnostico.md#4-decisión-de-andrea-como-po--26112026).
+El PUT recibe `fecha`, `evaluacionInicial` (texto con contenido, hasta 10000 caracteres) y diagnóstico/hipótesis/comentarios opcionales (string hasta 10000 o null). Guardar normaliza espacios y conserva claves adicionales del JSON. Es un formulario completo: omitir o vaciar un opcional lo deja en null. La evaluación no se obtiene automáticamente de comentarios históricos.
+
+GET de diagnóstico, GET de fuente vigente e historial devuelven `evaluacionInicial` (null para fichas antiguas). Leer una ficha antigua sigue permitido; editar solicita completar la evaluación. Familia, genograma, ID y autoría se conservan. Un diagnóstico null de una ficha vigente no se completa desde el alta.
+
+La 021 amplía la vista y las fotografías: incluye evaluación cuando existe, sin reescribir fichas ni informes/exportaciones anteriores. Los informes nuevos usan plantilla v2. PDF, DOCX y los documentos seleccionados de investigación conservan la evaluación; la revisión de textos de investigación y sus permisos permanecen vigentes. Ver [contrato FE-123](../srs/sprint-3/FE-123-ficha-familiar-y-diagnostico.md) y [evidencia de verificación](../pruebas/sprint-3/evaluacion-inicial.md).
