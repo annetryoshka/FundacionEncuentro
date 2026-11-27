@@ -176,7 +176,7 @@ test('G9 · permisos completos y sin token', opciones, async () => {
 });
 
 test('G10 · regresión: cargar el genograma no cambia el diagnóstico del caso', opciones, async () => {
-  const ficha = { fecha: '2026-11-20', diagnosticoIngreso: 'Diagnóstico ficticio QA', hipotesisRelacional: null, comentariosClinicos: null };
+  const ficha = { fecha: '2026-11-20', evaluacionInicial: 'Evaluación inicial ficticia QA', diagnosticoIngreso: 'Diagnóstico ficticio QA', hipotesisRelacional: null, comentariosClinicos: null };
   const guardado = await api.solicitar(`/carpetas/${casoA.id}/diagnostico`, { metodo: 'PUT', cuerpo: ficha, token: 't1' });
   assert.equal(guardado.status, 200);
   await guardado.json();
