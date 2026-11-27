@@ -4,25 +4,26 @@ import { useSesion } from '../features/auth/sesion'
 import { BotonAyuda } from '../features/recorridos/BotonAyuda'
 import type { Rol } from '../features/auth/tipos'
 import { nombreRol } from '../features/usuarios/tipos'
-import { Icono } from './iconos'
+import { Icono, type NombreIcono } from './iconos'
 import { Logo, PieContacto } from './marca'
 
 interface Seccion {
   ruta: string
   nombre: string
+  icono: NombreIcono
   roles: Rol[]
 }
 
 /** Menú principal. Cada sección solo aparece para los roles que pueden usarla. */
 const SECCIONES: Seccion[] = [
-  { ruta: '/inicio', nombre: 'Inicio', roles: ['administrador', 'terapeuta', 'marketing'] },
-  { ruta: '/carpetas', nombre: 'Carpetas', roles: ['administrador', 'terapeuta'] },
-  { ruta: '/investigacion', nombre: 'Investigación', roles: ['administrador', 'terapeuta'] },
-  { ruta: '/difusion', nombre: 'Difusión', roles: ['administrador', 'marketing'] },
-  { ruta: '/articulos', nombre: 'Artículos', roles: ['administrador', 'marketing'] },
-  { ruta: '/indicadores', nombre: 'Indicadores', roles: ['administrador'] },
-  { ruta: '/gastos', nombre: 'Gastos', roles: ['administrador'] },
-  { ruta: '/usuarios', nombre: 'Cuentas del personal', roles: ['administrador'] },
+  { ruta: '/inicio', nombre: 'Inicio', icono: 'casa', roles: ['administrador', 'terapeuta', 'marketing'] },
+  { ruta: '/carpetas', nombre: 'Carpetas', icono: 'carpeta', roles: ['administrador', 'terapeuta'] },
+  { ruta: '/investigacion', nombre: 'Investigación', icono: 'libro', roles: ['administrador', 'terapeuta'] },
+  { ruta: '/difusion', nombre: 'Difusión', icono: 'megafono', roles: ['administrador', 'marketing'] },
+  { ruta: '/articulos', nombre: 'Artículos', icono: 'informe', roles: ['administrador', 'marketing'] },
+  { ruta: '/indicadores', nombre: 'Indicadores', icono: 'grafico', roles: ['administrador'] },
+  { ruta: '/gastos', nombre: 'Gastos', icono: 'pago', roles: ['administrador'] },
+  { ruta: '/usuarios', nombre: 'Cuentas del personal', icono: 'personas', roles: ['administrador'] },
 ]
 
 /** FE-43 · Estructura común de las pantallas internas: cabecera con menú por rol, contenido y pie. */
@@ -86,14 +87,24 @@ export function Plantilla() {
                   <NavLink
                     to={s.ruta}
                     className={({ isActive }) =>
-                      `block border-b-[3px] px-3 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja ${
+                      `group flex items-center gap-2 rounded-t-lg border-b-[3px] px-3 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors hover:bg-crema focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-naranja motion-reduce:transition-none ${
                         isActive
                           ? 'border-verde text-verde-oscuro'
-                          : 'border-transparent text-suave hover:text-verde-oscuro'
+                          : 'border-transparent text-suave hover:border-linea hover:text-verde-oscuro'
                       }`
                     }
                   >
-                    {s.nombre}
+                    {({ isActive }) => (
+                      <>
+                        <Icono
+                          nombre={s.icono}
+                          className={`size-4 transition-transform group-hover:-translate-y-0.5 motion-reduce:transition-none ${
+                            isActive ? 'text-verde' : 'text-suave group-hover:text-verde'
+                          }`}
+                        />
+                        {s.nombre}
+                      </>
+                    )}
                   </NavLink>
                 </li>
               ))}
