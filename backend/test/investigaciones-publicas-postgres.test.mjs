@@ -43,8 +43,13 @@ before(async () => {
     `insert into publicaciones_foro (titulo, contenido, autor_id)
      values ('Artículo previo QA', 'Contenido previo ficticio.', '00000000-0000-4000-8000-0000000000aa') returning *`)).rows[0];
   // Permisos por defecto de Supabase para anon/authenticated: la 023 debe quitarlos.
-  await sql.query(`grant all on all tables in schema public to anon, authenticated;
-                   alter default privileges in schema public grant all on tables to anon, authenticated`);
+  // Solo si existen (PostgreSQL de Supabase o local con esos roles); sin ellos la prueba de permisos no aplica.
+  await sql.query(`do $$ begin
+                     if exists (select 1 from pg_roles where rolname = 'anon') then
+                       grant all on all tables in schema public to anon, authenticated;
+                       alter default privileges in schema public grant all on tables to anon, authenticated;
+                     end if;
+                   end $$`);
   await base.migrar();
 });
 after(async () => { await base?.cerrar(); });
