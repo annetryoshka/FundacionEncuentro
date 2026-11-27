@@ -97,7 +97,7 @@ Repositorio: https://github.com/annetryoshka/FundacionEncuentro. El detalle por 
 
 ## 9. Plan para el siguiente sprint
 
-Alcance del Sprint 3 según Jira: difusión institucional y portal público (campañas, actividades y cursos), ciudad de residencia con filtro La Paz y El Alto, exportación de informes, fichas e historial a PDF y Word editable, y, sujetos a ratificación, planificación de personal, gastos y foro de investigaciones. Gestión del sprint en [bloqueos-e-integracion.md](../../gestion/sprint-3/bloqueos-e-integracion.md). Fechas por fijar.
+Alcance del Sprint 3: difusión institucional y portal público (campañas, actividades y cursos), ciudad de residencia con filtro La Paz y El Alto, ficha familiar y genograma, informes, exportación a PDF y Word editable, importación histórica, investigación, gastos básicos sin reparto de ingresos y artículos públicos sin comentarios. La planificación de personal fue retirada del proyecto (actualización de alcance del 2026-11-26). Gestión del sprint en [bloqueos-e-integracion.md](../../gestion/sprint-3/bloqueos-e-integracion.md). Fechas por fijar.
 
 ## Firma y responsable
 
