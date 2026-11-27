@@ -380,3 +380,9 @@ Guía completa: `docs/operacion/sprint-3/actualizacion-y-recuperacion.md`.
   fuera de Supabase, llenar `auth.users` desde `perfiles` antes de `post-data`.
 - El respaldo incluye los archivos de genograma (bytea). No incluye `auth.users` ni archivos de Supabase Storage.
 - Ensayo automático (PostgreSQL local): `backend/scripts/ensayo-actualizacion.mjs`.
+
+## Evaluación inicial independiente (021 · FE-126)
+
+Aplicar `021_evaluacion_inicial.sql` después de la 020 y antes de desplegar la API nueva. Añade la evaluación a la vista y a las fotografías; no ejecuta UPDATE sobre fichas ni transforma comentarios/diagnósticos antiguos. Las fotografías sin evaluación conservan su estructura, y los informes revisados y archivos anteriores no se reescriben.
+
+El PUT de la API pide evaluación al crear o editar; las fichas antiguas siguen siendo legibles. Se probó la 021 sobre una base con ficha histórica e informe revisado, verificando igualdad del JSON, fotografía e informe previo. Ver [evidencia](../../docs/pruebas/sprint-3/evaluacion-inicial.md). Esta ejecución se hizo en PostgreSQL local; no acredita aplicación de la migración en Supabase.

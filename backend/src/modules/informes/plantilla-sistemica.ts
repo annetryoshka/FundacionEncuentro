@@ -6,7 +6,7 @@ export function definirPlantillaSistemica(
 ): Omit<EntradaBorrador<FotografiaInforme>, 'origen'> {
   return {
     tipo: 'intervencion_sistemica',
-    versionPlantilla: 'fe151-sistemica-v1',
+    versionPlantilla: 'fe151-sistemica-v2',
     comprobaciones: [
       {
         campo: 'paciente.nombreCompleto',
@@ -15,6 +15,7 @@ export function definirPlantillaSistemica(
     ],
     generarSecciones: ({ paciente, responsable, diagnostico, sesiones }) => {
       const evaluacion = [
+        diagnostico.evaluacionInicial,
         diagnostico.diagnosticoIngreso,
         diagnostico.hipotesisRelacional,
       ].filter((texto) => texto?.trim()).join('\n');

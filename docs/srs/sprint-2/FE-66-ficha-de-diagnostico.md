@@ -19,3 +19,5 @@ Propuesta funcional para FE-13. La ficha vigente se consulta y se edita desde la
 ## Aclaración posterior de FE-123 · 26/11/2026
 
 Andrea confirmó evaluación inicial obligatoria y diagnóstico de ingreso opcional. Se implementará `evaluacionInicial` como campo independiente de `comentariosClinicos`, conservando los datos históricos. La lectura de fichas antiguas no se bloquea; su próxima edición debe completar la evaluación. La base integrada e6c89bd todavía exige diagnóstico: esta adenda es el contrato de adaptación. Ver [FE-123](../sprint-3/FE-123-ficha-familiar-y-diagnostico.md), sección 4.
+
+La adaptación posterior de FE-126/127/128 ya está implementada con apoyo de Andrea: campo propio de evaluación, diagnóstico opcional, lectura histórica y edición que solicita la evaluación faltante. La migración 021 amplía las lecturas sin transformar el contenido antiguo. Ver [evidencia de verificación](../../pruebas/sprint-3/evaluacion-inicial.md).

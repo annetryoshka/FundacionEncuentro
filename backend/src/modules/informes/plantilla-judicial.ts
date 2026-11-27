@@ -10,13 +10,13 @@ export function definirPlantillaJudicial(
 
   return {
     tipo: 'judicial',
-    versionPlantilla: 'fe151-judicial-v1',
+    versionPlantilla: 'fe151-judicial-v2',
     comprobaciones: [
       { campo: 'paciente.nombreCompleto', presente: Boolean(origen.paciente.nombreCompleto.trim()) },
       { campo: 'judicial.juzgado', presente: Boolean(juzgado) },
       { campo: 'objeto', presente: Boolean(objetoInforme) },
     ],
-    generarSecciones: ({ paciente, responsable, judicial, sesiones }) => {
+    generarSecciones: ({ paciente, responsable, judicial, sesiones, diagnostico }) => {
       const seguimiento = sesiones.map(({ fecha, nroSesion, evolucion }) =>
         `${fecha} · Sesión ${nroSesion}\n${evolucion?.trim() || 'Sin evolución registrada.'}`,
       ).join('\n\n');
@@ -33,6 +33,9 @@ export function definirPlantillaJudicial(
           contenido: responsable?.nombreCompleto ?? 'Sin responsable registrado.',
         },
         { titulo: 'Objeto del informe', contenido: objetoInforme },
+        ...(diagnostico.evaluacionInicial
+          ? [{ titulo: 'Evaluación inicial', contenido: diagnostico.evaluacionInicial }]
+          : []),
         {
           titulo: 'Intervención y observaciones',
           contenido: seguimiento || 'Sin sesiones seleccionadas.',

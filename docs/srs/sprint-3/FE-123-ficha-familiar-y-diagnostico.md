@@ -47,9 +47,9 @@ Fuente clínica propuesta para informes: ficha vigente cuando exista; si no exis
 
 ## 4. Decisión de Andrea como PO · 26/11/2026
 
-Andrea confirmó en esta conversación: **evaluación inicial obligatoria y diagnóstico de ingreso opcional**. Esta decisión resuelve el pendiente funcional de FE-66/FE-70; no se presenta como validación externa de la Fundación ni como código ya adaptado.
+Andrea confirmó en esta conversación: **evaluación inicial obligatoria y diagnóstico de ingreso opcional**. Esta decisión resuelve el pendiente funcional de FE-66/FE-70; la adaptación de código se realizó con apoyo de Andrea y su evidencia está en [evaluacion-inicial.md](../../pruebas/sprint-3/evaluacion-inicial.md). La decisión de la PO se distingue de una validación externa de la Fundación.
 
-| Campo | Main en e6c89bd | Contrato acordado para adaptar |
+| Campo | Versión anterior e6c89bd | Contrato implementado en esta entrega |
 |---|---|---|
 | Fecha de evaluación | Obligatoria | Obligatoria y calendario válido. |
 | `evaluacionInicial` | No tiene campo independiente. | Texto obligatorio, distinto de espacios, hasta 10000 caracteres. |
@@ -65,8 +65,8 @@ Reglas para la adaptación:
 - Las fichas antiguas siguen siendo legibles; la pantalla muestra «Sin evaluación inicial registrada». Al guardar una edición con el contrato nuevo, se solicita completar la evaluación.
 - El PUT recibe el formulario completo: evaluación, diagnóstico, hipótesis y comentarios. El frontend envía `null` para limpiar opcionales; se conserva la combinación del JSON para proteger claves adicionales del servidor.
 - Se conservan ID, creación, autoría, familia y genograma. Una ficha vigente con diagnóstico `null` no se completa desde los datos del alta.
-- Adriana y Alejandro deben adaptar DTO, servicio, lectura de la fuente clínica vigente y sus usos en historial, informes/exportación. Jorge adapta formulario, tipos, resumen y simulador. Emilia comprueba los escenarios y la regresión.
-- Hasta desplegar esos ajustes, la API integrada sigue exigiendo diagnóstico. No declarar el nuevo criterio implementado por haber actualizado este documento.
+- Andrea completó como apoyo DTO, servicio, migración 021, fuente clínica, historial, informes/exportaciones, formulario, tipos, resumen, simulador y pruebas. Los commits FE-126/127/128 identifican cada parte; los responsables originales conservan la trazabilidad de su trabajo previo.
+- La API de esta entrega exige evaluación y admite diagnóstico vacío/null. La lectura antigua permanece disponible; la edición solicita evaluación. Para desplegar sobre la base existente, aplicar primero 021_evaluacion_inicial.sql. No se rellenan fichas históricas con textos inventados.
 
 Aceptación adicional: guardar con evaluación y diagnóstico ausente; rechazar evaluación vacía; conservar opcionales y claves adicionales al editar; limpiar un diagnóstico con `null`; leer una ficha antigua sin perder datos; comprobar permisos y recarga; conservar la evaluación en historial, informe y exportación cuando esa sección se incluya.
 
@@ -126,4 +126,4 @@ Administración y terapeuta asignada mantienen el acceso clínico actual; terape
 - Una edición concurrente debe evitar sobrescribir silenciosamente cambios ajenos; acordar versión/fecha de control en API.
 - El resumen funciona en móvil sin convertir los datos en texto ilegible.
 
-**Pendiente para cierre:** contrastar campos con ficha de referencia o caso ficticio validado por la Fundación y revisar con el equipo la adaptación de la regla acordada. El mínimo del contrato ya fue decidido por Andrea; la implementación y la validación externa requieren evidencia posterior.
+**Pendiente para cierre:** contrastar campos con ficha de referencia o caso ficticio validado por la Fundación y registrar la validación externa. La adaptación de la regla acordada ya cuenta con evidencia local; el despliegue de la 021 en Supabase sigue el procedimiento de la base.
