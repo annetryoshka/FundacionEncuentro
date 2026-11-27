@@ -25,6 +25,8 @@ import {
   type EstadoCaso,
 } from './tipos'
 
+const EN_CONTEXTO = ['familia', 'genograma', 'diagnostico']
+
 /**
  * Resumen de la carpeta del paciente.
  * FE-31: Consulta de carpeta.
@@ -69,7 +71,8 @@ export function PaginaCarpeta() {
   // se la asignaron; el backend lo vuelve a comprobar en cada guardado.
   const puedeClasificar = tieneRol('administrador', 'terapeuta')
   const cambioVigente = useRef(0)
-  const apartados = apartadosVisibles(tieneRol)
+  // Familia, genograma y diagnóstico ya tienen su acceso en «Contexto del paciente».
+  const apartados = apartadosVisibles(tieneRol).filter((a) => !EN_CONTEXTO.includes(a.ruta))
 
   const refExito = useRef<HTMLDivElement>(null)
   const refEdicionExitosa = useRef<HTMLDivElement>(null)

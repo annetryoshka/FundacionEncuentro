@@ -70,7 +70,7 @@ describe('Ficha de diagnóstico', () => {
   it('un error de carga se distingue de una ficha ausente y se puede reintentar', async () => {
     const { usuario, fetchEspia } = await montarApp(`/carpetas/${CARPETA_VACIA_DE_SOFIA}`, 'sofia')
     fallarUnaVez(fetchEspia, 'GET', `/api/carpetas/${CARPETA_VACIA_DE_SOFIA}/diagnostico`, 500)
-    await usuario.click(await screen.findByRole('link', { name: /^Diagnóstico/ }))
+    await usuario.click(await screen.findByRole('link', { name: /^Ver diagnóstico/ }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar la ficha de diagnóstico.')
     expect(screen.queryByText('Sin ficha de diagnóstico')).not.toBeInTheDocument()
     await usuario.click(screen.getByRole('button', { name: 'Reintentar' }))
