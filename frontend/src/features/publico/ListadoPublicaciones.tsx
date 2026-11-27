@@ -25,7 +25,7 @@ export function CategoriasPublicaciones({ valor, alCambiar }: PropsCategorias) {
             type="button"
             aria-pressed={activa}
             onClick={() => alCambiar(opcion.valor)}
-            className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja ${
+            className={`inline-flex min-h-11 items-center rounded-full border px-5 text-sm font-semibold transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-naranja ${
               activa ? 'border-verde bg-verde text-white' : 'border-linea bg-white text-verde hover:border-verde'
             }`}
           >

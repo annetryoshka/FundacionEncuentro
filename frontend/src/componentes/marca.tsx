@@ -5,7 +5,7 @@
 import logo from '../assets/logo-fundacion-encuentro.webp'
 
 export const TELEFONO = '+591 77263336'
-export const DIRECCION = 'Calle 11 de Obrajes Nº 169, frente al colegio "Linderman"'
+export const DIRECCION = 'Calle 11 de Obrajes Nº 169, frente al colegio Lindemann'
 
 export function Logo({ className = '' }: { className?: string }) {
   return (

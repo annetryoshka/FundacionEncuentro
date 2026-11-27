@@ -15,7 +15,7 @@ describe('FE-150 · navegación pública sin sesión', () => {
     expect(document.getElementById('contenido')?.tagName).toBe('MAIN')
   })
 
-  it('con el teclado se llega, en orden, al logo, Fundación, Publicaciones e Ingreso del personal', async () => {
+  it('con el teclado se llega, en orden, al logo, Ingreso del personal e Inicio, Actividades y Contacto', async () => {
     const { usuario } = montarSinSesion('/publicaciones')
     await screen.findByRole('heading', { level: 1 })
     const orden: string[] = []
@@ -26,13 +26,16 @@ describe('FE-150 · navegación pública sin sesión', () => {
     const posicion = (texto: string) => orden.findIndex((t) => t.includes(texto))
     expect(posicion('Fundación Encuentro')).toBeGreaterThan(-1)
     expect(posicion('Fundación Encuentro')).toBeLessThan(posicion('Ingreso del personal'))
-    expect(orden.some((t) => t === 'Fundación')).toBe(true)
+    expect(posicion('Ingreso del personal')).toBeLessThan(orden.indexOf('Inicio'))
+    expect(orden.indexOf('Inicio')).toBeLessThan(orden.indexOf('Actividades'))
+    expect(orden.indexOf('Actividades')).toBeLessThan(orden.indexOf('Contacto'))
   })
 
   it('la navegación del portal no ofrece ninguna sección del personal', async () => {
     montarSinSesion('/publicaciones')
     const nav = within(await screen.findByRole('navigation', { name: 'Portal' }))
-    expect(nav.getAllByRole('link').map((a) => a.textContent?.trim())).toEqual(['Fundación', 'Publicaciones', 'Ingreso del personal'])
+    expect(nav.getAllByRole('link').map((a) => a.textContent?.trim())).toEqual(['Inicio', 'Actividades', 'Contacto'])
+    expect(screen.getByRole('link', { name: /Ingreso del personal/ })).toHaveAttribute('href', '/login')
     for (const privado of [/Carpetas/, /Indicadores/, /Difusión/, /Importaci/, /Gastos/, /Cerrar sesión/]) {
       expect(screen.queryByRole('link', { name: privado })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: privado })).not.toBeInTheDocument()
@@ -58,7 +61,7 @@ describe('FE-150 · navegación pública sin sesión', () => {
     await screen.findByRole('heading', { level: 1 })
     const telefono = screen.getAllByRole('link').find((a) => a.getAttribute('href')?.startsWith('tel:'))
     expect(telefono?.getAttribute('href')).toMatch(/^tel:\+?\d{7,}$/)
-    await usuario.click(within(screen.getByRole('navigation', { name: 'Portal' })).getByRole('link', { name: 'Fundación' }))
+    await usuario.click(within(screen.getByRole('navigation', { name: 'Portal' })).getByRole('link', { name: 'Contacto' }))
     await waitFor(() => expect(screen.getAllByText(/\+591/).length).toBeGreaterThan(0))
   })
 
