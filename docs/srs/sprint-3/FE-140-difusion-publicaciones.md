@@ -90,3 +90,11 @@ Ejemplo de demostración, sin publicación institucional real:
 7. Marketing no obtiene expedientes, pagos, familiares ni archivos clínicos.
 
 **Pendiente:** FE-141 debe aportar textos institucionales, contactos e imágenes autorizadas. Aquí no se afirma que la Fundación ya aprobó contenidos o canales.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+El contrato está implementado en `DifusionAdminController` y `DifusionPublicaController`. Gestión autenticada en `/api/difusion/publicaciones`; lectura pública en `/api/publico/publicaciones`. Administración/marketing gestionan borrador/publicado/retirado; la terapeuta no obtiene por ese motivo permisos de difusión. Listado y URL pública ocultan borradores y retiradas.
+
+La interfaz realiza creación/edición, validación de datos, cambios de estado y tratamiento de conflicto. La regresión está en `frontend/src/features/difusion/Difusion.test.tsx` y `backend/test/difusion-api-postgres.test.mjs`; forma parte de la entrega integrada verificada. La autorización no depende solo de ocultar botones: la API aplica roles y permisos públicos por separado.
+
+Andrea autorizó en esta sesión la descripción del centro, el teléfono y la dirección. Se implementan en `/fundacion` mediante FE-146 y se registran en `docs/contenido/difusion/registro-autorizacion.md`. No se extiende esa autorización a nuevas imágenes, redes, tarifas ni publicaciones reales. Los contenidos `[DEMO QA]` siguen siendo solo de pruebas. Campos, estados, roles y sus criterios quedan definidos; las aprobaciones de cada publicación futura pertenecen a su gestión de contenido, no a redefinir este contrato.
