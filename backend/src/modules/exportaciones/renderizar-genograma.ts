@@ -47,13 +47,15 @@ export async function renderizarGenograma(
   const raizPdfjs = dirname(
     createRequire(import.meta.url).resolve("pdfjs-dist/package.json"),
   );
+  // pdf.js exige que estas rutas terminen en "/"; en Windows join() la convierte en "\".
+  const carpeta = (nombre: string) => `${join(raizPdfjs, nombre)}/`;
   const tarea = getDocument({
     data: new Uint8Array(contenido),
     useSystemFonts: false,
-    standardFontDataUrl: join(raizPdfjs, "standard_fonts/"),
-    cMapUrl: join(raizPdfjs, "cmaps/"),
+    standardFontDataUrl: carpeta("standard_fonts"),
+    cMapUrl: carpeta("cmaps"),
     cMapPacked: true,
-    wasmUrl: join(raizPdfjs, "wasm/"),
+    wasmUrl: carpeta("wasm"),
   });
   try {
     const documento = await tarea.promise;
