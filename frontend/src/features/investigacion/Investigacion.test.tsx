@@ -106,7 +106,7 @@ describe('Investigación', () => {
     montado.fetchEspia.mockImplementation(async (u, i) => {
       // Revisión vigente de otra visita: el backend ya permite descargar.
       if (/\/descarga$/.test(String(u)) && cambios.revisionVigente)
-        return new Response(new Blob(['PK']), {
+        return new Response('PK', {
           headers: { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="investigacion.zip"' },
         })
       const r = await simulado(u, i)
