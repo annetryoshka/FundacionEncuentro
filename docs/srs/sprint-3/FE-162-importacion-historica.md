@@ -119,3 +119,7 @@ La plantilla efectiva es `db/importacion/plantilla-importacion-historica.csv` y 
 Verificación ejecutada: **13 pruebas de interfaz** entre `TablaRevisionImportacion.test.tsx` y `Importacion.test.tsx`, todas aprobadas. La suite de integración existente de FE-164 ya comprueba la muestra de FE-162, duplicados, formatos, correcciones, confirmación y no duplicación en PostgreSQL. La revisión de navegador de esta entrega se registra en FE-196. No se declara una nueva revisión de Jorge ni una importación de expedientes reales.
 
 El componente queda entregado. Para aceptar el mapeo del archivo antiguo de la Fundación falta una muestra autorizada y su contraste con estas columnas; se conserva como validación externa pendiente.
+
+## Aceptación del alcance técnico por la PO · 26/11/2026
+
+Andrea aprobó el cierre del alcance técnico de Sprint 3: plantilla normalizada de 18 columnas, revisión por fila y conservación de expedientes existentes. La validación externa permanece pendiente y se traslada por su decisión expresa a [FE-214](https://andreanarvaezort-1786202493806.atlassian.net/browse/FE-214), prevista en Sprint 4. Este apartado sustituye el pendiente de cierre de Sprint 3 de las secciones anteriores, sin acreditar ensayos en la instalación de la Fundación, una muestra histórica real ni un catálogo/perfil institucional aprobado. No se registran horas reales ni reuniones.
