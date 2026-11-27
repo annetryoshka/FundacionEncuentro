@@ -2,11 +2,11 @@
 
 **Responsable:** Andrea Carolina Narváez Ortega.
 
-**Fecha:** 23/11/2026.
+**Fecha de actualización:** 26/11/2026 (se conservan los cortes anteriores).
 
-**Base revisada:** `main` en `37ed16bcca9bb3d6842c62f41b58a1bf17f7616f`.
+**Base integrada:** `main` en `18ae1cf`, más las ampliaciones de Andrea FE-124/146/162 de esta entrega.
 
-**Naturaleza:** adenda de análisis y arquitectura propuesta. No certifica funciones implementadas ni ratificación de la Fundación.
+**Naturaleza:** contrato y trazabilidad cotejados con el incremento integrado. Cada validación externa pendiente se conserva expresamente; una revisión técnica no sustituye la conformidad de la Fundación.
 
 ## 1. Qué hacer primero
 
@@ -17,7 +17,7 @@
 5. Con contratos revisados, implementar los componentes de Andrea FE-124, FE-146 y la parte frontend de FE-162.
 6. La aceptación de logout FE-194, la aceptación integrada FE-196 y los eventos FE-205 requieren evidencia real posterior.
 
-Todos los archivos de este directorio son análisis preparado. Cuando una regla dice “propuesta” o “pendiente”, no debe presentarse como autorización de la contraparte. El equipo puede avanzar con estructuras, prototipos y pruebas ficticias dejando visibles esas decisiones.
+Los documentos conservan el contrato inicial y una revisión fechada de la entrega integrada. Para el estado vigente rige la actualización más reciente. Las propuestas no ratificadas permanecen identificadas; no se presentan como acuerdos de la contraparte.
 
 ## 2. Entregables por subtarea
 
@@ -108,28 +108,11 @@ Los diagramas PNG existentes conservan su carácter de documentación previa. Es
 - [Word ficticio editable](ejemplos/FE-156-ficha-ficticia.docx): referencia de diseño, no salida de la aplicación.
 - [CSV ficticio](ejemplos/FE-162-importacion-ficticia.csv): siete filas para nuevo/duplicado/error.
 - Los casos A–D de FE-134 son inventados y definen conteos esperados; no se presentaron como registros de pacientes.
-- Las pruebas del producto y validaciones de la contraparte no se ejecutaron en esta entrega documental.
-
-## 7. Trabajo restante de Andrea
-
-| Subtarea | Próximo trabajo real |
-|---|---|
-| FE-124 | Implementar el resumen familiar con el contrato revisado; revisión de Jorge. |
-| FE-146 | Implementar secciones institucionales cuando FE-141 aporte contenido autorizado. |
-| FE-162 | Completar el componente de filas/errores/decisiones, además del Markdown entregado. |
-| FE-194 | Contrastar la prueba de logout de Emilia y aceptar o devolver el cambio. |
-| FE-196 | Ejecutar aceptación integrada sobre la versión entregada y registrar resultados. |
-| FE-205 | Registrar participación y acuerdos reales durante el sprint. |
-
-Las tareas de análisis con validación pendiente permanecen abiertas hasta completar sus criterios. No basta con un archivo para afirmar que hubo aprobación o una prueba real.
-
-## 8. Control de entrega e informes de voluntariado
-
-Gemina es responsable de FE-120/121/122: primer informe hasta 25/11/2026; segundo objetivo 27/11 y máximo 28/11; tercero al cierre del Sprint 3. Cada persona confirma sus horas/evidencias reales. No convertir estas estimaciones en horas ejecutadas ni marcar reuniones no realizadas.
+- En el corte documental del 23/11 no se ejecutaron pruebas del producto ni validaciones de la contraparte. La ejecución técnica del 26/11 está identificada en el acta FE-196; las validaciones externas no realizadas siguen pendientes.
 
 ## 9. Revisión documental y actualización
 
-Antes de implementar, resolver propuestas con la PO y responsables técnicos. Cada cambio de contrato debe actualizar este directorio y los tipos/validaciones afectados en el mismo cambio de implementación. Los endpoints nuevos descritos aquí son propuestas; las rutas existentes se identifican en cada documento.
+Antes de implementar, resolver propuestas con la PO y responsables técnicos. Cada cambio de contrato debe actualizar este directorio y los tipos/validaciones afectados en el mismo cambio de implementación. Las revisiones del 26/11 identifican las rutas efectivas de la API y los ejemplos iniciales que conservan carácter ilustrativo.
 
 Al finalizar el sprint, actualizar trazabilidad y C4 con lo realmente integrado y enlazar las evidencias de FE-196/200. FE-97 pertenece al Sprint 2 y ya figura Listo; no se duplica su aceptación.
 
@@ -137,6 +120,21 @@ Al finalizar el sprint, actualizar trazabilidad y C4 con lo realmente integrado 
 
 Andrea eliminó HU4/FE-4 porque no corresponde al proyecto. La consulta actual de Jira tampoco devuelve FE-177/178/179/180/181. Se retiran del compromiso; el documento FE-177 se conserva como antecedente, no como trabajo pendiente. Las cuentas y la asignación de terapeutas existentes conservan su alcance.
 
-HU5/FE-5 queda en gastos de internet/Wi-Fi, electricidad, alquiler y otros; se elimina la dependencia de una regla de distribución de ingresos. FE-172 reemplaza el contrato anterior. En clínica, FE-123 registra la decisión de evaluación inicial obligatoria y diagnóstico opcional, que aún requiere adaptación de código.
+HU5/FE-5 queda en gastos de internet/Wi-Fi, electricidad, alquiler y otros; se elimina la dependencia de una regla de distribución de ingresos. FE-172 reemplaza el contrato anterior. En clínica, FE-123 registra la decisión de evaluación inicial obligatoria y diagnóstico opcional, ya implementada en PR #73 y verificada en `evaluacion-inicial.md`.
 
-La consulta actual de las subtareas con etiqueta sprint-3 devuelve 83 subtareas y 317 h estimadas: Andrea 56, Alejandro 54, Adriana 58, Jorge 52, Emilia 54 y Gemina 43. Son estimaciones del backlog actual, no horas ejecutadas ni disponibilidad confirmada. Las cifras históricas del corte 23/11 no deben usarse como compromiso vigente. Los contratos actualizados no cierran automáticamente sus tareas de implementación.
+
+## 11. Corte de implementación y decisiones · 26/11/2026
+
+- FE-124: resumen reutilizable con ocupación/trabajo/estudio y datos desconocidos; datos generales antes del contexto y del historial.
+- FE-146: `/fundacion` implementada con texto, teléfono y dirección autorizados expresamente por Andrea (PO). No se aprobaron nuevas imágenes, redes, precios ni publicaciones reales adicionales.
+- FE-162: tabla accesible de revisión integrada con el asistente existente; mapeo de un archivo histórico autorizado de la Fundación todavía pendiente.
+- FE-188: Andrea confirmó que la Fundación ratificó pago único por sesión, QR/transferencia y atención con consentimiento pendiente. Otros detalles no preguntados no se dan por ratificados.
+- FE-182: Andrea ratificó artículos públicos gestionados por administración/marketing y **sin comentarios**. El recorrido de publicación de investigaciones todavía no está integrado.
+- FE-172: contrato de gastos básicos terminado. La API/pantalla de FE-173 a FE-176 no existen en esta base.
+- FE-194: contrato de logout aceptado por la evidencia de Emilia y el cotejo técnico de Andrea; se conservan los alcances separados de Supabase real y navegador con simulador.
+
+La arquitectura vigente está en [C4 integrado](../../../modelos/c4/sprint-3-integrado.md). Se sustituyen las correspondencias KAN por claves FE actuales sin renombrar la historia original. RF-25 se limita a gastos, sin reparto; RF-26 se limita a artículos, sin comentarios.
+
+La [aceptación por HU](../../pruebas/sprint-3/aceptacion-integrada.md) registra lo aceptado técnicamente, los faltantes de producto y las validaciones externas. El Sprint 4 mantiene mejoras de seguridad, rendimiento, recuperación, calidad y cierre; las funciones aún ausentes del Sprint 3 no se declaran terminadas ni se trasladan silenciosamente al Sprint 4.
+
+
