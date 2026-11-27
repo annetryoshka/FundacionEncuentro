@@ -647,3 +647,26 @@ El PUT recibe `fecha`, `evaluacionInicial` (texto con contenido, hasta 10000 car
 GET de diagnóstico, GET de fuente vigente e historial devuelven `evaluacionInicial` (null para fichas antiguas). Leer una ficha antigua sigue permitido; editar solicita completar la evaluación. Familia, genograma, ID y autoría se conservan. Un diagnóstico null de una ficha vigente no se completa desde el alta.
 
 La 021 amplía la vista y las fotografías: incluye evaluación cuando existe, sin reescribir fichas ni informes/exportaciones anteriores. Los informes nuevos usan plantilla v2. PDF, DOCX y los documentos seleccionados de investigación conservan la evaluación; la revisión de textos de investigación y sus permisos permanecen vigentes. Ver [contrato FE-123](../srs/sprint-3/FE-123-ficha-familiar-y-diagnostico.md) y [evidencia de verificación](../pruebas/sprint-3/evaluacion-inicial.md).
+
+## Gastos de funcionamiento (FE-174)
+
+Solo **administración** (terapeuta y marketing → 403; sin sesión → 401). Contrato de [FE-172](../srs/sprint-3/FE-172-control-administrativo.md) sobre la base de FE-173 (migración 022). Todas las respuestas llevan `Cache-Control: private, no-store`.
+
+| Método y ruta | Cuerpo | Resultado |
+| --- | --- | --- |
+| `GET /api/gastos?mes=AAAA-MM` | — | `200` `{ mes, gastos: [gasto], totalMes, cantidadVigentes, cantidadAnulados, totalesPorCategoria: [{ categoria, cantidad, total }] }`. Sin `mes`, el mes actual en Bolivia. `mes` con otro formato → `400`. |
+| `POST /api/gastos` | `{ categoria, fecha, monto, descripcion? }` | `201` con el gasto. |
+| `PATCH /api/gastos/:id` | Los mismos cuatro campos (formulario completo) | `200` con el gasto corregido; `404` si no existe o no es un gasto; `409` si está anulado. |
+| `POST /api/gastos/:id/anular` | `{ motivo? }` (hasta 200) | `200` con el gasto anulado. Repetir devuelve el mismo gasto sin volver a restar; `404` si no existe. |
+
+Gasto: `{ id, fecha, categoria, descripcion, monto, anulado, anuladoEn, anuladoPor, motivoAnulacion, registradoPor, creadoEn, actualizadoPor, actualizadoEn }`.
+
+- `categoria`: `internet` (Internet / Wi-Fi), `electricidad`, `alquiler`, `otros` (Otros gastos). Se permiten varios por categoría y mes.
+- `fecha`: `AAAA-MM-DD`, válida, no futura (hora de Bolivia) y desde 2000. El mes del total sale de esta fecha: corregirla a otro mes mueve el gasto entre totales.
+- `monto`: **texto** decimal en Bs con punto, positivo, hasta 8 enteros y 2 decimales (`"120.00"`, `"1500"`). Un número JSON, una coma o un tercer decimal → `400`; no se redondea. Las respuestas devuelven siempre dos decimales.
+- `descripcion`: opcional, hasta 200 caracteres; en blanco se guarda como `null`. **Obligatoria para `otros`.**
+- Autoría, fechas de auditoría, tipo de movimiento y anulación los pone el servidor; enviarlos → `400`.
+- Los anulados aparecen en `gastos` con `anulado: true`, pero no suman en `totalMes` ni en `totalesPorCategoria`. Las cuatro categorías aparecen siempre, aunque sea en `0.00`.
+- Ejemplo de aceptación (FE-172 §5): internet 120.00 + electricidad 80.00 + alquiler 1500.00 = `1700.00`; corregir electricidad a 85.00 → `1705.00`; anular internet → `1585.00`.
+
+Pruebas: `backend/src/modules/gastos/tests/gastos.service.spec.ts` (unitarias) y `backend/test/gastos-api-postgres.test.mjs` (API con PostgreSQL).
