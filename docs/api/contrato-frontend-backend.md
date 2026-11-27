@@ -611,8 +611,8 @@ ruta relativa y texto alternativo. Una segunda imagen principal devuelve
 | `POST /api/investigacion/exportaciones` | Recibe `casosIds`, `secciones`, `formato` (`txt` o `docx`) y, opcionalmente, `desde` y `hasta`. Devuelve `exportacionId`. |
 | `GET /api/investigacion/exportaciones/:id/manifiesto` | Consulta el manifiesto del paquete autorizado. |
 | `GET /api/investigacion/exportaciones/:id/documentos/:codigo` | Previsualiza un documento por su código `INV-…`. |
-| `GET /api/investigacion/exportaciones/:id/revision` | Devuelve el contenido a revisar y su `huella`. |
-| `PATCH /api/investigacion/exportaciones/:id/revision` | Recibe `{ "huella": "..." }` y confirma la revisión si el contenido coincide. |
+| `GET /api/investigacion/exportaciones/:id/revision` | Devuelve el contenido a revisar, su `huella`, `revisadoEn` (o `null`) y `revisionVigente` (la revisión corresponde al contenido actual). |
+| `PATCH /api/investigacion/exportaciones/:id/revision` | Recibe `{ "huella": "..." }` y confirma la revisión si el contenido coincide. Repetirla con la misma huella devuelve la revisión existente. |
 | `GET /api/investigacion/exportaciones/:id/descarga` | Devuelve un ZIP con `manifiesto.json` y un archivo por caso. Requiere revisión vigente. |
 
 Administración y terapeutas acceden según su alcance. Una terapeuta solo
@@ -620,6 +620,8 @@ puede seleccionar sus casos asignados. Marketing recibe `403`. Si el
 paquete incluye un caso ajeno, se rechaza la solicitud completa con `404`.
 
 La descarga devuelve `409` antes de la revisión o si el contenido cambió.
+Si el contenido cambió después de revisarlo, el PATCH también devuelve `409`:
+hay que preparar un paquete nuevo.
 La migración 019 conserva la huella revisada. El ZIP se genera en memoria
 al descargar.
 

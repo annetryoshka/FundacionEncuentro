@@ -180,9 +180,15 @@ export class InvestigacionService {
   }
 
     async obtenerVistaRevision(perfilId: string, id: string) {
-    return this.ejecutarExportacion(perfilId, (client) =>
-      this.leerContenidoPaquete(client, id),
-    );
+    return this.ejecutarExportacion(perfilId, async (client) => {
+      const vista = await this.leerContenidoPaquete(client, id);
+      const revision = await this.leerRevision(client, id);
+      return {
+        ...vista,
+        revisadoEn: revision.revisadoEn,
+        revisionVigente: revision.revisadoEn !== null && revision.huella === vista.huella,
+      };
+    });
   }
 
   async confirmarRevision(perfilId: string, id: string, huella: string) {
@@ -191,6 +197,15 @@ export class InvestigacionService {
 
       if (vista.huella !== huella) {
         throw new ConflictException('El contenido cambió. Revisa la vista actualizada.');
+      }
+
+      // Repetir la confirmación de lo mismo no es un error: devuelve la revisión vigente.
+      const previa = await this.leerRevision(client, id);
+      if (previa.revisadoEn) {
+        if (previa.huella === huella) return { revisadoEn: previa.revisadoEn };
+        throw new ConflictException(
+          'Este paquete ya se revisó y su contenido cambió después. Prepara un paquete nuevo.',
+        );
       }
 
       const { rows: [revision] } = await client.query<{ revisadoEn: Date }>(
@@ -207,6 +222,15 @@ export class InvestigacionService {
 
       return revision;
     });
+  }
+
+  private async leerRevision(client: PoolClient, id: string) {
+    const { rows: [revision] } = await client.query<{ revisadoEn: Date | null; huella: string | null }>(
+      `select revisado_en as "revisadoEn", huella_revision_investigacion as huella
+         from public.exportacion_investigacion_accesible($1::uuid)`,
+      [id],
+    );
+    return revision;
   }
 
   private async leerContenidoPaquete(client: PoolClient, id: string) {
