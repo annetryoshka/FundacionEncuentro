@@ -93,3 +93,16 @@ El servidor valida que todas las sesiones/archivos pertenezcan al caso y que el 
 | Terapeuta ajena/marketing | Acceso denegado también por API/descarga. |
 
 **Para completar FE-151:** la Fundación debe validar estructura, mínimos, destinatarios y política de revisión. Las dos plantillas y el mapeo ya están preparados para esa revisión y el diseño técnico.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+Implementación efectiva: POST `/api/carpetas/:id/informes`, GET `/:versionId` y PATCH `/:versionId/revision`. El DTO usa **`intervencion_sistemica` o `judicial`**, `sesionesIds`, `incluirFamilia`, `incluirGenograma` y `objeto` opcional. La fecha/autoría se generan en el servidor; los textos profesionales se corrigen en la revisión, no mediante campos adicionales del ejemplo de diseño del apartado 5.
+
+| Plantilla vigente | Mínimos y secciones efectivas |
+|---|---|
+| `fe151-sistemica-v2` | Nombre de paciente; identificación, profesional, evaluación (evaluación inicial/diagnóstico/hipótesis disponibles), intervención/evolución y conclusiones/recomendaciones pendientes de redacción profesional. |
+| `fe151-judicial-v2` | Nombre, juzgado y objeto; destinatario, referencia, identificación, profesional, objeto, evaluación inicial si existe, intervención/observaciones y conclusiones profesionales. |
+
+Fuentes: `plantilla-sistemica.ts`, `plantilla-judicial.ts`, `informe-fotografia.ts` y migración 021. La foto de origen conserva familia/genograma seleccionados; sus metadatos no sustituyen una relación familiar ni una conclusión clínica. Los informes revisados anteriores no se reescriben. No se incluyen pagos en estas plantillas.
+
+Las pruebas de generación/revisión/versiones y permisos están en `backend/test/informes-generacion-postgres.test.mjs` y `frontend/src/features/expediente/informes/Informes.test.tsx`; el recorrido de navegador de FE-196 completa el cotejo funcional. **No se recibió un modelo institucional de informe ni una aprobación de estructura, destinatarios y mínimos por la Fundación.** FE-151 mantiene esa validación externa pendiente. Se entregan las dos estructuras y el mapeo actual sin afirmar una aprobación clínica que no ocurrió.
