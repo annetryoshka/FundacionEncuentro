@@ -5,6 +5,7 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  ImageRun,
   Packer,
   PageNumber,
   Paragraph,
@@ -21,6 +22,13 @@ export type DocumentoExportable = {
   titulo: string;
   parrafos: readonly string[];
   filas: readonly { campo: string; valor: string }[];
+  genograma?: { nombre: string; paginas: readonly PaginaGenograma[] };
+};
+
+export type PaginaGenograma = {
+  contenido: Buffer;
+  ancho: number;
+  alto: number;
 };
 
 const { colores } = ESTILO_EXPORTACION;
@@ -75,6 +83,39 @@ function tabla(filas: DocumentoExportable['filas']): Table {
         });
       }),
     ],
+  });
+}
+
+function paginasGenograma(genograma: NonNullable<DocumentoExportable['genograma']>): Paragraph[] {
+  return genograma.paginas.flatMap((pagina, indice) => {
+    // Las dimensiones de ImageRun son píxeles a 96 ppp. Cabe dentro del área útil de A4.
+    const escala = Math.min(640 / pagina.ancho, 820 / pagina.alto, 1);
+    return [
+      new Paragraph({
+        text: 'Genograma familiar',
+        heading: HeadingLevel.HEADING_1,
+        pageBreakBefore: true,
+      }),
+      new Paragraph(`${genograma.nombre} · ${indice + 1} de ${genograma.paginas.length}`),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new ImageRun({
+            type: 'png',
+            data: pagina.contenido,
+            transformation: {
+              width: Math.round(pagina.ancho * escala),
+              height: Math.round(pagina.alto * escala),
+            },
+            altText: {
+              title: 'Genograma familiar',
+              description: `Página ${indice + 1}`,
+              name: 'Genograma',
+            },
+          }),
+        ],
+      }),
+    ];
   });
 }
 
@@ -143,6 +184,7 @@ export function generarDocx(datos: DocumentoExportable): Promise<Buffer> {
             ),
           ),
           ...(datos.filas.length > 0 ? [tabla(datos.filas)] : []),
+          ...(datos.genograma ? paginasGenograma(datos.genograma) : []),
         ],
       },
     ],

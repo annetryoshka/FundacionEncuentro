@@ -86,6 +86,28 @@ export async function guardarRevisionInforme(
   throw new ConflictException('Esta versión del informe ya fue revisada');
 }
 
+// Cada generación es un informe propio (versión 1); el listado muestra todas las del caso, la más reciente primero.
+export async function listarVersionesInforme(client: PoolClient, casoId: string) {
+  const { rows } = await client.query(
+    `select v.id,
+            v.informe_id as "informeId",
+            i.tipo,
+            v.nro_version as "nroVersion",
+            v.estado,
+            v.creado_por as "creadoPor",
+            v.creado_en as "creadoEn",
+            v.revisado_por as "revisadoPor",
+            v.revisado_en as "revisadoEn"
+       from public.informe_versiones v
+       join public.informes i
+         on i.id = v.informe_id and i.caso_id = v.caso_id
+      where v.caso_id = $1
+      order by v.creado_en desc, v.nro_version desc`,
+    [casoId],
+  );
+  return rows;
+}
+
 export async function consultarVersionInforme(
   client: PoolClient,
   casoId: string,

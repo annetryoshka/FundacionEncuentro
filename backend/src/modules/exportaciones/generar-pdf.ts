@@ -1,6 +1,13 @@
 import PDFDocument from 'pdfkit';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import type { DocumentoExportable } from './generar-docx.js';
 import { ESTILO_EXPORTACION } from './estilos-exportacion.js';
+
+const fuentes = join(
+  dirname(createRequire(import.meta.url).resolve('pdfjs-dist/package.json')),
+  'standard_fonts',
+);
 
 type Pdf = InstanceType<typeof PDFDocument>;
 
@@ -31,7 +38,7 @@ function encabezadoTabla(pdf: Pdf, anchoCampo: number) {
   const y = pdf.y;
   const alto = 22;
   marco(pdf, y, alto, anchoCampo, colores.verdeOscuro);
-  pdf.font('Helvetica-Bold').fontSize(11).fillColor(hex(colores.blanco));
+  pdf.font('InformeNegrita').fontSize(11).fillColor(hex(colores.blanco));
   pdf.text('Campo', x + RELLENO, y + RELLENO, { width: anchoCampo - RELLENO * 2, lineBreak: false });
   pdf.text('Valor', x + anchoCampo + RELLENO, y + RELLENO, {
     width: anchoUtil(pdf) - anchoCampo - RELLENO * 2,
@@ -52,9 +59,9 @@ function tabla(pdf: Pdf, filas: DocumentoExportable['filas']) {
   encabezadoTabla(pdf, anchoCampo);
 
   filas.forEach(({ campo, valor }, indice) => {
-    pdf.font('Helvetica-Bold').fontSize(10);
+    pdf.font('InformeNegrita').fontSize(10);
     const altoCampo = pdf.heightOfString(campo, opcionesCampo);
-    pdf.font('Helvetica').fontSize(10);
+    pdf.font('Informe').fontSize(10);
     const altoValor = pdf.heightOfString(valor, opcionesValor);
     const alto = Math.max(altoCampo, altoValor) + RELLENO * 2;
     const x = pdf.page.margins.left;
@@ -62,9 +69,9 @@ function tabla(pdf: Pdf, filas: DocumentoExportable['filas']) {
     // Un texto más largo que una página no cabe en una celda: fluye como texto con su rótulo.
     if (alto > altoDePagina()) {
       pdf.moveDown(0.5);
-      pdf.font('Helvetica-Bold').fontSize(10).fillColor(hex(colores.verdeOscuro));
+      pdf.font('InformeNegrita').fontSize(10).fillColor(hex(colores.verdeOscuro));
       pdf.text(campo, x, pdf.y, { width: anchoUtil(pdf) });
-      pdf.font('Helvetica').fontSize(10).fillColor(hex(colores.texto));
+      pdf.font('Informe').fontSize(10).fillColor(hex(colores.texto));
       pdf.text(valor, { width: anchoUtil(pdf) });
       pdf.moveDown(0.5);
       return;
@@ -77,13 +84,29 @@ function tabla(pdf: Pdf, filas: DocumentoExportable['filas']) {
 
     const y = pdf.y;
     marco(pdf, y, alto, anchoCampo, indice % 2 === 1 ? colores.crema : undefined);
-    pdf.font('Helvetica-Bold').fontSize(10).fillColor(hex(colores.texto));
+    pdf.font('InformeNegrita').fontSize(10).fillColor(hex(colores.texto));
     pdf.text(campo, x + RELLENO, y + RELLENO, opcionesCampo);
-    pdf.font('Helvetica').fontSize(10);
+    pdf.font('Informe').fontSize(10);
     pdf.text(valor, x + anchoCampo + RELLENO, y + RELLENO, opcionesValor);
     pdf.x = x;
     pdf.y = y + alto;
   });
+}
+
+function paginasGenograma(pdf: Pdf, genograma: NonNullable<DocumentoExportable['genograma']>) {
+  for (const [indice, pagina] of genograma.paginas.entries()) {
+    pdf.addPage();
+    pdf.font('InformeNegrita').fontSize(16).fillColor(hex(colores.verdeOscuro));
+    pdf.text('Genograma familiar');
+    pdf.font('Informe').fontSize(10).fillColor(hex(colores.texto));
+    pdf.text(`${genograma.nombre} · ${indice + 1} de ${genograma.paginas.length}`);
+    const y = pdf.y + 12;
+    pdf.image(pagina.contenido, pdf.page.margins.left, y, {
+      fit: [anchoUtil(pdf), limiteInferior(pdf) - y],
+      align: 'center',
+      valign: 'center',
+    });
+  }
 }
 
 /** Encabezado institucional y número en cada página, una vez conocido el total. */
@@ -98,9 +121,9 @@ function encabezadoYPie(pdf: Pdf) {
     margins.bottom = 0;
     const ancho = width - margins.left - margins.right;
 
-    pdf.font('Helvetica-Bold').fontSize(11).fillColor(hex(colores.verdeOscuro));
+    pdf.font('InformeNegrita').fontSize(11).fillColor(hex(colores.verdeOscuro));
     pdf.text(ESTILO_EXPORTACION.institucion, margins.left, 32, { lineBreak: false });
-    pdf.font('Helvetica').fontSize(9).fillColor(hex(colores.suave));
+    pdf.font('Informe').fontSize(9).fillColor(hex(colores.suave));
     pdf.text(ESTILO_EXPORTACION.aviso, margins.left, 34, { width: ancho, align: 'right' });
     pdf
       .lineWidth(1.5)
@@ -110,7 +133,7 @@ function encabezadoYPie(pdf: Pdf) {
       .stroke();
 
     pdf
-      .font('Helvetica')
+      .font('Informe')
       .fontSize(9)
       .fillColor(hex(colores.suave))
       .text(`Página ${i + 1} de ${count}`, margins.left, height - 32, {
@@ -135,16 +158,21 @@ export function generarPdf(datos: DocumentoExportable): Promise<Buffer> {
     pdf.once('end', () => resolve(Buffer.concat(fragmentos)));
     pdf.once('error', reject);
 
-    pdf.font('Helvetica-Bold').fontSize(20).fillColor(hex(colores.verdeOscuro)).text(datos.titulo);
+    // Incrustar la fuente evita sustituciones y letras superpuestas al imprimir/abrir en otro equipo.
+    pdf.registerFont('Informe', join(fuentes, 'LiberationSans-Regular.ttf'));
+    pdf.registerFont('InformeNegrita', join(fuentes, 'LiberationSans-Bold.ttf'));
+
+    pdf.font('InformeNegrita').fontSize(20).fillColor(hex(colores.verdeOscuro)).text(datos.titulo);
     pdf.moveDown();
-    pdf.font('Helvetica').fontSize(11).fillColor(hex(colores.texto));
+    pdf.font('Informe').fontSize(11).fillColor(hex(colores.texto));
 
     for (const parrafo of datos.parrafos) {
-      pdf.font('Helvetica').fontSize(11).text(parrafo, { lineGap: 2 });
+      pdf.font('Informe').fontSize(11).text(parrafo, { lineGap: 2 });
       pdf.moveDown(0.5);
     }
 
     if (datos.filas.length > 0) tabla(pdf, datos.filas);
+    if (datos.genograma) paginasGenograma(pdf, datos.genograma);
 
     encabezadoYPie(pdf);
     pdf.end();

@@ -475,8 +475,17 @@ ignorada por Git). En un despliegue, esa ruta debe apuntar a almacenamiento
 persistente y privado; los respaldos de la base no incluyen estos archivos. Si falla la escritura,
 la API devuelve `500` y registra la exportación como fallida.
 
-La inserción visual del genograma queda pendiente. La migración 012
-habilita sus metadatos, que es lo que el conversor actual puede mostrar.
+La ficha y el historial admiten `incluirGenograma: true` para adjuntar su representación
+visual. Un informe revisado conserva la selección y la clave del archivo de su fotografía:
+no admite cambiar opciones al exportar ni tomar silenciosamente el genograma vigente.
+El backend comprueba caso, acceso, tipo y SHA-256 antes de leer esa versión privada.
+PNG/JPEG se normalizan a PNG; un PDF legible de hasta 20 páginas se inserta completo,
+una página por anexo, manteniendo proporción. El texto y las tablas de DOCX siguen siendo
+editables; el genograma es una imagen. Si no existe genograma, se conserva la ausencia
+registrada; si el archivo no puede leerse/renderizarse, la exportación queda fallida y no
+se entrega un archivo vacío. Se limita la imagen de entrada a 25 millones de píxeles y la
+representación a un lado máximo de 3000 píxeles por página. La carga del genograma
+mantiene sus límites de tamaño existentes.
 
 ## Importación histórica (FE-164)
 
@@ -558,12 +567,13 @@ frontend puede consultar de nuevo los metadatos para refrescar la ficha.
 
 ## Borradores de informes (FE-153)
 
-Las tres rutas requieren una terapeuta autenticada y asignada al caso.
+Las cuatro rutas requieren una terapeuta autenticada y asignada al caso.
 `versionId` es el `id` de la versión devuelta por el POST.
 
 | Método y ruta | Cuerpo | Respuesta |
 | --- | --- | --- |
 | `POST /api/carpetas/:id/informes` | `tipo` (`intervencion_sistemica` o `judicial`). Opcionales: `sesionesIds`, `incluirFamilia`, `incluirGenograma` y `objeto`. | `201` con `id`, `informeId`, `nroVersion`, `estado` y `creadoPor`. |
+| `GET /api/carpetas/:id/informes` | Sin cuerpo. | `200` con `informes`: las versiones del caso, la más reciente primero, con `id`, `informeId`, `tipo`, `nroVersion`, `estado`, `creadoPor`, `creadoEn`, `revisadoPor` y `revisadoEn` (sin las secciones). |
 | `GET /api/carpetas/:id/informes/:versionId` | Sin cuerpo. | `200` con las secciones, el estado y la autoría de la versión. |
 | `PATCH /api/carpetas/:id/informes/:versionId/revision` | `secciones`, una lista de objetos con `titulo` y `contenido`. | `200` con `id`, `estado`, `revisadoPor` y `revisadoEn`. |
 
@@ -610,8 +620,8 @@ ruta relativa y texto alternativo. Una segunda imagen principal devuelve
 | `POST /api/investigacion/exportaciones` | Recibe `casosIds`, `secciones`, `formato` (`txt` o `docx`) y, opcionalmente, `desde` y `hasta`. Devuelve `exportacionId`. |
 | `GET /api/investigacion/exportaciones/:id/manifiesto` | Consulta el manifiesto del paquete autorizado. |
 | `GET /api/investigacion/exportaciones/:id/documentos/:codigo` | Previsualiza un documento por su código `INV-…`. |
-| `GET /api/investigacion/exportaciones/:id/revision` | Devuelve el contenido a revisar y su `huella`. |
-| `PATCH /api/investigacion/exportaciones/:id/revision` | Recibe `{ "huella": "..." }` y confirma la revisión si el contenido coincide. |
+| `GET /api/investigacion/exportaciones/:id/revision` | Devuelve el contenido a revisar, su `huella`, `revisadoEn` (o `null`) y `revisionVigente` (la revisión corresponde al contenido actual). |
+| `PATCH /api/investigacion/exportaciones/:id/revision` | Recibe `{ "huella": "..." }` y confirma la revisión si el contenido coincide. Repetirla con la misma huella devuelve la revisión existente. |
 | `GET /api/investigacion/exportaciones/:id/descarga` | Devuelve un ZIP con `manifiesto.json` y un archivo por caso. Requiere revisión vigente. |
 
 Administración y terapeutas acceden según su alcance. Una terapeuta solo
@@ -619,6 +629,8 @@ puede seleccionar sus casos asignados. Marketing recibe `403`. Si el
 paquete incluye un caso ajeno, se rechaza la solicitud completa con `404`.
 
 La descarga devuelve `409` antes de la revisión o si el contenido cambió.
+Si el contenido cambió después de revisarlo, el PATCH también devuelve `409`:
+hay que preparar un paquete nuevo.
 La migración 019 conserva la huella revisada. El ZIP se genera en memoria
 al descargar.
 

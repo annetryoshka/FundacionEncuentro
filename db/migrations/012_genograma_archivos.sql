@@ -78,6 +78,12 @@ create trigger trg_aud_genogramas
   after insert or update or delete on public.genogramas
   for each row execute function public.auditar_cambio();
 
-revoke all on public.genograma_archivos from anon, authenticated;
+-- Solo el backend accede. Los roles anon/authenticated existen en Supabase; en otro PostgreSQL no hay nada que revocar.
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    revoke all on public.genograma_archivos from anon, authenticated;
+  end if;
+end $$;
 
 commit;

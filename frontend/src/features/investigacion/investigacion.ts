@@ -89,6 +89,10 @@ export interface VistaRevision {
   documentos: DocumentoInvestigacion[]
   /** SHA-256 del contenido mostrado: confirmar con otra huella responde 409. */
   huella: string
+  /** Fecha de la revisión confirmada, si la hubo. */
+  revisadoEn: string | null
+  /** La revisión corresponde al contenido actual: se puede descargar sin volver a confirmar. */
+  revisionVigente: boolean
 }
 
 const base = '/investigacion'

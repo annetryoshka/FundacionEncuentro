@@ -174,7 +174,7 @@ describe('Composición familiar', () => {
     )
     // Orden de la ficha: la familia va antes que el historial.
     const enlaces = screen.getAllByRole('link').map((a) => a.textContent ?? '')
-    const familia = enlaces.findIndex((t) => t.startsWith('Familia'))
+    const familia = enlaces.findIndex((t) => t.startsWith('Ver composición familiar'))
     const historial = enlaces.findIndex((t) => t.startsWith('Historial'))
     expect(familia).toBeGreaterThan(-1)
     expect(familia).toBeLessThan(historial)

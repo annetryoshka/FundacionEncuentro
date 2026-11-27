@@ -42,6 +42,7 @@ export function ExportarDocumento({ carpetaId, numeroCarpeta, informeVersionId, 
   const [formato, setFormato] = useState<FormatoExportacion>('pdf')
   const [secciones, setSecciones] = useState<SeccionExportable[]>(SECCIONES.ficha.porDefecto)
   const [incluirPagos, setIncluirPagos] = useState(false)
+  const [incluirGenograma, setIncluirGenograma] = useState(false)
   const [estado, setEstado] = useState<'listo' | 'generando'>('listo')
   const [mensaje, setMensaje] = useState<{ tipo: 'exito' | 'error'; texto: string } | null>(null)
   const enCurso = useRef(false)
@@ -74,6 +75,7 @@ export function ExportarDocumento({ carpetaId, numeroCarpeta, informeVersionId, 
               documento,
               formato,
               secciones,
+              ...(incluirGenograma ? { incluirGenograma: true } : {}),
               ...(documento === 'historial' && incluirPagos ? { incluirPagos: true } : {}),
             },
       )
@@ -143,13 +145,28 @@ export function ExportarDocumento({ carpetaId, numeroCarpeta, informeVersionId, 
                   Pagos por sesión (solo administración)
                 </label>
               )}
+              <label className="flex items-center gap-3 text-texto">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-verde"
+                  checked={incluirGenograma}
+                  onChange={(e) => setIncluirGenograma(e.target.checked)}
+                />
+                Incluir genograma familiar
+              </label>
             </div>
           </fieldset>
         )}
         {esInforme && (
-          <p className="text-sm text-suave">El informe se exporta tal como quedó al revisarlo: no se regenera.</p>
+          <p className="text-sm text-suave">
+            El informe se exporta tal como quedó al revisarlo, incluido el genograma si fue seleccionado en esa versión.
+          </p>
         )}
-        <p className="text-sm text-suave">El genograma todavía no se inserta en el archivo exportado.</p>
+        {!esInforme && (
+          <p className="text-sm text-suave">
+            El genograma se adjunta como imagen. Si no hay uno cargado, el archivo indicará su ausencia.
+          </p>
+        )}
       </fieldset>
 
       {mensaje && (

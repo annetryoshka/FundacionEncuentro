@@ -34,6 +34,8 @@ export interface PedidoExportacion {
   informeVersionId?: string
   /** Solo ficha e historial. */
   secciones?: SeccionExportable[]
+  /** Solo ficha e historial; los informes conservan su selección revisada. */
+  incluirGenograma?: boolean
   /** Solo historial y solo administración. */
   incluirPagos?: boolean
 }

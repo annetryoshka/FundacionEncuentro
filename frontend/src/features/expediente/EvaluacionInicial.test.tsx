@@ -17,7 +17,7 @@ describe('FE-128 · evaluación inicial y diagnóstico opcional', () => {
     })
     await usuario.click(screen.getByRole('link', { name: /Volver a la carpeta/ }))
     expect(await screen.findByText('Entrevista inicial QA sin diagnóstico')).toBeInTheDocument()
-    await usuario.click(screen.getByRole('link', { name: /^Diagnóstico/ }))
+    await usuario.click(screen.getByRole('link', { name: 'Ver diagnóstico' }))
     expect(await screen.findByText('Entrevista inicial QA sin diagnóstico')).toBeInTheDocument()
     expect(screen.getAllByText('Sin registro')).toHaveLength(3)
   })
@@ -48,7 +48,7 @@ describe('FE-128 · evaluación inicial y diagnóstico opcional', () => {
       }
       return r
     })
-    await usuario.click(await screen.findByRole('link', { name: /^Diagnóstico/ }))
+    await usuario.click(await screen.findByRole('link', { name: 'Ver diagnóstico' }))
     expect(await screen.findByText('Sin evaluación inicial registrada')).toBeInTheDocument()
     expect(screen.getByText('Comentario histórico QA')).toBeInTheDocument()
     await usuario.click(screen.getByRole('button', { name: 'Editar ficha' }))

@@ -121,6 +121,26 @@ describe('Informes', () => {
     await montarApp(`${ruta}/00000000-0000-4000-8000-0000000000aa`, 'sofia')
     expect(await screen.findByText('No encontramos este informe')).toBeInTheDocument()
   })
+
+  it('lista los informes del caso para volver a abrir un borrador', async () => {
+    const { usuario } = await montarApp(ruta, 'sofia')
+    expect(await screen.findByText('Todavía no se generó ningún informe para este caso.')).toBeInTheDocument()
+
+    await usuario.click(screen.getByRole('radio', { name: /Informe de intervención sistémica/ }))
+    await usuario.click(screen.getByRole('button', { name: 'Generar borrador' }))
+    await screen.findByText(/Borrador generado/)
+
+    await usuario.click(screen.getByRole('link', { name: 'Informes' }))
+    const lista = within((await screen.findByRole('heading', { name: 'Informes del caso' })).closest('section')!)
+    const enlace = await lista.findByRole('link', {
+      name: /^Revisar borrador: Informe de intervención sistémica del \d+ de \w+ de \d{4}$/,
+    })
+    expect(lista.getByText('Borrador')).toBeInTheDocument()
+    expect(lista.getByText(/Generado por .*\(tú\)/)).toBeInTheDocument()
+
+    await usuario.click(enlace)
+    expect(await screen.findByRole('button', { name: 'Revisar y corregir' })).toBeInTheDocument()
+  })
 })
 
 describe('Exportación de ficha e historial (FE-160)', () => {
