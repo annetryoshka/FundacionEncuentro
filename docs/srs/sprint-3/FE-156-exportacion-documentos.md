@@ -6,7 +6,7 @@
 
 **Base revisada:** `main` en `37ed16bcca9bb3d6842c62f41b58a1bf17f7616f`.
 
-**Estado del entregable:** análisis preparado; no acredita implementación ni validación de la Fundación.
+**Estado vigente:** definición y verificación técnica completadas el 26/11/2026. La estructura institucional de las plantillas sigue su aceptación en FE-151; no se atribuye validación de la Fundación a las pruebas técnicas.
 
 HU FE-114 · RF-18. Desbloquea FE-157/158/159/160/161.
 
@@ -88,3 +88,15 @@ El producto integrado ya genera y descarga PDF/DOCX mediante POST `/api/carpetas
 **Límite encontrado:** la exportación actual agrega metadatos/referencia del genograma, pero el generador no incrusta la imagen/PDF dentro del Word o PDF. La carga y visualización en la ficha sí están disponibles. No se declara esa inserción gráfica como terminada; se registra como diferencia de la HU FE-114 para su decisión/corrección, junto con la revisión visual de Word y PDF de varias páginas.
 
 La muestra `FE-156-ficha-ficticia.docx` sigue siendo una referencia ajena a la API. La evidencia de ejecución real es la suite anterior, no esa muestra. No se ejecutó Word/LibreOffice ni una validación de estilo de la Fundación en esta sesión. FE-156 conserva pendiente ese cotejo final; la definición de formatos y el examen estructural están entregados.
+
+## Cierre técnico · 26/11/2026 (posterior a la revisión anterior)
+
+Se resolvieron la inserción gráfica y el cotejo visual pendientes. La ficha/historial permiten seleccionar el genograma; PDF y DOCX incluyen PNG/JPEG o todas las páginas de un PDF legible de hasta 20 páginas. El anexo conserva proporción. Las imágenes se limitan a 25 millones de píxeles de entrada y a 3000 píxeles por lado en la representación. Un error de lectura/conversión registra el fallo y no entrega bytes vacíos como éxito.
+
+El informe revisado usa exclusivamente la clave y SHA-256 guardados en su fotografía. Se probó que reemplazar el vigente no cambia la imagen de una exportación posterior de ese informe. El acceso al archivo se vuelve a comprobar por caso y usuario; marketing, cuenta ajena y sin sesión quedan denegados. La selección de pagos continúa restringida a administración.
+
+Se descargaron documentos reales desde Nest y PostgreSQL locales. Se revisaron todas las páginas de una ficha con PDF de dos páginas (3 páginas finales en ambos formatos), un historial con 24 familiares (5 páginas finales en ambos formatos) y un informe con su genograma. El PDF incorpora Liberation Sans incluida en PDF.js, para evitar las sustituciones tipográficas observadas en el primer cotejo.
+
+En un DOCX real de la API se editó un párrafo y una celda, se guardó y reabrió; luego se abrió/guardó con LibreOffice mediante DOCX → ODT → DOCX y se verificó que ambos cambios y la imagen persistían. Esa copia se renderizó y revisó en sus dos páginas. No se ejecutó Microsoft Word.
+
+Evidencia y reproducción: [pruebas de FE-156](../../pruebas/sprint-3/FE-156-exportacion-genograma.md). La muestra antigua del apartado 5 conserva su carácter de referencia; no se sustituye por una supuesta salida de GenoPro. La validación de las plantillas institucionales corresponde a FE-151 y la muestra de la instalación de GenoPro a FE-129.

@@ -5,6 +5,10 @@ NestJS + PostgreSQL (Supabase).
 
 ## Arrancar
 
+Usar Node.js 22.13 o superior (también Node.js 24). La exportación gráfica de genogramas usa
+PDF.js y `@napi-rs/canvas`; instalar las dependencias del lockfile, incluidas las opcionales de la plataforma.
+No requiere instalar Poppler ni LibreOffice en el servidor de la aplicación.
+
 1. Copia `.env.example` como `.env` y llena los valores reales.
 2. `npm install`
 3. `npm run start:dev`
