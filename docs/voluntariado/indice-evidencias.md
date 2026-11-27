@@ -67,3 +67,17 @@ Los enlaces apuntan a `main` y los commits se pueden abrir como `https://github.
 - [x] El repositorio figura como público en GitHub.
 - [ ] Confirmar con el destinatario que puede abrir los enlaces y el canal institucional.
 - [ ] Revisar los enlaces de este índice antes de cada entrega.
+
+## Actualización del Sprint 3 (corte 2026-11-26, `main` en `c806c34`)
+
+| Tema | Evidencia |
+| --- | --- |
+| Acta técnica de aceptación por HU | [aceptacion-integrada.md](../pruebas/sprint-3/aceptacion-integrada.md): señala faltantes en gastos, artículos públicos y genograma en exportaciones |
+| Integración | [integracion-2026-11-26.md](../pruebas/sprint-3/integracion-2026-11-26.md) |
+| Ficha familiar y evaluación inicial | [ficha-familiar.md](../pruebas/sprint-3/ficha-familiar.md), [FE-124](../pruebas/sprint-3/FE-124-resumen-familiar.md), [evaluacion-inicial.md](../pruebas/sprint-3/evaluacion-inicial.md) |
+| Portal institucional | [FE-146](../pruebas/sprint-3/FE-146-portal-institucional.md), [registro de autorización](../contenido/difusion/registro-autorizacion.md) |
+| Cierre de sesión | [FE-194](../pruebas/sprint-3/FE-194-aceptacion-logout.md), [logout con Supabase](../pruebas/sprint-3/logout-supabase.md) |
+| Datos y recuperación | [FE-197](../pruebas/FE-197-migracion-recuperacion.md) y verificaciones `FE-125`, `FE-130`, `FE-135`, `FE-142`, `FE-152`, `FE-158`, `FE-163`, `FE-168` en `docs/pruebas/` |
+| Interfaz del Sprint 3 | [sprint-3-frontend.md](../pruebas/sprint-3-frontend.md) |
+
+La aceptación técnica no equivale a una validación de la Fundación.
