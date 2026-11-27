@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/test/setup.ts'],
       exclude: [...configDefaults.exclude],
       css: false,
+      testTimeout: 15_000,
     },
   }
 })

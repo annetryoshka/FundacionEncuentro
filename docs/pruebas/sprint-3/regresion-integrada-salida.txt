@@ -1,0 +1,3387 @@
+TAP version 13
+# Subtest: alta válida: 201, paciente/caso vinculados y lectura posterior (doble)
+ok 1 - alta válida: 201, paciente/caso vinculados y lectura posterior (doble)
+  ---
+  duration_ms: 415.1739
+  type: 'test'
+  ...
+# Subtest: alta derivada incluye contexto judicial en la misma transacción
+ok 2 - alta derivada incluye contexto judicial en la misma transacción
+  ---
+  duration_ms: 17.2516
+  type: 'test'
+  ...
+# Subtest: nombre vacío: 400 sin registros
+ok 3 - nombre vacío: 400 sin registros
+  ---
+  duration_ms: 21.4676
+  type: 'test'
+  ...
+# Subtest: nombre solo espacios: 400 sin registros
+ok 4 - nombre solo espacios: 400 sin registros
+  ---
+  duration_ms: 31.7362
+  type: 'test'
+  ...
+# Subtest: fecha inválida o futura no-fecha: 400 sin registros
+ok 5 - fecha inválida o futura no-fecha: 400 sin registros
+  ---
+  duration_ms: 18.3377
+  type: 'test'
+  ...
+# Subtest: fecha inválida o futura 2025-02-29: 400 sin registros
+ok 6 - fecha inválida o futura 2025-02-29: 400 sin registros
+  ---
+  duration_ms: 14.2344
+  type: 'test'
+  ...
+# Subtest: fecha inválida o futura 2026-02-31: 400 sin registros
+ok 7 - fecha inválida o futura 2026-02-31: 400 sin registros
+  ---
+  duration_ms: 234.9166
+  type: 'test'
+  ...
+# Subtest: fecha inválida o futura 01/01/2020: 400 sin registros
+ok 8 - fecha inválida o futura 01/01/2020: 400 sin registros
+  ---
+  duration_ms: 17.4572
+  type: 'test'
+  ...
+# Subtest: fecha inválida o futura 2020-01-01T00:00:00Z: 400 sin registros
+ok 9 - fecha inválida o futura 2020-01-01T00:00:00Z: 400 sin registros
+  ---
+  duration_ms: 11.7393
+  type: 'test'
+  ...
+# Subtest: fecha inválida o futura 2999-01-01: 400 sin registros
+ok 10 - fecha inválida o futura 2999-01-01: 400 sin registros
+  ---
+  duration_ms: 27.6948
+  type: 'test'
+  ...
+# Subtest: fecha omitida toma current_date de la DB simulada
+ok 11 - fecha omitida toma current_date de la DB simulada
+  ---
+  duration_ms: 9.4495
+  type: 'test'
+  ...
+# Subtest: fecha de nacimiento posterior al ingreso: 400
+ok 12 - fecha de nacimiento posterior al ingreso: 400
+  ---
+  duration_ms: 14.2026
+  type: 'test'
+  ...
+# Subtest: caso voluntario con contexto judicial: 400
+ok 13 - caso voluntario con contexto judicial: 400
+  ---
+  duration_ms: 15.7172
+  type: 'test'
+  ...
+# Subtest: FE-33 permite número manual y rechaza duplicidad con 409 sin registros parciales
+ok 14 - FE-33 permite número manual y rechaza duplicidad con 409 sin registros parciales
+  ---
+  duration_ms: 34.5761
+  type: 'test'
+  ...
+# Subtest: fallo de paciente: 500 y ROLLBACK solicitado, sin parciales en el doble
+ok 15 - fallo de paciente: 500 y ROLLBACK solicitado, sin parciales en el doble
+  ---
+  duration_ms: 7.9295
+  type: 'test'
+  ...
+# Subtest: fallo de caso: 500 y ROLLBACK solicitado, sin parciales en el doble
+ok 16 - fallo de caso: 500 y ROLLBACK solicitado, sin parciales en el doble
+  ---
+  duration_ms: 7.0495
+  type: 'test'
+  ...
+# Subtest: fallo de judicial: 500 y ROLLBACK solicitado, sin parciales en el doble
+ok 17 - fallo de judicial: 500 y ROLLBACK solicitado, sin parciales en el doble
+  ---
+  duration_ms: 9.7729
+  type: 'test'
+  ...
+# Subtest: posible duplicado es advertencia, no bloqueo: crea otro paciente y carpeta
+ok 18 - posible duplicado es advertencia, no bloqueo: crea otro paciente y carpeta
+  ---
+  duration_ms: 18.8652
+  type: 'test'
+  ...
+# Subtest: fallo de respuesta en lectura revierte el alta antes de confirmar
+ok 19 - fallo de respuesta en lectura revierte el alta antes de confirmar
+  ---
+  duration_ms: 7.6836
+  type: 'test'
+  ...
+# Subtest: fallo de respuesta en duplicados revierte el alta antes de confirmar
+ok 20 - fallo de respuesta en duplicados revierte el alta antes de confirmar
+  ---
+  duration_ms: 6.7334
+  type: 'test'
+  ...
+# Subtest: FE-33 abre otra carpeta para un paciente existente sin volver a crearlo
+ok 21 - FE-33 abre otra carpeta para un paciente existente sin volver a crearlo
+  ---
+  duration_ms: 14.0766
+  type: 'test'
+  ...
+# Subtest: pacienteId inexistente: 404; ambos identificadores o ninguno: 400
+ok 22 - pacienteId inexistente: 404; ambos identificadores o ninguno: 400
+  ---
+  duration_ms: 19.0559
+  type: 'test'
+  ...
+# Subtest: sin autenticación o token inválido: 401 sin escrituras
+ok 23 - sin autenticación o token inválido: 401 sin escrituras
+  ---
+  duration_ms: 10.6373
+  type: 'test'
+  ...
+# Subtest: terapeuta: alta rechazada con 403 sin escrituras
+ok 24 - terapeuta: alta rechazada con 403 sin escrituras
+  ---
+  duration_ms: 16.3296
+  type: 'test'
+  ...
+# Subtest: marketing: alta rechazada con 403 sin escrituras
+ok 25 - marketing: alta rechazada con 403 sin escrituras
+  ---
+  duration_ms: 11.2297
+  type: 'test'
+  ...
+# Subtest: A1 · preparar I1, I2 e I3 de FE-185: marketing crea borradores con su autoría
+ok 26 - A1 · preparar I1, I2 e I3 de FE-185: marketing crea borradores con su autoría
+  ---
+  duration_ms: 3221.3133
+  type: 'test'
+  ...
+# Subtest: A2 · (FE-185 \#6) I1 publicado se ve en el listado y en el detalle con el contenido aprobado
+ok 27 - A2 · (FE-185 \#6) I1 publicado se ve en el listado y en el detalle con el contenido aprobado
+  ---
+  duration_ms: 28.8367
+  type: 'test'
+  ...
+# Subtest: A3 · (FE-185 \#4 y \#5) I2 en borrador e I3 retirado no aparecen ni por listado ni por URL
+ok 28 - A3 · (FE-185 \#4 y \#5) I2 en borrador e I3 retirado no aparecen ni por listado ni por URL
+  ---
+  duration_ms: 38.694
+  type: 'test'
+  ...
+# Subtest: A4 · (FE-185 \#9) la lectura pública solo expone los campos permitidos
+ok 29 - A4 · (FE-185 \#9) la lectura pública solo expone los campos permitidos
+  ---
+  duration_ms: 57.3727
+  type: 'test'
+  ...
+# Subtest: A5 · (FE-185 \#3) no hay comentarios: ninguna ruta pública ni de gestión los recibe
+ok 30 - A5 · (FE-185 \#3) no hay comentarios: ninguna ruta pública ni de gestión los recibe
+  ---
+  duration_ms: 70.7665
+  type: 'test'
+  ...
+# Subtest: A6 · (FE-185 \#7) terapeuta y visitante no crean, editan, publican, retiran ni eliminan
+ok 31 - A6 · (FE-185 \#7) terapeuta y visitante no crean, editan, publican, retiran ni eliminan
+  ---
+  duration_ms: 88.6078
+  type: 'test'
+  ...
+# Subtest: A7 · (FE-185 \#8) texto inválido o excesivo se rechaza sin publicarse
+ok 32 - A7 · (FE-185 \#8) texto inválido o excesivo se rechaza sin publicarse
+  ---
+  duration_ms: 78.7798
+  type: 'test'
+  ...
+# Subtest: A8 · publicar sin resumen da 422 y conserva el borrador; un publicado no puede quedarse sin resumen
+ok 33 - A8 · publicar sin resumen da 422 y conserva el borrador; un publicado no puede quedarse sin resumen
+  ---
+  duration_ms: 55.5822
+  type: 'test'
+  ...
+# Subtest: A9 · ciclo completo y transiciones no permitidas (409)
+ok 34 - A9 · ciclo completo y transiciones no permitidas (409)
+  ---
+  duration_ms: 79.2197
+  type: 'test'
+  ...
+# Subtest: A10 · editar un publicado actualiza lo público y conserva la autoría
+ok 35 - A10 · editar un publicado actualiza lo público y conserva la autoría
+  ---
+  duration_ms: 20.0628
+  type: 'test'
+  ...
+# Subtest: A11 · eliminar: solo lo que nunca se publicó
+ok 36 - A11 · eliminar: solo lo que nunca se publicó
+  ---
+  duration_ms: 40.7712
+  type: 'test'
+  ...
+# Subtest: A12 · listados: gestión filtra por estado; el portal pagina con total coherente y vacío sin error
+ok 37 - A12 · listados: gestión filtra por estado; el portal pagina con total coherente y vacío sin error
+  ---
+  duration_ms: 41.1683
+  type: 'test'
+  ...
+# Subtest: A13 · cada cambio queda en auditoría con su autor
+ok 38 - A13 · cada cambio queda en auditoría con su autor
+  ---
+  duration_ms: 2.0191
+  type: 'test'
+  ...
+# Subtest: A14 · imagen de portada: se sube, se ve al publicar, editar la conserva, se reemplaza y se quita
+ok 39 - A14 · imagen de portada: se sube, se ve al publicar, editar la conserva, se reemplaza y se quita
+  ---
+  duration_ms: 993.9309
+  type: 'test'
+  ...
+# Subtest: A15 · eliminar un borrador con imagen borra también el archivo
+ok 40 - A15 · eliminar un borrador con imagen borra también el archivo
+  ---
+  duration_ms: 178.1246
+  type: 'test'
+  ...
+# Subtest: cuenta activa administrador: login 200 y perfil/rol recuperados desde DB
+ok 41 - cuenta activa administrador: login 200 y perfil/rol recuperados desde DB
+  ---
+  duration_ms: 1231.8696
+  type: 'test'
+  ...
+# Subtest: cuenta activa terapeuta: login 200 y perfil/rol recuperados desde DB
+ok 42 - cuenta activa terapeuta: login 200 y perfil/rol recuperados desde DB
+  ---
+  duration_ms: 22.7939
+  type: 'test'
+  ...
+# Subtest: cuenta activa marketing: login 200 y perfil/rol recuperados desde DB
+ok 43 - cuenta activa marketing: login 200 y perfil/rol recuperados desde DB
+  ---
+  duration_ms: 23.0402
+  type: 'test'
+  ...
+# Subtest: credenciales rechazadas por proveedor (400): 401 con mensaje propio
+ok 44 - credenciales rechazadas por proveedor (400): 401 con mensaje propio
+  ---
+  duration_ms: 12.9959
+  type: 'test'
+  ...
+# Subtest: credenciales rechazadas por proveedor (401): 401 con mensaje propio
+ok 45 - credenciales rechazadas por proveedor (401): 401 con mensaje propio
+  ---
+  duration_ms: 11.8473
+  type: 'test'
+  ...
+# Subtest: inactiva: login, identidad y refresh se rechazan con 403
+ok 46 - inactiva: login, identidad y refresh se rechazan con 403
+  ---
+  duration_ms: 34.3807
+  type: 'test'
+  ...
+# Subtest: sin perfil: login, identidad y refresh se rechazan con 403
+ok 47 - sin perfil: login, identidad y refresh se rechazan con 403
+  ---
+  duration_ms: 30.3529
+  type: 'test'
+  ...
+# Subtest: token ausente: 401 antes de consultar el perfil
+ok 48 - token ausente: 401 antes de consultar el perfil
+  ---
+  duration_ms: 5.2244
+  type: 'test'
+  ...
+# Subtest: esquema de autenticación incorrecto: 401
+ok 49 - esquema de autenticación incorrecto: 401
+  ---
+  duration_ms: 5.0983
+  type: 'test'
+  ...
+# Subtest: token inválido: 401 sin exponer detalles externos
+ok 50 - token inválido: 401 sin exponer detalles externos
+  ---
+  duration_ms: 16.1916
+  type: 'test'
+  ...
+# Subtest: token expirado según el proveedor simulado: 401 y sin consulta de perfil
+ok 51 - token expirado según el proveedor simulado: 401 y sin consulta de perfil
+  ---
+  duration_ms: 4.8386
+  type: 'test'
+  ...
+# Subtest: admin accede a operación protegida y no recibe secretos
+ok 52 - admin accede a operación protegida y no recibe secretos
+  ---
+  duration_ms: 5.6115
+  type: 'test'
+  ...
+# Subtest: terapeuta: operación administrativa devuelve 403 aunque envíe rol en cabecera
+ok 53 - terapeuta: operación administrativa devuelve 403 aunque envíe rol en cabecera
+  ---
+  duration_ms: 5.3327
+  type: 'test'
+  ...
+# Subtest: marketing: operación administrativa devuelve 403 aunque envíe rol en cabecera
+ok 54 - marketing: operación administrativa devuelve 403 aunque envíe rol en cabecera
+  ---
+  duration_ms: 4.2577
+  type: 'test'
+  ...
+# Subtest: operación administrativa sin autenticación: 401
+ok 55 - operación administrativa sin autenticación: 401
+  ---
+  duration_ms: 6.2164
+  type: 'test'
+  ...
+# Subtest: desactivar el perfil bloquea el token ya emitido en la siguiente petición
+ok 56 - desactivar el perfil bloquea el token ya emitido en la siguiente petición
+  ---
+  duration_ms: 7.5158
+  type: 'test'
+  ...
+# Subtest: cambiar el rol persistido limita el token anterior sin confiar en metadata externa
+ok 57 - cambiar el rol persistido limita el token anterior sin confiar en metadata externa
+  ---
+  duration_ms: 7.0629
+  type: 'test'
+  ...
+# Subtest: refresh válido recupera el perfil actual, no un rol anterior
+ok 58 - refresh válido recupera el perfil actual, no un rol anterior
+  ---
+  duration_ms: 5.9301
+  type: 'test'
+  ...
+# Subtest: access token expirado no impide renovar con refresh válido
+ok 59 - access token expirado no impide renovar con refresh válido
+  ---
+  duration_ms: 7.6338
+  type: 'test'
+  ...
+# Subtest: refresh inválido: 401, sin sesión ni consulta de perfil
+ok 60 - refresh inválido: 401, sin sesión ni consulta de perfil
+  ---
+  duration_ms: 6.3425
+  type: 'test'
+  ...
+# Subtest: login con rol inyectado: DTO devuelve 400 antes de autenticar
+ok 61 - login con rol inyectado: DTO devuelve 400 antes de autenticar
+  ---
+  duration_ms: 6.759
+  type: 'test'
+  ...
+# Subtest: fallo externo red: login y recurso protegido devuelven 503 saneado
+ok 62 - fallo externo red: login y recurso protegido devuelven 503 saneado
+  ---
+  duration_ms: 8.2933
+  type: 'test'
+  ...
+# Subtest: fallo externo 500: login y recurso protegido devuelven 503 saneado
+ok 63 - fallo externo 500: login y recurso protegido devuelven 503 saneado
+  ---
+  duration_ms: 7.5658
+  type: 'test'
+  ...
+# Subtest: rate limit de login: 429 sin consultar perfil ni exponer el cuerpo externo
+ok 64 - rate limit de login: 429 sin consultar perfil ni exponer el cuerpo externo
+  ---
+  duration_ms: 5.8606
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: administración busca 101 sin filtros y obtiene A y B, cada uno con su origen
+ok 65 - FE-49 PG: administración busca 101 sin filtros y obtiene A y B, cada uno con su origen
+  ---
+  duration_ms: 3704.6468
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: T1 busca 101 y solo ve A; el total excluye B
+ok 66 - FE-49 PG: T1 busca 101 y solo ve A; el total excluye B
+  ---
+  duration_ms: 841.8694
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: Social + Iniciado con tamaño 1 devuelve D en página 1 y A en página 2, total 2
+ok 67 - FE-49 PG: Social + Iniciado con tamaño 1 devuelve D en página 1 y A en página 2, total 2
+  ---
+  duration_ms: 910.6295
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: T1 filtra Privado + En proceso y obtiene lista vacía con total 0; T2 sí ve B
+ok 68 - FE-49 PG: T1 filtra Privado + En proceso y obtiene lista vacía con total 0; T2 sí ve B
+  ---
+  duration_ms: 732.01
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: «Todos» (sin parámetro) incluye carpetas sin clasificar; un filtro de clasificación las excluye
+ok 69 - FE-49 PG: «Todos» (sin parámetro) incluye carpetas sin clasificar; un filtro de clasificación las excluye
+  ---
+  duration_ms: 1036.785
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: búsqueda y filtros se aplican juntos sobre los casos autorizados
+ok 70 - FE-49 PG: búsqueda y filtros se aplican juntos sobre los casos autorizados
+  ---
+  duration_ms: 845.4603
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: filtros con valores fuera del catálogo responden 400
+ok 71 - FE-49 PG: filtros con valores fuera del catálogo responden 400
+  ---
+  duration_ms: 778.9713
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: administración cambia solo la clasificación de A y al recargar se conserva el resto
+ok 72 - FE-49 PG: administración cambia solo la clasificación de A y al recargar se conserva el resto
+  ---
+  duration_ms: 839.9987
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: clasificar una carpeta sin clasificación y re-filtrar la incluye
+ok 73 - FE-49 PG: clasificar una carpeta sin clasificación y re-filtrar la incluye
+  ---
+  duration_ms: 847.8134
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: la terapeuta asignada cambia estado; los guardados de estado y clasificación son independientes
+ok 74 - FE-49 PG: la terapeuta asignada cambia estado; los guardados de estado y clasificación son independientes
+  ---
+  duration_ms: 837.5204
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: valores inválidos responden 400 y conservan los datos previos
+ok 75 - FE-49 PG: valores inválidos responden 400 y conservan los datos previos
+  ---
+  duration_ms: 851.5091
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: T1 no puede actualizar B (404) y marketing no puede clasificar A (403), sin escrituras
+ok 76 - FE-49 PG: T1 no puede actualizar B (404) y marketing no puede clasificar A (403), sin escrituras
+  ---
+  duration_ms: 785.8712
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: carpetas inexistentes o eliminadas responden 404 en ambas escrituras
+ok 77 - FE-49 PG: carpetas inexistentes o eliminadas responden 404 en ambas escrituras
+  ---
+  duration_ms: 809.4743
+  type: 'test'
+  ...
+# Subtest: FE-49 PG: reasignar retira a la terapeuta anterior el permiso de escritura
+ok 78 - FE-49 PG: reasignar retira a la terapeuta anterior el permiso de escritura
+  ---
+  duration_ms: 841.0635
+  type: 'test'
+  ...
+# Subtest: PG real: alta integral persiste y se recupera desde otra conexión
+ok 79 - PG real: alta integral persiste y se recupera desde otra conexión
+  ---
+  duration_ms: 3349.9051
+  type: 'test'
+  ...
+# Subtest: PG real: dos altas HTTP esperan un bloqueo observado y reciben correlativos únicos
+ok 80 - PG real: dos altas HTTP esperan un bloqueo observado y reciben correlativos únicos
+  ---
+  duration_ms: 762.8526
+  type: 'test'
+  ...
+# Conexiones PostgreSQL esperando Lock en INSERT de casos: 2
+# Subtest: PG real: cuatro altas simultáneas conservan dos series independientes
+ok 81 - PG real: cuatro altas simultáneas conservan dos series independientes
+  ---
+  duration_ms: 814.6307
+  type: 'test'
+  ...
+# Subtest: PG real: fallo tardío concurrente revierte todos sus cambios y conserva el alta exitosa
+ok 82 - PG real: fallo tardío concurrente revierte todos sus cambios y conserva el alta exitosa
+  ---
+  duration_ms: 712.3723
+  type: 'test'
+  ...
+# Subtest: PG real: índice único rechaza número duplicado y el contador se revierte
+ok 83 - PG real: índice único rechaza número duplicado y el contador se revierte
+  ---
+  duration_ms: 765.758
+  type: 'test'
+  ...
+# Subtest: PG real: posible duplicado se registra y devuelve advertencia por similarity
+ok 84 - PG real: posible duplicado se registra y devuelve advertencia por similarity
+  ---
+  duration_ms: 979.4778
+  type: 'test'
+  ...
+# Subtest: PG real FE-33: número manual concurrente genera un 201 y un 409, sin paciente huérfano
+ok 85 - PG real FE-33: número manual concurrente genera un 201 y un 409, sin paciente huérfano
+  ---
+  duration_ms: 727.7432
+  type: 'test'
+  ...
+# Subtest: PG real FE-33: paciente existente conserva su vínculo en una carpeta nueva
+ok 86 - PG real FE-33: paciente existente conserva su vínculo en una carpeta nueva
+  ---
+  duration_ms: 658.3704
+  type: 'test'
+  ...
+# Subtest: PG real: error SQL al preparar la respuesta revierte también el alta y su auditoría
+ok 87 - PG real: error SQL al preparar la respuesta revierte también el alta y su auditoría
+  ---
+  duration_ms: 834.6705
+  type: 'test'
+  ...
+# Subtest: FE-65: un caso sin constancia responde constancia null
+ok 88 - FE-65: un caso sin constancia responde constancia null
+  ---
+  duration_ms: 3537.2473
+  type: 'test'
+  ...
+# Subtest: FE-65: campos exigidos por estado responden 400 y la constancia sigue Pendiente
+ok 89 - FE-65: campos exigidos por estado responden 400 y la constancia sigue Pendiente
+  ---
+  duration_ms: 976.8269
+  type: 'test'
+  ...
+# Subtest: FE-65: recorre Pendiente → Registrada → No aplica → Pendiente y limpia los campos que no aplican
+ok 90 - FE-65: recorre Pendiente → Registrada → No aplica → Pendiente y limpia los campos que no aplican
+  ---
+  duration_ms: 838.514
+  type: 'test'
+  ...
+# Subtest: FE-65: al recargar, la consulta devuelve lo mismo que respondió el guardado (FE-65-D1 corregido en 8c77aa3)
+ok 91 - FE-65: al recargar, la consulta devuelve lo mismo que respondió el guardado (FE-65-D1 corregido en 8c77aa3)
+  ---
+  duration_ms: 838.9212
+  type: 'test'
+  ...
+# Subtest: FE-65: guardar la constancia no cambia número, origen, estado, clasificación ni paciente
+ok 92 - FE-65: guardar la constancia no cambia número, origen, estado, clasificación ni paciente
+  ---
+  duration_ms: 837.2051
+  type: 'test'
+  ...
+# Subtest: FE-65: el servidor registra quién creó y quién actualizó, aparte de la fecha de evidencia
+ok 93 - FE-65: el servidor registra quién creó y quién actualizó, aparte de la fecha de evidencia
+  ---
+  duration_ms: 828.2604
+  type: 'test'
+  ...
+# Subtest: FE-65: acceso directo a un caso ajeno se rechaza sin leer ni escribir
+ok 94 - FE-65: acceso directo a un caso ajeno se rechaza sin leer ni escribir
+  ---
+  duration_ms: 994.8731
+  type: 'test'
+  ...
+# Subtest: FE-65: un caso eliminado responde 404 aunque tenga constancia
+ok 95 - FE-65: un caso eliminado responde 404 aunque tenga constancia
+  ---
+  duration_ms: 844.457
+  type: 'test'
+  ...
+# Subtest: FE-65: al reasignar el caso, la terapeuta anterior pierde el acceso
+ok 96 - FE-65: al reasignar el caso, la terapeuta anterior pierde el acceso
+  ---
+  duration_ms: 872.288
+  type: 'test'
+  ...
+# Subtest: FE-64: procedencia judicial y constancia no cambian el número ni crean filas nuevas
+ok 97 - FE-64: procedencia judicial y constancia no cambian el número ni crean filas nuevas
+  ---
+  duration_ms: 2676.9013
+  type: 'test'
+  ...
+# Subtest: FE-64: ejemplos de los tres estados de la constancia
+ok 98 - FE-64: ejemplos de los tres estados de la constancia
+  ---
+  duration_ms: 32.1527
+  type: 'test'
+  ...
+# Subtest: FE-64: combinaciones inválidas se rechazan y la constancia queda Pendiente
+ok 99 - FE-64: combinaciones inválidas se rechazan y la constancia queda Pendiente
+  ---
+  duration_ms: 30.2617
+  type: 'test'
+  ...
+# Subtest: FE-64: pasar a Registrado guarda fecha de evidencia y autoría por separado
+ok 100 - FE-64: pasar a Registrado guarda fecha de evidencia y autoría por separado
+  ---
+  duration_ms: 13.7501
+  type: 'test'
+  ...
+# Subtest: los roles del DTO coinciden exactamente con los tres roles inspeccionados
+ok 101 - los roles del DTO coinciden exactamente con los tres roles inspeccionados
+  ---
+  duration_ms: 135.0747
+  type: 'test'
+  ...
+# Subtest: creación y login de cuenta administrador: rol de perfil y respuesta sin contraseña
+ok 102 - creación y login de cuenta administrador: rol de perfil y respuesta sin contraseña
+  ---
+  duration_ms: 173.4258
+  type: 'test'
+  ...
+# Subtest: creación y login de cuenta terapeuta: rol de perfil y respuesta sin contraseña
+ok 103 - creación y login de cuenta terapeuta: rol de perfil y respuesta sin contraseña
+  ---
+  duration_ms: 30.121
+  type: 'test'
+  ...
+# Subtest: creación y login de cuenta marketing: rol de perfil y respuesta sin contraseña
+ok 104 - creación y login de cuenta marketing: rol de perfil y respuesta sin contraseña
+  ---
+  duration_ms: 36.4331
+  type: 'test'
+  ...
+# Subtest: duplicidad de correo, variante exacta: 409 con proveedor simulado
+ok 105 - duplicidad de correo, variante exacta: 409 con proveedor simulado
+  ---
+  duration_ms: 13.1105
+  type: 'test'
+  ...
+# Subtest: duplicidad de correo, variante mayúsculas: 409 con proveedor simulado
+ok 106 - duplicidad de correo, variante mayúsculas: 409 con proveedor simulado
+  ---
+  duration_ms: 10.7711
+  type: 'test'
+  ...
+# Subtest: duplicidad de correo, variante mixta: 409 con proveedor simulado
+ok 107 - duplicidad de correo, variante mixta: 409 con proveedor simulado
+  ---
+  duration_ms: 11.5015
+  type: 'test'
+  ...
+# Subtest: duplicidad del proveedor 409/email_exists se traduce a 409
+ok 108 - duplicidad del proveedor 409/email_exists se traduce a 409
+  ---
+  duration_ms: 8.886
+  type: 'test'
+  ...
+# Subtest: duplicidad del proveedor 409/user_already_exists se traduce a 409
+ok 109 - duplicidad del proveedor 409/user_already_exists se traduce a 409
+  ---
+  duration_ms: 7.6787
+  type: 'test'
+  ...
+# Subtest: duplicidad del proveedor 422/email_exists se traduce a 409
+ok 110 - duplicidad del proveedor 422/email_exists se traduce a 409
+  ---
+  duration_ms: 7.3807
+  type: 'test'
+  ...
+# Subtest: duplicidad del proveedor 422/user_already_exists se traduce a 409
+ok 111 - duplicidad del proveedor 422/user_already_exists se traduce a 409
+  ---
+  duration_ms: 6.5719
+  type: 'test'
+  ...
+# Subtest: terapeuta: GET /usuarios devuelve 403 sin escrituras
+ok 112 - terapeuta: GET /usuarios devuelve 403 sin escrituras
+  ---
+  duration_ms: 5.9082
+  type: 'test'
+  ...
+# Subtest: marketing: GET /usuarios devuelve 403 sin escrituras
+ok 113 - marketing: GET /usuarios devuelve 403 sin escrituras
+  ---
+  duration_ms: 5.4059
+  type: 'test'
+  ...
+# Subtest: sin autenticación: GET /usuarios devuelve 401
+ok 114 - sin autenticación: GET /usuarios devuelve 401
+  ---
+  duration_ms: 4.9678
+  type: 'test'
+  ...
+# Subtest: terapeuta: GET /usuarios/00000000-0000-4000-8000-000000000002 devuelve 403 sin escrituras
+ok 115 - terapeuta: GET /usuarios/00000000-0000-4000-8000-000000000002 devuelve 403 sin escrituras
+  ---
+  duration_ms: 14.7687
+  type: 'test'
+  ...
+# Subtest: marketing: GET /usuarios/00000000-0000-4000-8000-000000000002 devuelve 403 sin escrituras
+ok 116 - marketing: GET /usuarios/00000000-0000-4000-8000-000000000002 devuelve 403 sin escrituras
+  ---
+  duration_ms: 13.578
+  type: 'test'
+  ...
+# Subtest: sin autenticación: GET /usuarios/00000000-0000-4000-8000-000000000002 devuelve 401
+ok 117 - sin autenticación: GET /usuarios/00000000-0000-4000-8000-000000000002 devuelve 401
+  ---
+  duration_ms: 4.0637
+  type: 'test'
+  ...
+# Subtest: terapeuta: POST /usuarios devuelve 403 sin escrituras
+ok 118 - terapeuta: POST /usuarios devuelve 403 sin escrituras
+  ---
+  duration_ms: 5.0283
+  type: 'test'
+  ...
+# Subtest: marketing: POST /usuarios devuelve 403 sin escrituras
+ok 119 - marketing: POST /usuarios devuelve 403 sin escrituras
+  ---
+  duration_ms: 4.2778
+  type: 'test'
+  ...
+# Subtest: sin autenticación: POST /usuarios devuelve 401
+ok 120 - sin autenticación: POST /usuarios devuelve 401
+  ---
+  duration_ms: 4.3435
+  type: 'test'
+  ...
+# Subtest: terapeuta: PATCH /usuarios/00000000-0000-4000-8000-000000000002 devuelve 403 sin escrituras
+ok 121 - terapeuta: PATCH /usuarios/00000000-0000-4000-8000-000000000002 devuelve 403 sin escrituras
+  ---
+  duration_ms: 5.3894
+  type: 'test'
+  ...
+# Subtest: marketing: PATCH /usuarios/00000000-0000-4000-8000-000000000002 devuelve 403 sin escrituras
+ok 122 - marketing: PATCH /usuarios/00000000-0000-4000-8000-000000000002 devuelve 403 sin escrituras
+  ---
+  duration_ms: 4.8699
+  type: 'test'
+  ...
+# Subtest: sin autenticación: PATCH /usuarios/00000000-0000-4000-8000-000000000002 devuelve 401
+ok 123 - sin autenticación: PATCH /usuarios/00000000-0000-4000-8000-000000000002 devuelve 401
+  ---
+  duration_ms: 3.7267
+  type: 'test'
+  ...
+# Subtest: marketing: GET /casos devuelve 403 sin escrituras
+ok 124 - marketing: GET /casos devuelve 403 sin escrituras
+  ---
+  duration_ms: 4.07
+  type: 'test'
+  ...
+# Subtest: sin autenticación: GET /casos devuelve 401
+ok 125 - sin autenticación: GET /casos devuelve 401
+  ---
+  duration_ms: 3.5573
+  type: 'test'
+  ...
+# Subtest: terapeuta: GET /casos/00000000-0000-4000-8000-000000000009 devuelve 403 sin escrituras
+ok 126 - terapeuta: GET /casos/00000000-0000-4000-8000-000000000009 devuelve 403 sin escrituras
+  ---
+  duration_ms: 4.1333
+  type: 'test'
+  ...
+# Subtest: marketing: GET /casos/00000000-0000-4000-8000-000000000009 devuelve 403 sin escrituras
+ok 127 - marketing: GET /casos/00000000-0000-4000-8000-000000000009 devuelve 403 sin escrituras
+  ---
+  duration_ms: 3.6449
+  type: 'test'
+  ...
+# Subtest: sin autenticación: GET /casos/00000000-0000-4000-8000-000000000009 devuelve 401
+ok 128 - sin autenticación: GET /casos/00000000-0000-4000-8000-000000000009 devuelve 401
+  ---
+  duration_ms: 3.505
+  type: 'test'
+  ...
+# Subtest: terapeuta: POST /casos devuelve 403 sin escrituras
+ok 129 - terapeuta: POST /casos devuelve 403 sin escrituras
+  ---
+  duration_ms: 4.3451
+  type: 'test'
+  ...
+# Subtest: marketing: POST /casos devuelve 403 sin escrituras
+ok 130 - marketing: POST /casos devuelve 403 sin escrituras
+  ---
+  duration_ms: 3.8205
+  type: 'test'
+  ...
+# Subtest: sin autenticación: POST /casos devuelve 401
+ok 131 - sin autenticación: POST /casos devuelve 401
+  ---
+  duration_ms: 3.3299
+  type: 'test'
+  ...
+# Subtest: FE-48: terapeuta puede listar casos sin realizar escrituras
+ok 132 - FE-48: terapeuta puede listar casos sin realizar escrituras
+  ---
+  duration_ms: 4.9923
+  type: 'test'
+  ...
+# Subtest: admin puede listar, consultar, editar y desactivar otra cuenta
+ok 133 - admin puede listar, consultar, editar y desactivar otra cuenta
+  ---
+  duration_ms: 15.0715
+  type: 'test'
+  ...
+# Subtest: admin no puede desactivarse ni quitarse su rol
+ok 134 - admin no puede desactivarse ni quitarse su rol
+  ---
+  duration_ms: 10.8045
+  type: 'test'
+  ...
+# Subtest: token alterado no permite elevar privilegios
+ok 135 - token alterado no permite elevar privilegios
+  ---
+  duration_ms: 4.1765
+  type: 'test'
+  ...
+# Subtest: edición administrativa rechaza rol desconocido y campos fuera del DTO
+ok 136 - edición administrativa rechaza rol desconocido y campos fuera del DTO
+  ---
+  duration_ms: 15.7922
+  type: 'test'
+  ...
+# Subtest: inyectar rol o usuario en login no crea sesión: DTO rechaza campos adicionales
+ok 137 - inyectar rol o usuario en login no crea sesión: DTO rechaza campos adicionales
+  ---
+  duration_ms: 6.408
+  type: 'test'
+  ...
+# Subtest: cuenta inactiva: login, refresh y peticiones con token anterior reciben 403
+ok 138 - cuenta inactiva: login, refresh y peticiones con token anterior reciben 403
+  ---
+  duration_ms: 25.0312
+  type: 'test'
+  ...
+# Subtest: perfil inexistente no permite login ni utilizar el token
+ok 139 - perfil inexistente no permite login ni utilizar el token
+  ---
+  duration_ms: 36.8949
+  type: 'test'
+  ...
+# Subtest: credenciales incorrectas reciben 401
+ok 140 - credenciales incorrectas reciben 401
+  ---
+  duration_ms: 42.1149
+  type: 'test'
+  ...
+# Subtest: DTO creación rechaza rol desconocido
+ok 141 - DTO creación rechaza rol desconocido
+  ---
+  duration_ms: 19.105
+  type: 'test'
+  ...
+# Subtest: DTO creación rechaza campos adicionales
+ok 142 - DTO creación rechaza campos adicionales
+  ---
+  duration_ms: 50.456
+  type: 'test'
+  ...
+# Subtest: DTO creación rechaza contraseña de 8 caracteres aceptada por frontend
+ok 143 - DTO creación rechaza contraseña de 8 caracteres aceptada por frontend
+  ---
+  duration_ms: 27.1168
+  type: 'test'
+  ...
+# Subtest: fallo al crear perfil deshace la cuenta Auth simulada
+ok 144 - fallo al crear perfil deshace la cuenta Auth simulada
+  ---
+  duration_ms: 7.9664
+  type: 'test'
+  ...
+# Subtest: listado backend devuelve { usuarios } como espera el frontend
+ok 145 - listado backend devuelve { usuarios } como espera el frontend
+  ---
+  duration_ms: 5.5104
+  type: 'test'
+  ...
+# Subtest: FE-48: marketing no puede actualizar estado
+ok 146 - FE-48: marketing no puede actualizar estado
+  ---
+  duration_ms: 5.9542
+  type: 'test'
+  ...
+# Subtest: FE-48: actualizar estado requiere autenticación
+ok 147 - FE-48: actualizar estado requiere autenticación
+  ---
+  duration_ms: 5.2788
+  type: 'test'
+  ...
+# Subtest: FE-48: rechaza cuerpo inválido {}
+ok 148 - FE-48: rechaza cuerpo inválido {}
+  ---
+  duration_ms: 34.4491
+  type: 'test'
+  ...
+# Subtest: FE-48: rechaza cuerpo inválido {"estado":null}
+ok 149 - FE-48: rechaza cuerpo inválido {"estado":null}
+  ---
+  duration_ms: 10.1638
+  type: 'test'
+  ...
+# Subtest: FE-48: rechaza cuerpo inválido {"estado":"inventado"}
+ok 150 - FE-48: rechaza cuerpo inválido {"estado":"inventado"}
+  ---
+  duration_ms: 7.5093
+  type: 'test'
+  ...
+# Subtest: FE-48: rechaza cuerpo inválido {"estado":"en_proceso","pacienteId":"00000000-0000-4000-8000-000000000009"}
+ok 151 - FE-48: rechaza cuerpo inválido {"estado":"en_proceso","pacienteId":"00000000-0000-4000-8000-000000000009"}
+  ---
+  duration_ms: 9.8731
+  type: 'test'
+  ...
+# Subtest: FE-143: la consulta pública solo devuelve publicaciones publicadas
+ok 152 - FE-143: la consulta pública solo devuelve publicaciones publicadas
+  ---
+  duration_ms: 4315.9742
+  type: 'test'
+  ...
+# Subtest: FE-142: sin publicaciones la vista pública está vacía, no falla
+ok 153 - FE-142: sin publicaciones la vista pública está vacía, no falla
+  ---
+  duration_ms: 2349.5904
+  type: 'test'
+  ...
+# Subtest: FE-142: crear deja un borrador de quien lo crea, fuera de la vista pública
+ok 154 - FE-142: crear deja un borrador de quien lo crea, fuera de la vista pública
+  ---
+  duration_ms: 23.1324
+  type: 'test'
+  ...
+# Subtest: FE-142: campos inválidos se rechazan
+ok 155 - FE-142: campos inválidos se rechazan
+  ---
+  duration_ms: 58.3507
+  type: 'test'
+  ...
+# Subtest: FE-142: publicar incompleto falla y conserva el borrador
+ok 156 - FE-142: publicar incompleto falla y conserva el borrador
+  ---
+  duration_ms: 11.7784
+  type: 'test'
+  ...
+# Subtest: FE-142: publicar, editar publicado, retirar y volver a borrador
+ok 157 - FE-142: publicar, editar publicado, retirar y volver a borrador
+  ---
+  duration_ms: 32.1006
+  type: 'test'
+  ...
+# Subtest: FE-142: transiciones no previstas se rechazan
+ok 158 - FE-142: transiciones no previstas se rechazan
+  ---
+  duration_ms: 23.9125
+  type: 'test'
+  ...
+# Subtest: 024: archivo de imagen con tipo, tamaño y medidas válidos; no se modifica
+ok 159 - 024: archivo de imagen con tipo, tamaño y medidas válidos; no se modifica
+  ---
+  duration_ms: 98.0121
+  type: 'test'
+  ...
+# Subtest: 024: una imagen por publicación, con texto alternativo; reemplazar o borrar elimina el archivo
+ok 160 - 024: una imagen por publicación, con texto alternativo; reemplazar o borrar elimina el archivo
+  ---
+  duration_ms: 70.4494
+  type: 'test'
+  ...
+# Subtest: FE-142: la vista pública solo expone lo publicado y campos permitidos
+ok 161 - FE-142: la vista pública solo expone lo publicado y campos permitidos
+  ---
+  duration_ms: 23.7173
+  type: 'test'
+  ...
+# Subtest: FE-142: difusión separada de lo clínico; RLS activo
+ok 162 - FE-142: difusión separada de lo clínico; RLS activo
+  ---
+  duration_ms: 92.124
+  type: 'test'
+  ...
+# Subtest: FE-142: los cambios quedan en auditoría con su autor
+ok 163 - FE-142: los cambios quedan en auditoría con su autor
+  ---
+  duration_ms: 11.5351
+  type: 'test'
+  ...
+# Subtest: P1 · un borrador creado por marketing no aparece en el portal
+ok 164 - P1 · un borrador creado por marketing no aparece en el portal
+  ---
+  duration_ms: 2850.6729
+  type: 'test'
+  ...
+# Subtest: P2 · publicar sin resumen da 422 con el campo faltante y conserva el borrador
+ok 165 - P2 · publicar sin resumen da 422 con el campo faltante y conserva el borrador
+  ---
+  duration_ms: 64.6865
+  type: 'test'
+  ...
+# Subtest: P3 · publicar muestra exactamente el contenido y solo los campos públicos
+ok 166 - P3 · publicar muestra exactamente el contenido y solo los campos públicos
+  ---
+  duration_ms: 82.9568
+  type: 'test'
+  ...
+# Subtest: P4 · ciclo borrador → publicado → retirado → borrador → publicado; transiciones no permitidas dan 409
+ok 167 - P4 · ciclo borrador → publicado → retirado → borrador → publicado; transiciones no permitidas dan 409
+  ---
+  duration_ms: 145.9477
+  type: 'test'
+  ...
+# Subtest: P5 · editar una publicada conserva la autoría y valida los datos
+ok 168 - P5 · editar una publicada conserva la autoría y valida los datos
+  ---
+  duration_ms: 103.1756
+  type: 'test'
+  ...
+# Subtest: P6 · una publicada no puede quedar sin resumen al editarla
+ok 169 - P6 · una publicada no puede quedar sin resumen al editarla
+  ---
+  duration_ms: 47.7111
+  type: 'test'
+  ...
+# Subtest: P7 · HTML o script en el contenido se guarda como texto, sin alterar, para que la interfaz lo muestre como texto
+ok 170 - P7 · HTML o script en el contenido se guarda como texto, sin alterar, para que la interfaz lo muestre como texto
+  ---
+  duration_ms: 29.3499
+  type: 'test'
+  ...
+# Subtest: P8 · el portal no admite filtros internos ni escrituras
+ok 171 - P8 · el portal no admite filtros internos ni escrituras
+  ---
+  duration_ms: 51.6268
+  type: 'test'
+  ...
+# Subtest: P9 · el portal no expone carpetas ni datos clínicos por ID
+ok 172 - P9 · el portal no expone carpetas ni datos clínicos por ID
+  ---
+  duration_ms: 31.0341
+  type: 'test'
+  ...
+# Subtest: P10 · marketing no accede a nada clínico ni financiero
+ok 173 - P10 · marketing no accede a nada clínico ni financiero
+  ---
+  duration_ms: 62.15
+  type: 'test'
+  ...
+# Subtest: P11 · la terapeuta no gestiona difusión; sin sesión tampoco
+ok 174 - P11 · la terapeuta no gestiona difusión; sin sesión tampoco
+  ---
+  duration_ms: 58.0966
+  type: 'test'
+  ...
+# Subtest: P12 · imagen: archivos peligrosos o no admitidos se rechazan con mensajes claros
+ok 175 - P12 · imagen: archivos peligrosos o no admitidos se rechazan con mensajes claros
+  ---
+  duration_ms: 407.6734
+  type: 'test'
+  ...
+# Subtest: P13 · listado público: filtro por tipo, paginación y lista vacía sin error
+ok 176 - P13 · listado público: filtro por tipo, paginación y lista vacía sin error
+  ---
+  duration_ms: 19.7025
+  type: 'test'
+  ...
+# Subtest: la 021 conserva JSON, fotografía e informe revisado anteriores sin inventar una evaluación
+ok 177 - la 021 conserva JSON, fotografía e informe revisado anteriores sin inventar una evaluación
+  ---
+  duration_ms: 3523.009
+  type: 'test'
+  ...
+# Subtest: la edición exige evaluación aunque el registro antiguo tenga diagnóstico; un error conserva todo
+ok 178 - la edición exige evaluación aunque el registro antiguo tenga diagnóstico; un error conserva todo
+  ---
+  duration_ms: 88.6394
+  type: 'test'
+  ...
+# Subtest: guarda evaluación sin diagnóstico, conserva identidad, autoría, claves adicionales y contexto familiar
+ok 179 - guarda evaluación sin diagnóstico, conserva identidad, autoría, claves adicionales y contexto familiar
+  ---
+  duration_ms: 47.6538
+  type: 'test'
+  ...
+# Subtest: fuente vigente e historial incluyen la evaluación y no rellenan diagnóstico null desde el alta
+ok 180 - fuente vigente e historial incluyen la evaluación y no rellenan diagnóstico null desde el alta
+  ---
+  duration_ms: 60.9893
+  type: 'test'
+  ...
+# Subtest: genera un informe con la evaluación y conserva intacto el informe revisado anterior
+ok 181 - genera un informe con la evaluación y conserva intacto el informe revisado anterior
+  ---
+  duration_ms: 73.2589
+  type: 'test'
+  ...
+# Subtest: exporta la evaluación a Word editable y genera PDF desde la ficha sin exigir diagnóstico
+ok 182 - exporta la evaluación a Word editable y genera PDF desde la ficha sin exigir diagnóstico
+  ---
+  duration_ms: 537.7947
+  type: 'test'
+  ...
+# Subtest: la evaluación mantiene permisos clínicos y rechaza escrituras ajenas sin filtrar texto
+ok 183 - la evaluación mantiene permisos clínicos y rechaza escrituras ajenas sin filtrar texto
+  ---
+  duration_ms: 132.1246
+  type: 'test'
+  ...
+# Subtest: investigación muestra la evaluación antes de revisar y bloquea la descarga si cambia después
+ok 184 - investigación muestra la evaluación antes de revisar y bloquea la descarga si cambia después
+  ---
+  duration_ms: 314.8669
+  type: 'test'
+  ...
+# Subtest: FE-159: genera PDF y DOCX, registra la autoría y permite la descarga
+ok 185 - FE-159: genera PDF y DOCX, registra la autoría y permite la descarga
+  ---
+  duration_ms: 3249.272
+  type: 'test'
+  ...
+# Subtest: FE-159: rechaza pagos solicitados por una terapeuta y casos ajenos
+ok 186 - FE-159: rechaza pagos solicitados por una terapeuta y casos ajenos
+  ---
+  duration_ms: 20.4892
+  type: 'test'
+  ...
+# Subtest: FE-159: un fallo de escritura registra la exportación como fallida
+ok 187 - FE-159: un fallo de escritura registra la exportación como fallida
+  ---
+  duration_ms: 92.2655
+  type: 'test'
+  ...
+# Subtest: FE-156: incrusta image/png completo en PDF y DOCX reales
+ok 188 - FE-156: incrusta image/png completo en PDF y DOCX reales
+  ---
+  duration_ms: 4300.7403
+  type: 'test'
+  ...
+# Subtest: FE-156: incrusta image/jpeg completo en PDF y DOCX reales
+ok 189 - FE-156: incrusta image/jpeg completo en PDF y DOCX reales
+  ---
+  duration_ms: 783.572
+  type: 'test'
+  ...
+# Subtest: FE-156: incrusta application/pdf completo en PDF y DOCX reales
+ok 190 - FE-156: incrusta application/pdf completo en PDF y DOCX reales
+  ---
+  duration_ms: 2448.2548
+  type: 'test'
+  ...
+# Subtest: FE-156: informe revisado conserva la imagen anterior tras reemplazar el vigente
+ok 191 - FE-156: informe revisado conserva la imagen anterior tras reemplazar el vigente
+  ---
+  duration_ms: 852.6498
+  type: 'test'
+  ...
+# Subtest: FE-156: selección omitida o genograma ausente no agrega imágenes
+ok 192 - FE-156: selección omitida o genograma ausente no agrega imágenes
+  ---
+  duration_ms: 149.6951
+  type: 'test'
+  ...
+# Warning: Invalid PDF header version: invalid
+# Warning: Invalid PDF header version: invalid
+# Warning: Indexing all PDF objects
+# Subtest: FE-156: archivo corrupto o PDF de más de 20 páginas registra fallo, sin descarga vacía
+ok 193 - FE-156: archivo corrupto o PDF de más de 20 páginas registra fallo, sin descarga vacía
+  ---
+  duration_ms: 4070.236
+  type: 'test'
+  ...
+# Subtest: FE-156: no permite exportar genogramas de casos ajenos ni a marketing
+ok 194 - FE-156: no permite exportar genogramas de casos ajenos ni a marketing
+  ---
+  duration_ms: 42.4045
+  type: 'test'
+  ...
+# Subtest: FE-156: historial extenso conserva tablas, texto y anexo sin ocultar datos
+ok 195 - FE-156: historial extenso conserva tablas, texto y anexo sin ocultar datos
+  ---
+  duration_ms: 2764.8701
+  type: 'test'
+  ...
+# Subtest: FE-161: los PDF/DOCX separan casos y excluyen pagos del archivo clínico de la terapeuta
+ok 196 - FE-161: los PDF/DOCX separan casos y excluyen pagos del archivo clínico de la terapeuta
+  ---
+  duration_ms: 550.5312
+  type: 'test'
+  ...
+# Subtest: la 020 se aplica sobre datos existentes y no cambia el paquete atlas_ti
+ok 197 - la 020 se aplica sobre datos existentes y no cambia el paquete atlas_ti
+  ---
+  duration_ms: 2803.3718
+  type: 'test'
+  ...
+# Subtest: historial de A (administración): secciones completas, sesiones en orden, pagos con dos decimales, nada de B
+ok 198 - historial de A (administración): secciones completas, sesiones en orden, pagos con dos decimales, nada de B
+  ---
+  duration_ms: 36.3438
+  type: 'test'
+  ...
+# Subtest: ficha por defecto (terapeuta asignada): identificación y diagnóstico, sin sesiones, familia ni pagos
+ok 199 - ficha por defecto (terapeuta asignada): identificación y diagnóstico, sin sesiones, familia ni pagos
+  ---
+  duration_ms: 24.239
+  type: 'test'
+  ...
+# Subtest: informe: solo una versión revisada del mismo caso, exportada tal como se revisó
+ok 200 - informe: solo una versión revisada del mismo caso, exportada tal como se revisó
+  ---
+  duration_ms: 58.3962
+  type: 'test'
+  ...
+# Subtest: permisos: caso ajeno 404, marketing o sin usuario 42501, pagos solo administración
+ok 201 - permisos: caso ajeno 404, marketing o sin usuario 42501, pagos solo administración
+  ---
+  duration_ms: 42.2787
+  type: 'test'
+  ...
+# Subtest: parámetros inválidos → 22023
+ok 202 - parámetros inválidos → 22023
+  ---
+  duration_ms: 50.4686
+  type: 'test'
+  ...
+# Subtest: vista previa: lo mostrado es lo registrado; una vista previa vieja, alterada o de otro caso se rechaza
+ok 203 - vista previa: lo mostrado es lo registrado; una vista previa vieja, alterada o de otro caso se rechaza
+  ---
+  duration_ms: 45.6865
+  type: 'test'
+  ...
+# Subtest: registro directo: no se cruzan casos ni se registra un archivo al preparar
+ok 204 - registro directo: no se cruzan casos ni se registra un archivo al preparar
+  ---
+  duration_ms: 40.8492
+  type: 'test'
+  ...
+# Subtest: archivo: ruta fija del caso, se registra una vez, sin cambios ni borrado; un fallo queda registrado
+ok 205 - archivo: ruta fija del caso, se registra una vez, sin cambios ni borrado; un fallo queda registrado
+  ---
+  duration_ms: 128.6173
+  type: 'test'
+  ...
+# Subtest: lectura, descarga y trazabilidad: quien preparó o administración, mientras el caso siga autorizado
+ok 206 - lectura, descarga y trazabilidad: quien preparó o administración, mientras el caso siga autorizado
+  ---
+  duration_ms: 90.4206
+  type: 'test'
+  ...
+# Subtest: genograma: requiere la migración 012
+ok 207 - genograma: requiere la migración 012
+  ---
+  duration_ms: 15.4228
+  type: 'test'
+  ...
+# Subtest: anon y authenticated no acceden (si existen)
+ok 208 - anon y authenticated no acceden (si existen)
+  ---
+  duration_ms: 3.8525
+  type: 'test'
+  ...
+# Subtest: GET familia distingue ausencia, ficha vacía y ficha con integrantes
+ok 209 - GET familia distingue ausencia, ficha vacía y ficha con integrantes
+  ---
+  duration_ms: 3342.1572
+  type: 'test'
+  ...
+# Subtest: FE-125: la migración 015 se aplica sobre datos existentes sin cambiar ninguna tabla
+ok 210 - FE-125: la migración 015 se aplica sobre datos existentes sin cambiar ninguna tabla
+  ---
+  duration_ms: 2653.711
+  type: 'test'
+  ...
+# Subtest: FE-125: fuente clínica vigente; ficha primero, alta como antecedente, sin rellenar NULL
+ok 211 - FE-125: fuente clínica vigente; ficha primero, alta como antecedente, sin rellenar NULL
+  ---
+  duration_ms: 4.1569
+  type: 'test'
+  ...
+# Subtest: FE-125: ficha A, cuatro familiares con edad referida y parentesco respecto del paciente
+ok 212 - FE-125: ficha A, cuatro familiares con edad referida y parentesco respecto del paciente
+  ---
+  duration_ms: 33.5247
+  type: 'test'
+  ...
+# Subtest: FE-125: ficha B, parentescos repetidos, datos desconocidos y "otro" con detalle
+ok 213 - FE-125: ficha B, parentescos repetidos, datos desconocidos y "otro" con detalle
+  ---
+  duration_ms: 19.3329
+  type: 'test'
+  ...
+# Subtest: FE-125: sin registrar se distingue de registrada sin integrantes
+ok 214 - FE-125: sin registrar se distingue de registrada sin integrantes
+  ---
+  duration_ms: 6.5685
+  type: 'test'
+  ...
+# Subtest: FE-125: datos inválidos se rechazan y no dejan escrituras parciales
+ok 215 - FE-125: datos inválidos se rechazan y no dejan escrituras parciales
+  ---
+  duration_ms: 133.4033
+  type: 'test'
+  ...
+# Subtest: FE-125: sin relaciones cruzadas ni familiares huérfanos
+ok 216 - FE-125: sin relaciones cruzadas ni familiares huérfanos
+  ---
+  duration_ms: 25.5068
+  type: 'test'
+  ...
+# Subtest: FE-125: editar un familiar conserva los demás; la versión sube una vez por transacción
+ok 217 - FE-125: editar un familiar conserva los demás; la versión sube una vez por transacción
+  ---
+  duration_ms: 26.9464
+  type: 'test'
+  ...
+# Subtest: FE-125: una edición concurrente no sobrescribe en silencio
+ok 218 - FE-125: una edición concurrente no sobrescribe en silencio
+  ---
+  duration_ms: 171.5461
+  type: 'test'
+  ...
+# Subtest: FE-125: eliminar es lógico; el familiar eliminado queda guardado y no se edita
+ok 219 - FE-125: eliminar es lógico; el familiar eliminado queda guardado y no se edita
+  ---
+  duration_ms: 16.3634
+  type: 'test'
+  ...
+# Subtest: FE-125: guardar el diagnóstico no toca familiares y editar familiares no toca diagnóstico ni genograma
+ok 220 - FE-125: guardar el diagnóstico no toca familiares y editar familiares no toca diagnóstico ni genograma
+  ---
+  duration_ms: 22.4119
+  type: 'test'
+  ...
+# Subtest: FE-125: permisos; solo administración y la terapeuta asignada ven la familia
+ok 221 - FE-125: permisos; solo administración y la terapeuta asignada ven la familia
+  ---
+  duration_ms: 15.6462
+  type: 'test'
+  ...
+# Subtest: FE-125: edad_en calcula años cumplidos a una fecha
+ok 222 - FE-125: edad_en calcula años cumplidos a una fecha
+  ---
+  duration_ms: 6.1595
+  type: 'test'
+  ...
+# Subtest: FE-70: una carpeta sin ficha responde 200 con diagnostico null (ausente, no error)
+ok 223 - FE-70: una carpeta sin ficha responde 200 con diagnostico null (ausente, no error)
+  ---
+  duration_ms: 3451.2338
+  type: 'test'
+  ...
+# Subtest: FE-70: la terapeuta asignada crea la ficha con opcionales vacíos y al recargar obtiene la misma
+ok 224 - FE-70: la terapeuta asignada crea la ficha con opcionales vacíos y al recargar obtiene la misma
+  ---
+  duration_ms: 735.7635
+  type: 'test'
+  ...
+# Subtest: FE-70: editar conserva id y autoría de creación, registra quién actualizó y no duplica la ficha
+ok 225 - FE-70: editar conserva id y autoría de creación, registra quién actualizó y no duplica la ficha
+  ---
+  duration_ms: 843.201
+  type: 'test'
+  ...
+# Subtest: FE-70: los textos se guardan sin espacios sobrantes y un opcional de solo espacios queda vacío
+ok 226 - FE-70: los textos se guardan sin espacios sobrantes y un opcional de solo espacios queda vacío
+  ---
+  duration_ms: 732.5697
+  type: 'test'
+  ...
+# Subtest: FE-70: datos inválidos responden 400 y la ficha anterior queda igual
+ok 227 - FE-70: datos inválidos responden 400 y la ficha anterior queda igual
+  ---
+  duration_ms: 938.2918
+  type: 'test'
+  ...
+# Subtest: FE-70: una cuenta ajena no puede leer ni escribir la ficha
+ok 228 - FE-70: una cuenta ajena no puede leer ni escribir la ficha
+  ---
+  duration_ms: 811.0109
+  type: 'test'
+  ...
+# Subtest: FE-70: carpetas inexistentes o eliminadas responden 404
+ok 229 - FE-70: carpetas inexistentes o eliminadas responden 404
+  ---
+  duration_ms: 873.3291
+  type: 'test'
+  ...
+# Subtest: FE-70: al reasignar el caso, la terapeuta anterior pierde el acceso a la ficha
+ok 230 - FE-70: al reasignar el caso, la terapeuta anterior pierde el acceso a la ficha
+  ---
+  duration_ms: 754.4433
+  type: 'test'
+  ...
+# Subtest: FE-126: dos ediciones conservan un campo adicional del diagnóstico
+ok 231 - FE-126: dos ediciones conservan un campo adicional del diagnóstico
+  ---
+  duration_ms: 775.4393
+  type: 'test'
+  ...
+# Subtest: FE-126: la ficha vigente conserva sus nulos y distingue el alta
+ok 232 - FE-126: la ficha vigente conserva sus nulos y distingue el alta
+  ---
+  duration_ms: 964.8155
+  type: 'test'
+  ...
+# Subtest: FE-69: crear con opcionales vacíos y editar conserva id y autoría de creación
+ok 233 - FE-69: crear con opcionales vacíos y editar conserva id y autoría de creación
+  ---
+  duration_ms: 2626.9249
+  type: 'test'
+  ...
+# Subtest: FE-69: una segunda ficha del mismo caso se rechaza; otro caso tiene la suya
+ok 234 - FE-69: una segunda ficha del mismo caso se rechaza; otro caso tiene la suya
+  ---
+  duration_ms: 26.1082
+  type: 'test'
+  ...
+# Subtest: FE-69: fecha imposible o caso inexistente se rechazan sin crear ficha
+ok 235 - FE-69: fecha imposible o caso inexistente se rechazan sin crear ficha
+  ---
+  duration_ms: 15.157
+  type: 'test'
+  ...
+# Subtest: Q1 · ficha A: crear la familia, recargar y ver los parentescos respecto del paciente
+ok 236 - Q1 · ficha A: crear la familia, recargar y ver los parentescos respecto del paciente
+  ---
+  duration_ms: 2945.7463
+  type: 'test'
+  ...
+# Subtest: Q2 · ficha B: datos desconocidos quedan en null y los parentescos se pueden repetir
+ok 237 - Q2 · ficha B: datos desconocidos quedan en null y los parentescos se pueden repetir
+  ---
+  duration_ms: 54.464
+  type: 'test'
+  ...
+# Subtest: Q3 · dos ediciones parciales conservan los demás campos; null explícito limpia
+ok 238 - Q3 · dos ediciones parciales conservan los demás campos; null explícito limpia
+  ---
+  duration_ms: 56.9701
+  type: 'test'
+  ...
+# Subtest: Q4 · regresión: editar la familia no cambia el diagnóstico y viceversa
+ok 239 - Q4 · regresión: editar la familia no cambia el diagnóstico y viceversa
+  ---
+  duration_ms: 162.0026
+  type: 'test'
+  ...
+# Subtest: Q5 · fuente vigente: sin datos → alta → ficha, sin borrar el alta
+ok 240 - Q5 · fuente vigente: sin datos → alta → ficha, sin borrar el alta
+  ---
+  duration_ms: 65.2325
+  type: 'test'
+  ...
+# Subtest: Q6 · validaciones: 400 sin escrituras parciales
+ok 241 - Q6 · validaciones: 400 sin escrituras parciales
+  ---
+  duration_ms: 386.4386
+  type: 'test'
+  ...
+# Subtest: Q7 · aislamiento: no se editan ni eliminan familiares de otro caso
+ok 242 - Q7 · aislamiento: no se editan ni eliminan familiares de otro caso
+  ---
+  duration_ms: 77.343
+  type: 'test'
+  ...
+# Subtest: Q8 · ediciones concurrentes: versión vieja o null sobre ficha registrada → 409
+ok 243 - Q8 · ediciones concurrentes: versión vieja o null sobre ficha registrada → 409
+  ---
+  duration_ms: 73.8013
+  type: 'test'
+  ...
+# Subtest: Q9 · eliminación lógica: el integrante desaparece y no se puede volver a editar
+ok 244 - Q9 · eliminación lógica: el integrante desaparece y no se puede volver a editar
+  ---
+  duration_ms: 70.5133
+  type: 'test'
+  ...
+# Subtest: Q10 · permisos de familia y diagnóstico vigente
+ok 245 - Q10 · permisos de familia y diagnóstico vigente
+  ---
+  duration_ms: 129.2605
+  type: 'test'
+  ...
+# Subtest: G1 · registrar el ejemplo de FE-172 y consultar noviembre: total 1700.00
+ok 246 - G1 · registrar el ejemplo de FE-172 y consultar noviembre: total 1700.00
+  ---
+  duration_ms: 2816.8475
+  type: 'test'
+  ...
+# Subtest: G2 · corregir electricidad a 85.00 deja el total en 1705.00
+ok 247 - G2 · corregir electricidad a 85.00 deja el total en 1705.00
+  ---
+  duration_ms: 35.2992
+  type: 'test'
+  ...
+# Subtest: G3 · anular internet deja 1585.00; repetir la anulación no vuelve a restar
+ok 248 - G3 · anular internet deja 1585.00; repetir la anulación no vuelve a restar
+  ---
+  duration_ms: 49.7418
+  type: 'test'
+  ...
+# Subtest: G4 · un gasto anulado no se corrige (409) y el total no cambia
+ok 249 - G4 · un gasto anulado no se corrige (409) y el total no cambia
+  ---
+  duration_ms: 25.5701
+  type: 'test'
+  ...
+# Subtest: G5 · cambiar la fecha a octubre mueve el gasto entre meses
+ok 250 - G5 · cambiar la fecha a octubre mueve el gasto entre meses
+  ---
+  duration_ms: 76.0164
+  type: 'test'
+  ...
+# Subtest: G6 · un mes sin gastos devuelve lista vacía y 0.00 en todo
+ok 251 - G6 · un mes sin gastos devuelve lista vacía y 0.00 en todo
+  ---
+  duration_ms: 9.1318
+  type: 'test'
+  ...
+# Subtest: G7 · sin mes se consulta el mes actual de Bolivia
+ok 252 - G7 · sin mes se consulta el mes actual de Bolivia
+  ---
+  duration_ms: 17.1399
+  type: 'test'
+  ...
+# Subtest: G8 · varios «otros» del mismo mes se suman con su descripción
+ok 253 - G8 · varios «otros» del mismo mes se suman con su descripción
+  ---
+  duration_ms: 41.1903
+  type: 'test'
+  ...
+# Subtest: G9 · datos inválidos: 400 sin escrituras parciales
+ok 254 - G9 · datos inválidos: 400 sin escrituras parciales
+  ---
+  duration_ms: 160.7906
+  type: 'test'
+  ...
+# Subtest: G10 · inexistente o un ingreso: 404; un id que no es UUID: 400
+ok 255 - G10 · inexistente o un ingreso: 404; un id que no es UUID: 400
+  ---
+  duration_ms: 76.1005
+  type: 'test'
+  ...
+# Subtest: G11 · solo administración: terapeuta, marketing y sin sesión no registran, corrigen, anulan ni consultan
+ok 256 - G11 · solo administración: terapeuta, marketing y sin sesión no registran, corrigen, anulan ni consultan
+  ---
+  duration_ms: 65.8867
+  type: 'test'
+  ...
+# Subtest: G12 · cada alta, corrección y anulación queda en auditoría con su autor
+ok 257 - G12 · cada alta, corrección y anulación queda en auditoría con su autor
+  ---
+  duration_ms: 1.9574
+  type: 'test'
+  ...
+# Subtest: FE-173: la 022 conserva los movimientos existentes y no exige datos de gasto a los ingresos
+ok 258 - FE-173: la 022 conserva los movimientos existentes y no exige datos de gasto a los ingresos
+  ---
+  duration_ms: 2466.2241
+  type: 'test'
+  ...
+# Subtest: FE-173: mes sin gastos devuelve lista vacía, total 0.00 y las cuatro categorías
+ok 259 - FE-173: mes sin gastos devuelve lista vacía, total 0.00 y las cuatro categorías
+  ---
+  duration_ms: 10.1936
+  type: 'test'
+  ...
+# Subtest: FE-173: ejemplo de FE-172, noviembre suma 1700.00 con totales por categoría
+ok 260 - FE-173: ejemplo de FE-172, noviembre suma 1700.00 con totales por categoría
+  ---
+  duration_ms: 19.8696
+  type: 'test'
+  ...
+# Subtest: FE-173: corregir a 85.00 da 1705.00; anular internet deja 1585.00 y repetirlo no resta otra vez
+ok 261 - FE-173: corregir a 85.00 da 1705.00; anular internet deja 1585.00 y repetirlo no resta otra vez
+  ---
+  duration_ms: 27.567
+  type: 'test'
+  ...
+# Subtest: FE-173: un gasto anulado no se corrige ni se borra; ningún gasto se borra
+ok 262 - FE-173: un gasto anulado no se corrige ni se borra; ningún gasto se borra
+  ---
+  duration_ms: 31.6965
+  type: 'test'
+  ...
+# Subtest: FE-173: cambiar la fecha a otro mes saca el gasto de uno y lo suma en el otro
+ok 263 - FE-173: cambiar la fecha a otro mes saca el gasto de uno y lo suma en el otro
+  ---
+  duration_ms: 19.5407
+  type: 'test'
+  ...
+# Subtest: FE-173: varios gastos de una categoría en el mes y suma exacta de centavos
+ok 264 - FE-173: varios gastos de una categoría en el mes y suma exacta de centavos
+  ---
+  duration_ms: 17.7583
+  type: 'test'
+  ...
+# Subtest: FE-173: datos inválidos se rechazan sin escrituras parciales
+ok 265 - FE-173: datos inválidos se rechazan sin escrituras parciales
+  ---
+  duration_ms: 130.3459
+  type: 'test'
+  ...
+# Subtest: FE-173: la base pone autoría y anulación; el cliente no las falsifica
+ok 266 - FE-173: la base pone autoría y anulación; el cliente no las falsifica
+  ---
+  duration_ms: 15.2761
+  type: 'test'
+  ...
+# Subtest: FE-173: solo administración activa registra, corrige, anula y consulta
+ok 267 - FE-173: solo administración activa registra, corrige, anula y consulta
+  ---
+  duration_ms: 48.6463
+  type: 'test'
+  ...
+# Subtest: FE-173: mes inválido → 22023; sin mes, el mes actual de Bolivia
+ok 268 - FE-173: mes inválido → 22023; sin mes, el mes actual de Bolivia
+  ---
+  duration_ms: 22.9095
+  type: 'test'
+  ...
+# Subtest: FE-173: anular inexistente o un ingreso → P0002
+ok 269 - FE-173: anular inexistente o un ingreso → P0002
+  ---
+  duration_ms: 8.2856
+  type: 'test'
+  ...
+# Subtest: FE-173: registro, corrección y anulación quedan en auditoría con su autor
+ok 270 - FE-173: registro, corrección y anulación quedan en auditoría con su autor
+  ---
+  duration_ms: 3.1368
+  type: 'test'
+  ...
+# Subtest: FE-173: RLS activo y sin acceso directo para anon/authenticated
+ok 271 - FE-173: RLS activo y sin acceso directo para anon/authenticated
+  ---
+  duration_ms: 3.2908
+  type: 'test'
+  ...
+# Subtest: carga, consulta y descarga por HTTP con almacenamiento en memoria
+ok 272 - carga, consulta y descarga por HTTP con almacenamiento en memoria
+  ---
+  duration_ms: 253.0671
+  type: 'test'
+  ...
+# Subtest: la migración conserva genogramas existentes sin archivo
+ok 273 - la migración conserva genogramas existentes sin archivo
+  ---
+  duration_ms: 3274.7657
+  type: 'test'
+  ...
+# Subtest: API: carga, consulta y descarga con base real
+ok 274 - API: carga, consulta y descarga con base real
+  ---
+  duration_ms: 532.029
+  type: 'test'
+  ...
+# Subtest: API: el reemplazo conserva la versión anterior y registra la autoría
+ok 275 - API: el reemplazo conserva la versión anterior y registra la autoría
+  ---
+  duration_ms: 63.626
+  type: 'test'
+  ...
+# Subtest: API: archivo inválido devuelve 415 y no guarda nada
+ok 276 - API: archivo inválido devuelve 415 y no guarda nada
+  ---
+  duration_ms: 21.0893
+  type: 'test'
+  ...
+# Subtest: API: terapeuta no asignada y marketing no ven ni cargan
+ok 277 - API: terapeuta no asignada y marketing no ven ni cargan
+  ---
+  duration_ms: 49.0841
+  type: 'test'
+  ...
+# Subtest: API: caso sin genograma o inexistente devuelve 404
+ok 278 - API: caso sin genograma o inexistente devuelve 404
+  ---
+  duration_ms: 23.8109
+  type: 'test'
+  ...
+# Subtest: fallo al activar: el vigente anterior no cambia
+ok 279 - fallo al activar: el vigente anterior no cambia
+  ---
+  duration_ms: 26.5771
+  type: 'test'
+  ...
+# Subtest: SQL: un archivo no puede pertenecer ni apuntar a otro caso
+ok 280 - SQL: un archivo no puede pertenecer ni apuntar a otro caso
+  ---
+  duration_ms: 9.247
+  type: 'test'
+  ...
+# Subtest: SQL: tamaño, tipo y activación coherentes
+ok 281 - SQL: tamaño, tipo y activación coherentes
+  ---
+  duration_ms: 8.1838
+  type: 'test'
+  ...
+# Subtest: SQL: el contenido no cambia, no se reactiva y el vigente no se borra
+ok 282 - SQL: el contenido no cambia, no se reactiva y el vigente no se borra
+  ---
+  duration_ms: 11.5043
+  type: 'test'
+  ...
+# Subtest: SQL: huella sha256 y auditoría del cambio de vigente
+ok 283 - SQL: huella sha256 y auditoría del cambio de vigente
+  ---
+  duration_ms: 7.7155
+  type: 'test'
+  ...
+# Subtest: G1 · integridad: PNG, JPEG y PDF se descargan idénticos y la huella sha256 coincide
+ok 284 - G1 · integridad: PNG, JPEG y PDF se descargan idénticos y la huella sha256 coincide
+  ---
+  duration_ms: 3492.0503
+  type: 'test'
+  ...
+# Subtest: G2 · confidencialidad de la respuesta: sin caché, nosniff, descarga como adjunto y sin bytes en metadatos
+ok 285 - G2 · confidencialidad de la respuesta: sin caché, nosniff, descarga como adjunto y sin bytes en metadatos
+  ---
+  duration_ms: 33.7812
+  type: 'test'
+  ...
+# Subtest: G3 · el nombre del archivo no permite inyectar cabeceras
+ok 286 - G3 · el nombre del archivo no permite inyectar cabeceras
+  ---
+  duration_ms: 46.9221
+  type: 'test'
+  ...
+# Subtest: G4 · límite de 5 MB: exactamente 5 MB se acepta; un byte más da 413 sin guardar
+ok 287 - G4 · límite de 5 MB: exactamente 5 MB se acepta; un byte más da 413 sin guardar
+  ---
+  duration_ms: 804.3004
+  type: 'test'
+  ...
+# Subtest: G5 · archivos disfrazados, vacíos o mal enviados se rechazan sin guardar
+ok 288 - G5 · archivos disfrazados, vacíos o mal enviados se rechazan sin guardar
+  ---
+  duration_ms: 133.3695
+  type: 'test'
+  ...
+# Subtest: G6 · aislamiento: cada caso descarga solo su genograma
+ok 289 - G6 · aislamiento: cada caso descarga solo su genograma
+  ---
+  duration_ms: 290.1095
+  type: 'test'
+  ...
+# Subtest: G7 · reasignar el caso retira el acceso a la terapeuta anterior
+ok 290 - G7 · reasignar el caso retira el acceso a la terapeuta anterior
+  ---
+  duration_ms: 356.5608
+  type: 'test'
+  ...
+# Subtest: G8 · un caso eliminado no expone su genograma ni a administración
+ok 291 - G8 · un caso eliminado no expone su genograma ni a administración
+  ---
+  duration_ms: 76.5474
+  type: 'test'
+  ...
+# Subtest: G9 · permisos completos y sin token
+ok 292 - G9 · permisos completos y sin token
+  ---
+  duration_ms: 77.6851
+  type: 'test'
+  ...
+# Subtest: G10 · regresión: cargar el genograma no cambia el diagnóstico del caso
+ok 293 - G10 · regresión: cargar el genograma no cambia el diagnóstico del caso
+  ---
+  duration_ms: 135.0194
+  type: 'test'
+  ...
+# Subtest: G11 · dos cargas simultáneas terminan bien y dejan un vigente coherente
+ok 294 - G11 · dos cargas simultáneas terminan bien y dejan un vigente coherente
+  ---
+  duration_ms: 211.2563
+  type: 'test'
+  ...
+# Subtest: FE-85: un caso sin registros devuelve el encabezado y las secciones vacías («Sin registro»)
+ok 295 - FE-85: un caso sin registros devuelve el encabezado y las secciones vacías («Sin registro»)
+  ---
+  duration_ms: 3953.6957
+  type: 'test'
+  ...
+# Subtest: FE-85: T1 ve el historial completo de A en orden y cada tarea dentro de su sesión
+ok 296 - FE-85: T1 ve el historial completo de A en orden y cada tarea dentro de su sesión
+  ---
+  duration_ms: 1087.8954
+  type: 'test'
+  ...
+# Subtest: FE-85: con un pago registrado, la respuesta clínica no incluye montos ni datos financieros
+ok 297 - FE-85: con un pago registrado, la respuesta clínica no incluye montos ni datos financieros
+  ---
+  duration_ms: 1018.0489
+  type: 'test'
+  ...
+# Subtest: FE-85: A sin ficha muestra diagnóstico vacío y conserva las demás secciones
+ok 298 - FE-85: A sin ficha muestra diagnóstico vacío y conserva las demás secciones
+  ---
+  duration_ms: 962.8861
+  type: 'test'
+  ...
+# Subtest: FE-85: T2, marketing o un pedido sin sesión no obtienen datos de A
+ok 299 - FE-85: T2, marketing o un pedido sin sesión no obtienen datos de A
+  ---
+  duration_ms: 1035.1425
+  type: 'test'
+  ...
+# Subtest: FE-85: administración ve únicamente los datos del caso que consulta
+ok 300 - FE-85: administración ve únicamente los datos del caso que consulta
+  ---
+  duration_ms: 1057.0429
+  type: 'test'
+  ...
+# Subtest: FE-85: un caso eliminado o con paciente eliminado responde 404
+ok 301 - FE-85: un caso eliminado o con paciente eliminado responde 404
+  ---
+  duration_ms: 924.6628
+  type: 'test'
+  ...
+# Subtest: FE-85: al reasignar, la consulta nueva se autoriza con la asignación vigente
+ok 302 - FE-85: al reasignar, la consulta nueva se autoriza con la asignación vigente
+  ---
+  duration_ms: 1109.8173
+  type: 'test'
+  ...
+# Subtest: FE-84: cada carpeta ve solo sus registros, sin duplicados
+ok 303 - FE-84: cada carpeta ve solo sus registros, sin duplicados
+  ---
+  duration_ms: 3054.6237
+  type: 'test'
+  ...
+# Subtest: FE-84: las tareas quedan dentro de la sesión correcta
+ok 304 - FE-84: las tareas quedan dentro de la sesión correcta
+  ---
+  duration_ms: 12.4151
+  type: 'test'
+  ...
+# Subtest: FE-84: el orden es estable entre consultas repetidas
+ok 305 - FE-84: el orden es estable entre consultas repetidas
+  ---
+  duration_ms: 21.7234
+  type: 'test'
+  ...
+# Subtest: FE-84: unir sesiones, tareas y pagos en una consulta duplica filas (por eso se separan)
+ok 306 - FE-84: unir sesiones, tareas y pagos en una consulta duplica filas (por eso se separan)
+  ---
+  duration_ms: 4.7564
+  type: 'test'
+  ...
+# Subtest: FE-164: cargar el CSV devuelve una vista previa sin importar pacientes
+ok 307 - FE-164: cargar el CSV devuelve una vista previa sin importar pacientes
+  ---
+  duration_ms: 4505.04
+  type: 'test'
+  ...
+# Subtest: FE-164: acepta el formato de FE-162, punto y coma y números de Excel
+ok 308 - FE-164: acepta el formato de FE-162, punto y coma y números de Excel
+  ---
+  duration_ms: 3346.4504
+  type: 'test'
+  ...
+# Subtest: la plantilla y las muestras usan las columnas de importacion_columnas()
+ok 309 - la plantilla y las muestras usan las columnas de importacion_columnas()
+  ---
+  duration_ms: 2720.6397
+  type: 'test'
+  ...
+# Subtest: lote válido: crea pacientes y casos con número, residencia, contexto judicial y procedencia
+ok 310 - lote válido: crea pacientes y casos con número, residencia, contexto judicial y procedencia
+  ---
+  duration_ms: 126.4038
+  type: 'test'
+  ...
+# Subtest: confirmar otra vez el mismo lote devuelve su resultado sin escribir nada
+ok 311 - confirmar otra vez el mismo lote devuelve su resultado sin escribir nada
+  ---
+  duration_ms: 10.3728
+  type: 'test'
+  ...
+# Subtest: volver a subir el mismo archivo: cada fila aparece como ya importada y no se puede crear de nuevo
+ok 312 - volver a subir el mismo archivo: cada fila aparece como ya importada y no se puede crear de nuevo
+  ---
+  duration_ms: 103.1073
+  type: 'test'
+  ...
+# Subtest: filas inválidas: cada error se informa por columna y ninguna se importa
+ok 313 - filas inválidas: cada error se informa por columna y ninguna se importa
+  ---
+  duration_ms: 185.1171
+  type: 'test'
+  ...
+# Subtest: validar_fila_importacion rechaza columnas desconocidas y valores que no son texto
+ok 314 - validar_fila_importacion rechaza columnas desconocidas y valores que no son texto
+  ---
+  duration_ms: 5.9359
+  type: 'test'
+  ...
+# Subtest: corregir una fila con error la vuelve válida y sube la versión
+ok 315 - corregir una fila con error la vuelve válida y sube la versión
+  ---
+  duration_ms: 53.9753
+  type: 'test'
+  ...
+# Subtest: coincidencias con registros existentes y dentro del lote: decidir sin fusionar ni modificar
+ok 316 - coincidencias con registros existentes y dentro del lote: decidir sin fusionar ni modificar
+  ---
+  duration_ms: 168.6263
+  type: 'test'
+  ...
+# Subtest: un fallo a mitad de la confirmación revierte el lote completo y el reintento no pierde ni duplica
+ok 317 - un fallo a mitad de la confirmación revierte el lote completo y el reintento no pierde ni duplica
+  ---
+  duration_ms: 64.1166
+  type: 'test'
+  ...
+# Subtest: si otra alta ocupa el número después de la vista previa, la confirmación pide revisar
+ok 318 - si otra alta ocupa el número después de la vista previa, la confirmación pide revisar
+  ---
+  duration_ms: 41.0842
+  type: 'test'
+  ...
+# Subtest: dos confirmaciones simultáneas: una aplica el lote y la otra devuelve el mismo resultado
+ok 319 - dos confirmaciones simultáneas: una aplica el lote y la otra devuelve el mismo resultado
+  ---
+  duration_ms: 340.2093
+  type: 'test'
+  ...
+# Subtest: un lote confirmado o descartado no cambia; confirmar exige usuario
+ok 320 - un lote confirmado o descartado no cambia; confirmar exige usuario
+  ---
+  duration_ms: 37.7742
+  type: 'test'
+  ...
+# Subtest: números consecutivos al contador o por debajo de él no requieren aceptar un salto
+ok 321 - números consecutivos al contador o por debajo de él no requieren aceptar un salto
+  ---
+  duration_ms: 45.2237
+  type: 'test'
+  ...
+# Subtest: ejemplo de FE-162: estados esperados de las siete filas de Andrea
+ok 322 - ejemplo de FE-162: estados esperados de las siete filas de Andrea
+  ---
+  duration_ms: 126.1539
+  type: 'test'
+  ...
+# Subtest: permisos: RLS activa y sin acceso directo a tablas ni funciones
+ok 323 - permisos: RLS activa y sin acceso directo a tablas ni funciones
+  ---
+  duration_ms: 27.682
+  type: 'test'
+  ...
+# Subtest: migración 017 sobre datos existentes: no altera registros y deja la tabla de 001 utilizable
+ok 324 - migración 017 sobre datos existentes: no altera registros y deja la tabla de 001 utilizable
+  ---
+  duration_ms: 4696.0285
+  type: 'test'
+  ...
+# Subtest: M1 · solo administración importa; terapeuta, marketing y sin sesión no
+ok 325 - M1 · solo administración importa; terapeuta, marketing y sin sesión no
+  ---
+  duration_ms: 3192.0926
+  type: 'test'
+  ...
+# Subtest: M2 · archivos inválidos se rechazan sin crear lotes
+ok 326 - M2 · archivos inválidos se rechazan sin crear lotes
+  ---
+  duration_ms: 264.5696
+  type: 'test'
+  ...
+# Subtest: M3 · la vista previa clasifica las filas y no toca nada existente
+ok 327 - M3 · la vista previa clasifica las filas y no toca nada existente
+  ---
+  duration_ms: 126.1915
+  type: 'test'
+  ...
+# Subtest: M4 · no se confirma con filas pendientes ni con una versión vieja
+ok 328 - M4 · no se confirma con filas pendientes ni con una versión vieja
+  ---
+  duration_ms: 75.2296
+  type: 'test'
+  ...
+# Subtest: M5 · vincular a una carpeta existente y confirmar no modifica ningún registro antiguo
+ok 329 - M5 · vincular a una carpeta existente y confirmar no modifica ningún registro antiguo
+  ---
+  duration_ms: 85.0597
+  type: 'test'
+  ...
+# Subtest: M6 · confirmar otra vez y volver a subir el mismo archivo no duplica nada
+ok 330 - M6 · confirmar otra vez y volver a subir el mismo archivo no duplica nada
+  ---
+  duration_ms: 30.2195
+  type: 'test'
+  ...
+# Subtest: M7 · otro lote que intenta vincular, corregir o crear sobre la carpeta antigua tampoco la altera
+ok 331 - M7 · otro lote que intenta vincular, corregir o crear sobre la carpeta antigua tampoco la altera
+  ---
+  duration_ms: 78.643
+  type: 'test'
+  ...
+# Subtest: FE-95: el período 12–19 de octubre coincide con la conciliación manual de FE-91
+ok 332 - FE-95: el período 12–19 de octubre coincide con la conciliación manual de FE-91
+  ---
+  duration_ms: 4339.2556
+  type: 'test'
+  ...
+# Subtest: FE-95: el período 1–5 de octubre no tiene movimientos y conserva los casos actuales
+ok 333 - FE-95: el período 1–5 de octubre no tiene movimientos y conserva los casos actuales
+  ---
+  duration_ms: 763.9698
+  type: 'test'
+  ...
+# Subtest: FE-95: el total sin pagos se informa como 0.00, con el mismo formato que los demás montos
+ok 334 - FE-95: el total sin pagos se informa como 0.00, con el mismo formato que los demás montos
+  ---
+  duration_ms: 791.7505
+  type: 'test'
+  ...
+# Subtest: FE-95: los extremos del período se incluyen y el día anterior o posterior no
+ok 335 - FE-95: los extremos del período se incluyen y el día anterior o posterior no
+  ---
+  duration_ms: 849.9909
+  type: 'test'
+  ...
+# Subtest: FE-95: sesiones y pagos se cuentan por su propia fecha al cruzar de mes
+ok 336 - FE-95: sesiones y pagos se cuentan por su propia fecha al cruzar de mes
+  ---
+  duration_ms: 828.7454
+  type: 'test'
+  ...
+# Subtest: FE-95: agregar dos tareas a S-A1 no multiplica sesiones ni pagos
+ok 337 - FE-95: agregar dos tareas a S-A1 no multiplica sesiones ni pagos
+  ---
+  duration_ms: 839.5128
+  type: 'test'
+  ...
+# Subtest: FE-95: casos o pacientes eliminados dejan de contar en casos, sesiones y pagos
+ok 338 - FE-95: casos o pacientes eliminados dejan de contar en casos, sesiones y pagos
+  ---
+  duration_ms: 865.3478
+  type: 'test'
+  ...
+# Subtest: FE-95: el total coincide con la suma manual de pagos en BOB y no mezcla otra moneda
+ok 339 - FE-95: el total coincide con la suma manual de pagos en BOB y no mezcla otra moneda
+  ---
+  duration_ms: 769.8045
+  type: 'test'
+  ...
+# Subtest: FE-95: fechas inválidas, faltantes o invertidas responden 400
+ok 340 - FE-95: fechas inválidas, faltantes o invertidas responden 400
+  ---
+  duration_ms: 854.156
+  type: 'test'
+  ...
+# Subtest: FE-95: solo administración consulta los indicadores
+ok 341 - FE-95: solo administración consulta los indicadores
+  ---
+  duration_ms: 804.3509
+  type: 'test'
+  ...
+# Subtest: FE-95: si la consulta falla se informa un error y la siguiente consulta funciona
+ok 342 - FE-95: si la consulta falla se informa un error y la siguiente consulta funciona
+  ---
+  duration_ms: 937.7931
+  type: 'test'
+  ...
+# Subtest: FE-136: desglosa indicadores por residencia solo para administración
+ok 343 - FE-136: desglosa indicadores por residencia solo para administración
+  ---
+  duration_ms: 1035.1333
+  type: 'test'
+  ...
+# Subtest: FE-94: período 12–19 de octubre coincide con la conciliación manual
+ok 344 - FE-94: período 12–19 de octubre coincide con la conciliación manual
+  ---
+  duration_ms: 2512.4932
+  type: 'test'
+  ...
+# Subtest: FE-94: período sin movimientos devuelve 0 sesiones y 0,00
+ok 345 - FE-94: período sin movimientos devuelve 0 sesiones y 0,00
+  ---
+  duration_ms: 3.0301
+  type: 'test'
+  ...
+# Subtest: FE-94: los extremos del período se incluyen
+ok 346 - FE-94: los extremos del período se incluyen
+  ---
+  duration_ms: 3.4031
+  type: 'test'
+  ...
+# Subtest: FE-94: agregar dos tareas a S-A1 no cambia el resultado
+ok 347 - FE-94: agregar dos tareas a S-A1 no cambia el resultado
+  ---
+  duration_ms: 13.2001
+  type: 'test'
+  ...
+# Subtest: FE-94: un caso eliminado deja de contar en casos, sesiones y pagos
+ok 348 - FE-94: un caso eliminado deja de contar en casos, sesiones y pagos
+  ---
+  duration_ms: 10.3186
+  type: 'test'
+  ...
+# Subtest: guarda el primer borrador con su autora y los datos de origen
+ok 349 - guarda el primer borrador con su autora y los datos de origen
+  ---
+  duration_ms: 2622.8324
+  type: 'test'
+  ...
+# Subtest: revierte la cabecera si PostgreSQL rechaza la versión
+ok 350 - revierte la cabecera si PostgreSQL rechaza la versión
+  ---
+  duration_ms: 36.7163
+  type: 'test'
+  ...
+# Subtest: el borrador sistémico incluye solo la sesión seleccionada
+ok 351 - el borrador sistémico incluye solo la sesión seleccionada
+  ---
+  duration_ms: 82.9355
+  type: 'test'
+  ...
+# Subtest: guarda el informe judicial con el juzgado del caso y el objeto indicado
+ok 352 - guarda el informe judicial con el juzgado del caso y el objeto indicado
+  ---
+  duration_ms: 38.8701
+  type: 'test'
+  ...
+# Subtest: rechaza el informe judicial sin objeto y no guarda la cabecera
+ok 353 - rechaza el informe judicial sin objeto y no guarda la cabecera
+  ---
+  duration_ms: 21.2218
+  type: 'test'
+  ...
+# Subtest: POST informes: valida el acceso y guarda para la terapeuta asignada
+ok 354 - POST informes: valida el acceso y guarda para la terapeuta asignada
+  ---
+  duration_ms: 374.7798
+  type: 'test'
+  ...
+# Subtest: guarda la revisión con autoría y conserva los datos de origen
+ok 355 - guarda la revisión con autoría y conserva los datos de origen
+  ---
+  duration_ms: 57.855
+  type: 'test'
+  ...
+# Subtest: PATCH revisión: valida permisos, guarda y rechaza una segunda revisión
+ok 356 - PATCH revisión: valida permisos, guarda y rechaza una segunda revisión
+  ---
+  duration_ms: 181.0737
+  type: 'test'
+  ...
+# Subtest: GET informes: lista las versiones del caso para la terapeuta asignada
+ok 357 - GET informes: lista las versiones del caso para la terapeuta asignada
+  ---
+  duration_ms: 150.8408
+  type: 'test'
+  ...
+# Subtest: caso A: solo las sesiones elegidas, sin repetir, en orden de fecha y con sus tareas
+ok 358 - caso A: solo las sesiones elegidas, sin repetir, en orden de fecha y con sus tareas
+  ---
+  duration_ms: 2459.3657
+  type: 'test'
+  ...
+# Subtest: caso B: sin ficha usa el alta como antecedente y no toma nada del caso A
+ok 359 - caso B: sin ficha usa el alta como antecedente y no toma nada del caso A
+  ---
+  duration_ms: 7.2445
+  type: 'test'
+  ...
+# Subtest: una sesión de otro caso o inexistente se rechaza; un caso inexistente también
+ok 360 - una sesión de otro caso o inexistente se rechaza; un caso inexistente también
+  ---
+  duration_ms: 14.878
+  type: 'test'
+  ...
+# Subtest: familia incluida: versión de la ficha familiar e integrantes en orden de registro
+ok 361 - familia incluida: versión de la ficha familiar e integrantes en orden de registro
+  ---
+  duration_ms: 7.5157
+  type: 'test'
+  ...
+# Subtest: guardar una versión: borrador nº 1, autoría, sesiones citadas y huella
+ok 362 - guardar una versión: borrador nº 1, autoría, sesiones citadas y huella
+  ---
+  duration_ms: 47.8089
+  type: 'test'
+  ...
+# Subtest: no se guarda una fotografía alterada, de otro caso o desactualizada
+ok 363 - no se guarda una fotografía alterada, de otro caso o desactualizada
+  ---
+  duration_ms: 47.436
+  type: 'test'
+  ...
+# Subtest: borrador editable con autoría; un solo borrador abierto; no se crea ya revisado
+ok 364 - borrador editable con autoría; un solo borrador abierto; no se crea ya revisado
+  ---
+  duration_ms: 40.5178
+  type: 'test'
+  ...
+# Subtest: revisar es definitivo y un cambio posterior del expediente genera otra versión
+ok 365 - revisar es definitivo y un cambio posterior del expediente genera otra versión
+  ---
+  duration_ms: 45.6839
+  type: 'test'
+  ...
+# Subtest: un borrador se puede descartar y se lleva sus sesiones citadas
+ok 366 - un borrador se puede descartar y se lleva sus sesiones citadas
+  ---
+  duration_ms: 21.4233
+  type: 'test'
+  ...
+# Subtest: una sesión citada no se puede borrar y el informe no cambia de caso ni de tipo
+ok 367 - una sesión citada no se puede borrar y el informe no cambia de caso ni de tipo
+  ---
+  duration_ms: 19.637
+  type: 'test'
+  ...
+# Subtest: la comprobación no depende de la zona horaria de la conexión
+ok 368 - la comprobación no depende de la zona horaria de la conexión
+  ---
+  duration_ms: 193.0175
+  type: 'test'
+  ...
+# Subtest: genograma: sin la migración 012 se informa en lugar de omitirlo
+ok 369 - genograma: sin la migración 012 se informa en lugar de omitirlo # SKIP la base tiene la 012: ver la prueba siguiente
+  ---
+  duration_ms: 2.27
+  type: 'test'
+  ...
+# Subtest: genograma (con 012): archivo vigente del mismo caso, sin contenido
+ok 370 - genograma (con 012): archivo vigente del mismo caso, sin contenido
+  ---
+  duration_ms: 32.7719
+  type: 'test'
+  ...
+# Subtest: RLS activa en las tablas nuevas y funciones sin SECURITY DEFINER
+ok 371 - RLS activa en las tablas nuevas y funciones sin SECURITY DEFINER
+  ---
+  duration_ms: 5.2772
+  type: 'test'
+  ...
+# Subtest: la migración 016 no cambia datos existentes
+ok 372 - la migración 016 no cambia datos existentes
+  ---
+  duration_ms: 4161.6361
+  type: 'test'
+  ...
+# Subtest: I1 · sistémico del caso A: identificación, evaluación vigente y solo las sesiones elegidas, en orden de fecha
+ok 373 - I1 · sistémico del caso A: identificación, evaluación vigente y solo las sesiones elegidas, en orden de fecha
+  ---
+  duration_ms: 3131.1626
+  type: 'test'
+  ...
+# Subtest: I2 · el informe no mezcla datos de otro caso ni incluye pagos
+ok 374 - I2 · el informe no mezcla datos de otro caso ni incluye pagos
+  ---
+  duration_ms: 62.5293
+  type: 'test'
+  ...
+# Subtest: I3 · caso sin diagnóstico ni sesiones: declara las ausencias, no las rellena
+ok 375 - I3 · caso sin diagnóstico ni sesiones: declara las ausencias, no las rellena
+  ---
+  duration_ms: 99.4211
+  type: 'test'
+  ...
+# Subtest: I4 · una sesión de otro caso, inexistente o repetida no entra al informe y no se guarda nada
+ok 376 - I4 · una sesión de otro caso, inexistente o repetida no entra al informe y no se guarda nada
+  ---
+  duration_ms: 112.1835
+  type: 'test'
+  ...
+# Subtest: I5 · judicial: destinatario y referencia del caso, objeto indicado y mínimos exigidos
+ok 377 - I5 · judicial: destinatario y referencia del caso, objeto indicado y mínimos exigidos
+  ---
+  duration_ms: 104.8483
+  type: 'test'
+  ...
+# Subtest: I6 · revisar conserva el texto revisado; un cambio posterior del diagnóstico no lo altera
+ok 378 - I6 · revisar conserva el texto revisado; un cambio posterior del diagnóstico no lo altera
+  ---
+  duration_ms: 146.2246
+  type: 'test'
+  ...
+# Subtest: I7 · permisos: solo la terapeuta asignada genera y consulta; una versión no se lee desde otro caso
+ok 379 - I7 · permisos: solo la terapeuta asignada genera y consulta; una versión no se lee desde otro caso
+  ---
+  duration_ms: 90.5927
+  type: 'test'
+  ...
+# Subtest: I8 · tipo o datos de la solicitud inválidos dan 400
+ok 380 - I8 · tipo o datos de la solicitud inválidos dan 400
+  ---
+  duration_ms: 23.6694
+  type: 'test'
+  ...
+# Subtest: I9 · FE155-01: la composición familiar seleccionada aparece en el informe (FE-151, plantilla A, punto 4)
+ok 381 - I9 · FE155-01: la composición familiar seleccionada aparece en el informe (FE-151, plantilla A, punto 4)
+  ---
+  duration_ms: 111.096
+  type: 'test'
+  ...
+# Subtest: I10 · las tareas corresponden solo a las sesiones seleccionadas
+ok 382 - I10 · las tareas corresponden solo a las sesiones seleccionadas
+  ---
+  duration_ms: 53.7985
+  type: 'test'
+  ...
+# Subtest: FE-169: selección y conteos respetan el alcance del perfil
+ok 383 - FE-169: selección y conteos respetan el alcance del perfil
+  ---
+  duration_ms: 4082.9587
+  type: 'test'
+  ...
+# Subtest: la 018 conserva la categoría y la etiqueta previas y les da código
+ok 384 - la 018 conserva la categoría y la etiqueta previas y les da código
+  ---
+  duration_ms: 2657.7946
+  type: 'test'
+  ...
+# Subtest: catálogo: normaliza, no repite nombre en el nivel y valida código, nombre y color
+ok 385 - catálogo: normaliza, no repite nombre en el nivel y valida código, nombre y color
+  ---
+  duration_ms: 26.0741
+  type: 'test'
+  ...
+# Subtest: catálogo: sin ciclos, código fijo y una categoría usada o con subcategorías no se borra
+ok 386 - catálogo: sin ciclos, código fijo y una categoría usada o con subcategorías no se borra
+  ---
+  duration_ms: 29.9279
+  type: 'test'
+  ...
+# Subtest: etiquetas: la ficha debe ser del mismo caso; sin duplicados ni cambios de destino
+ok 387 - etiquetas: la ficha debe ser del mismo caso; sin duplicados ni cambios de destino
+  ---
+  duration_ms: 38.6037
+  type: 'test'
+  ...
+# Subtest: selección: cada rol ve solo su alcance; un caso ajeno nunca aparece
+ok 388 - selección: cada rol ve solo su alcance; un caso ajeno nunca aparece
+  ---
+  duration_ms: 46.6841
+  type: 'test'
+  ...
+# Subtest: selección: categorías (con subcategorías, cualquiera), período y residencia
+ok 389 - selección: categorías (con subcategorías, cualquiera), período y residencia
+  ---
+  duration_ms: 28.2618
+  type: 'test'
+  ...
+# Subtest: conteos por categoría dentro del alcance autorizado y del período
+ok 390 - conteos por categoría dentro del alcance autorizado y del período
+  ---
+  duration_ms: 19.9581
+  type: 'test'
+  ...
+# Subtest: paquete: dos casos → dos documentos y dos entradas de manifiesto, sin mezcla
+ok 391 - paquete: dos casos → dos documentos y dos entradas de manifiesto, sin mezcla
+  ---
+  duration_ms: 76.8987
+  type: 'test'
+  ...
+# Subtest: paquete: secciones, período y formato definen contenido y categorías
+ok 392 - paquete: secciones, período y formato definen contenido y categorías
+  ---
+  duration_ms: 60.5556
+  type: 'test'
+  ...
+# Subtest: paquete: caso ajeno, dado de baja o inexistente anula todo; marketing no exporta
+ok 393 - paquete: caso ajeno, dado de baja o inexistente anula todo; marketing no exporta
+  ---
+  duration_ms: 37.91
+  type: 'test'
+  ...
+# Subtest: paquete: solo lo lee quien lo preparó o administración, y solo con el caso aún autorizado
+ok 394 - paquete: solo lo lee quien lo preparó o administración, y solo con el caso aún autorizado
+  ---
+  duration_ms: 55.6247
+  type: 'test'
+  ...
+# Subtest: correspondencia: si cambian las categorías el paquete se rechaza; revisado no cambia
+ok 395 - correspondencia: si cambian las categorías el paquete se rechaza; revisado no cambia
+  ---
+  duration_ms: 75.0573
+  type: 'test'
+  ...
+# Subtest: privacidad: manifiesto y documentos sin identificadores directos ni ids internos
+ok 396 - privacidad: manifiesto y documentos sin identificadores directos ni ids internos
+  ---
+  duration_ms: 41.0971
+  type: 'test'
+  ...
+# Subtest: sin permisos para anon/authenticated en tablas y funciones nuevas
+ok 397 - sin permisos para anon/authenticated en tablas y funciones nuevas
+  ---
+  duration_ms: 5.8023
+  type: 'test'
+  ...
+# Subtest: X1 · paquete DOCX: solo el manifiesto y un documento por caso, con nombres de código
+ok 398 - X1 · paquete DOCX: solo el manifiesto y un documento por caso, con nombres de código
+  ---
+  duration_ms: 3482.0498
+  type: 'test'
+  ...
+# Subtest: X2 · cada DOCX es un documento Word válido (estructura OOXML) con el texto y los acentos intactos
+ok 399 - X2 · cada DOCX es un documento Word válido (estructura OOXML) con el texto y los acentos intactos
+  ---
+  duration_ms: 200.4535
+  type: 'test'
+  ...
+# Subtest: X3 · paquete TXT: UTF-8 legible, mismo contenido y una línea de código por documento
+ok 400 - X3 · paquete TXT: UTF-8 legible, mismo contenido y una línea de código por documento
+  ---
+  duration_ms: 88.2834
+  type: 'test'
+  ...
+# Subtest: X4 · el manifiesto describe exactamente los archivos del paquete
+ok 401 - X4 · el manifiesto describe exactamente los archivos del paquete
+  ---
+  duration_ms: 115.8969
+  type: 'test'
+  ...
+# Subtest: X5 · privacidad: ningún archivo trae nombres, teléfono, nacimiento, IDs internos, número de carpeta ni pagos
+ok 402 - X5 · privacidad: ningún archivo trae nombres, teléfono, nacimiento, IDs internos, número de carpeta ni pagos
+  ---
+  duration_ms: 241.2045
+  type: 'test'
+  ...
+# Subtest: X6 · sin mezcla: cada documento tiene solo los datos de su caso
+ok 403 - X6 · sin mezcla: cada documento tiene solo los datos de su caso
+  ---
+  duration_ms: 98.6787
+  type: 'test'
+  ...
+# Subtest: X7 · la descarga exige la revisión vigente
+ok 404 - X7 · la descarga exige la revisión vigente
+  ---
+  duration_ms: 148.4485
+  type: 'test'
+  ...
+# Subtest: X8 · permisos: un caso ajeno anula el paquete; marketing no exporta; otra terapeuta no descarga
+ok 405 - X8 · permisos: un caso ajeno anula el paquete; marketing no exporta; otra terapeuta no descarga
+  ---
+  duration_ms: 147.1443
+  type: 'test'
+  ...
+# Subtest: X9 · solicitudes inválidas: 400
+ok 406 - X9 · solicitudes inválidas: 400
+  ---
+  duration_ms: 45.1343
+  type: 'test'
+  ...
+# Subtest: FE-183: la 023 deja los artículos existentes en borrador, fuera de la vista pública
+ok 407 - FE-183: la 023 deja los artículos existentes en borrador, fuera de la vista pública
+  ---
+  duration_ms: 2742.5187
+  type: 'test'
+  ...
+# Subtest: FE-183: crear deja un borrador de quien lo crea; el cliente no fija autoría, estado ni fechas
+ok 408 - FE-183: crear deja un borrador de quien lo crea; el cliente no fija autoría, estado ni fechas
+  ---
+  duration_ms: 19.1332
+  type: 'test'
+  ...
+# Subtest: FE-183: campos inválidos se rechazan
+ok 409 - FE-183: campos inválidos se rechazan
+  ---
+  duration_ms: 73.9303
+  type: 'test'
+  ...
+# Subtest: 024: quitar o reemplazar la imagen, o borrar el artículo, elimina el archivo
+ok 410 - 024: quitar o reemplazar la imagen, o borrar el artículo, elimina el archivo
+  ---
+  duration_ms: 39.8736
+  type: 'test'
+  ...
+# Subtest: FE-183: publicar incompleto falla y conserva el borrador
+ok 411 - FE-183: publicar incompleto falla y conserva el borrador
+  ---
+  duration_ms: 13.5424
+  type: 'test'
+  ...
+# Subtest: FE-183: publicar, editar publicado, retirar y volver a borrador
+ok 412 - FE-183: publicar, editar publicado, retirar y volver a borrador
+  ---
+  duration_ms: 79.36
+  type: 'test'
+  ...
+# Subtest: FE-183: transiciones no previstas se rechazan
+ok 413 - FE-183: transiciones no previstas se rechazan
+  ---
+  duration_ms: 27.2862
+  type: 'test'
+  ...
+# Subtest: FE-183: solo administración o marketing activos escriben
+ok 414 - FE-183: solo administración o marketing activos escriben
+  ---
+  duration_ms: 53.6805
+  type: 'test'
+  ...
+# Subtest: FE-183: solo se elimina lo que nunca se publicó
+ok 415 - FE-183: solo se elimina lo que nunca se publicó
+  ---
+  duration_ms: 42.7854
+  type: 'test'
+  ...
+# Subtest: FE-183: la vista pública solo expone lo publicado y campos permitidos
+ok 416 - FE-183: la vista pública solo expone lo publicado y campos permitidos
+  ---
+  duration_ms: 26.4527
+  type: 'test'
+  ...
+# Subtest: FE-183: sin comentarios expuestos; separado de lo clínico; RLS activo
+ok 417 - FE-183: sin comentarios expuestos; separado de lo clínico; RLS activo
+  ---
+  duration_ms: 198.024
+  type: 'test'
+  ...
+# Subtest: FE-183: los cambios quedan en auditoría con su autor
+ok 418 - FE-183: los cambios quedan en auditoría con su autor
+  ---
+  duration_ms: 11.1704
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: admin ve vigentes, sin responsable y solo campos de resumen
+ok 419 - FE-40 PG: admin ve vigentes, sin responsable y solo campos de resumen
+  ---
+  duration_ms: 3803.4836
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: dos terapeutas filtran antes de paginar y total no revela carpetas ajenas
+ok 420 - FE-40 PG: dos terapeutas filtran antes de paginar y total no revela carpetas ajenas
+  ---
+  duration_ms: 876.4463
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: reasignar retira acceso al responsable anterior inmediatamente
+ok 421 - FE-40 PG: reasignar retira acceso al responsable anterior inmediatamente
+  ---
+  duration_ms: 857.3675
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: nombre sin tildes, mayúsculas y palabras en diferente orden
+ok 422 - FE-40 PG: nombre sin tildes, mayúsculas y palabras en diferente orden
+  ---
+  duration_ms: 900.4878
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: número exacto devuelve ambos tipos y nunca coincidencias parciales
+ok 423 - FE-40 PG: número exacto devuelve ambos tipos y nunca coincidencias parciales
+  ---
+  duration_ms: 1020.8669
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: búsqueda vacía y espacios listan solo autorizadas; sin coincidencias es vacío
+ok 424 - FE-40 PG: búsqueda vacía y espacios listan solo autorizadas; sin coincidencias es vacío
+  ---
+  duration_ms: 816.1557
+  type: 'test'
+  ...
+# Subtest: FE-41 PG: combinar búsqueda y paginación nunca expone filas o totales ajenos
+ok 425 - FE-41 PG: combinar búsqueda y paginación nunca expone filas o totales ajenos
+  ---
+  duration_ms: 983.1331
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: orden determinista y paginación sin repetidos incluso con empates
+ok 426 - FE-40 PG: orden determinista y paginación sin repetidos incluso con empates
+  ---
+  duration_ms: 981.4808
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: sin asignaciones devuelve total cero para terapeuta
+ok 427 - FE-40 PG: sin asignaciones devuelve total cero para terapeuta
+  ---
+  duration_ms: 830.7391
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: SQL parametrizado trata comodines e intentos de inyección como texto
+ok 428 - FE-40 PG: SQL parametrizado trata comodines e intentos de inyección como texto
+  ---
+  duration_ms: 830.6049
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: guard rechaza marketing con 403 y falta de sesión o token inválido con 401
+ok 429 - FE-40 PG: guard rechaza marketing con 403 y falta de sesión o token inválido con 401
+  ---
+  duration_ms: 887.8988
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: no se permite elegir rol o perfil mediante parámetros
+ok 430 - FE-40 PG: no se permite elegir rol o perfil mediante parámetros
+  ---
+  duration_ms: 941.5589
+  type: 'test'
+  ...
+# Subtest: FE-40 PG: paginación y búsqueda inválidas producen 400 sin llegar a errores SQL
+ok 431 - FE-40 PG: paginación y búsqueda inválidas producen 400 sin llegar a errores SQL
+  ---
+  duration_ms: 858.3862
+  type: 'test'
+  ...
+# Subtest: FE-38 PG: alta y transferencia HTTP actualizan detalle, listado y auditoría
+ok 432 - FE-38 PG: alta y transferencia HTTP actualizan detalle, listado y auditoría
+  ---
+  duration_ms: 1017.7513
+  type: 'test'
+  ...
+# Subtest: FE-38 PG: peticiones directas de terapeutas/marketing y sin sesión no alteran responsable
+ok 433 - FE-38 PG: peticiones directas de terapeutas/marketing y sin sesión no alteran responsable
+  ---
+  duration_ms: 942.7707
+  type: 'test'
+  ...
+# Subtest: FE-38 PG: UUID/cuerpos inválidos se rechazan sin cambios persistidos
+ok 434 - FE-38 PG: UUID/cuerpos inválidos se rechazan sin cambios persistidos
+  ---
+  duration_ms: 885.0398
+  type: 'test'
+  ...
+# Subtest: FE-38 PG: inexistente, inactiva y otros roles conservan la asignación anterior
+ok 435 - FE-38 PG: inexistente, inactiva y otros roles conservan la asignación anterior
+  ---
+  duration_ms: 924.8408
+  type: 'test'
+  ...
+# Subtest: FE-38 PG: repetir asignación devuelve 409 y no duplica responsable ni auditoría
+ok 436 - FE-38 PG: repetir asignación devuelve 409 y no duplica responsable ni auditoría
+  ---
+  duration_ms: 891.4313
+  type: 'test'
+  ...
+# Subtest: FE-38 PG: fallo real de INSERT revierte DELETE y auditoría de la sustitución
+ok 437 - FE-38 PG: fallo real de INSERT revierte DELETE y auditoría de la sustitución
+  ---
+  duration_ms: 862.8641
+  type: 'test'
+  ...
+# Subtest: FE-38 PG: rutas relacionadas permiten a admin listar, asignar y quitar
+ok 438 - FE-38 PG: rutas relacionadas permiten a admin listar, asignar y quitar
+  ---
+  duration_ms: 824.4936
+  type: 'test'
+  ...
+# Subtest: FE-38 PG: dos asignaciones HTTP bloqueadas conservan una sola responsable
+ok 439 - FE-38 PG: dos asignaciones HTTP bloqueadas conservan una sola responsable
+  ---
+  duration_ms: 1079.4666
+  type: 'test'
+  ...
+# Conexiones PostgreSQL esperando Lock para asignación: 2
+# Subtest: FE-136: la residencia se combina con filtros y permisos antes de paginar
+ok 440 - FE-136: la residencia se combina con filtros y permisos antes de paginar
+  ---
+  duration_ms: 913.5228
+  type: 'test'
+  ...
+# Subtest: FE-136: editar residencia conserva el dato al omitirlo y permite limpiarlo
+ok 441 - FE-136: editar residencia conserva el dato al omitirlo y permite limpiarlo
+  ---
+  duration_ms: 897.0075
+  type: 'test'
+  ...
+# Subtest: FE-136: el alta guarda la residencia y rechaza ciudades inválidas
+ok 442 - FE-136: el alta guarda la residencia y rechaza ciudades inválidas
+  ---
+  duration_ms: 999.654
+  type: 'test'
+  ...
+# Subtest: R0 · login real de dos sesiones de la misma cuenta y del rol marketing
+ok 443 - R0 · login real de dos sesiones de la misma cuenta y del rol marketing
+  ---
+  duration_ms: 12327.9643
+  type: 'test'
+  ...
+# Subtest: R1 · Supabase 500 al cerrar → 503, sin auditoría y la sesión sigue viva
+ok 444 - R1 · Supabase 500 al cerrar → 503, sin auditoría y la sesión sigue viva
+  ---
+  duration_ms: 834.9756
+  type: 'test'
+  ...
+# Subtest: R2 · Supabase 400 al cerrar → 502 y sin auditoría
+ok 445 - R2 · Supabase 400 al cerrar → 502 y sin auditoría
+  ---
+  duration_ms: 477.1241
+  type: 'test'
+  ...
+# Subtest: R3 · conexión detenida en el logout → 504 dentro del plazo y sin auditoría
+not ok 446 - R3 · conexión detenida en el logout → 504 dentro del plazo y sin auditoría
+  ---
+  duration_ms: 27009.6551
+  type: 'test'
+  location: 'C:\\Users\\ASUS\\OneDrive\\Documentos\\FE\\FundacionEncuentro\\backend\\test\\logout-supabase-real.test.mjs:212:1'
+  failureType: 'testCodeFailure'
+  error: 'read ECONNRESET'
+  code: 'ECONNRESET'
+  stack: |-
+    C:\Users\ASUS\OneDrive\Documentos\FE\FundacionEncuentro\backend\node_modules\pg\lib\client.js:694:17
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async logoutsDesde (file:///C:/Users/ASUS/OneDrive/Documentos/FE/FundacionEncuentro/backend/test/logout-supabase-real.test.mjs:79:20)
+    async TestContext.<anonymous> (file:///C:/Users/ASUS/OneDrive/Documentos/FE/FundacionEncuentro/backend/test/logout-supabase-real.test.mjs:221:16)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R4 · logout real → 204 y exactamente una auditoría LOGOUT
+not ok 447 - R4 · logout real → 204 y exactamente una auditoría LOGOUT
+  ---
+  duration_ms: 4.3738
+  type: 'test'
+  location: 'C:\\Users\\ASUS\\OneDrive\\Documentos\\FE\\FundacionEncuentro\\backend\\test\\logout-supabase-real.test.mjs:225:1'
+  failureType: 'testCodeFailure'
+  error: 'Client has encountered a connection error and is not queryable'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    C:\Users\ASUS\OneDrive\Documentos\FE\FundacionEncuentro\backend\node_modules\pg\lib\client.js:694:17
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async ahoraDb (file:///C:/Users/ASUS/OneDrive/Documentos/FE/FundacionEncuentro/backend/test/logout-supabase-real.test.mjs:75:11)
+    async TestContext.<anonymous> (file:///C:/Users/ASUS/OneDrive/Documentos/FE/FundacionEncuentro/backend/test/logout-supabase-real.test.mjs:226:17)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R5 · reintento de logout con el access anterior
+not ok 448 - R5 · reintento de logout con el access anterior
+  ---
+  duration_ms: 1.618
+  type: 'test'
+  location: 'C:\\Users\\ASUS\\OneDrive\\Documentos\\FE\\FundacionEncuentro\\backend\\test\\logout-supabase-real.test.mjs:233:1'
+  failureType: 'testCodeFailure'
+  error: 'Client has encountered a connection error and is not queryable'
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    C:\Users\ASUS\OneDrive\Documentos\FE\FundacionEncuentro\backend\node_modules\pg\lib\client.js:694:17
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async ahoraDb (file:///C:/Users/ASUS/OneDrive/Documentos/FE/FundacionEncuentro/backend/test/logout-supabase-real.test.mjs:75:11)
+    async TestContext.<anonymous> (file:///C:/Users/ASUS/OneDrive/Documentos/FE/FundacionEncuentro/backend/test/logout-supabase-real.test.mjs:234:17)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: R6 · refresh token anterior tras el cierre → 401
+not ok 449 - R6 · refresh token anterior tras el cierre → 401
+  ---
+  duration_ms: 3067.8555
+  type: 'test'
+  location: 'C:\\Users\\ASUS\\OneDrive\\Documentos\\FE\\FundacionEncuentro\\backend\\test\\logout-supabase-real.test.mjs:242:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    200 !== 401
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 401
+  actual: 200
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/Users/ASUS/OneDrive/Documentos/FE/FundacionEncuentro/backend/test/logout-supabase-real.test.mjs:244:10)
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# FE-193 R7: el access token anterior sigue aceptado. Documentarlo como hallazgo.
+# Subtest: R7 · access token anterior tras el cierre (se registra la conducta real)
+ok 450 - R7 · access token anterior tras el cierre (se registra la conducta real)
+  ---
+  duration_ms: 742.9995
+  type: 'test'
+  ...
+# Subtest: R8 · la otra sesión (scope=local) no se ve afectada
+ok 451 - R8 · la otra sesión (scope=local) no se ve afectada
+  ---
+  duration_ms: 521.6985
+  type: 'test'
+  ...
+# Subtest: R9 · sin token o con token inventado → 401
+ok 452 - R9 · sin token o con token inventado → 401
+  ---
+  duration_ms: 158.7574
+  type: 'test'
+  ...
+# Subtest: R10 · permisos: marketing no entra a /casos (403) y su logout es 204
+ok 453 - R10 · permisos: marketing no entra a /casos (403) y su logout es 204
+  ---
+  duration_ms: 1212.2738
+  type: 'test'
+  ...
+# Subtest: R11 · cierre de la sesión B (limpieza) → 204
+ok 454 - R11 · cierre de la sesión B (limpieza) → 204
+  ---
+  duration_ms: 490.5274
+  type: 'test'
+  ...
+# ┌─────────┬───────┬─────────────────────────────┬────────────────────────────────────────────────┬─────┐
+# │ (index) │ id    │ observado                   │ veredicto                                      │ ms  │
+# ├─────────┼───────┼─────────────────────────────┼────────────────────────────────────────────────┼─────┤
+# │ 0       │ 'R0'  │ '200'                       │ 'APROBADO'                                     │ 382 │
+# │ 1       │ 'R1'  │ '503, 0 LOGOUT'             │ 'APROBADO'                                     │ 243 │
+# │ 2       │ 'R2'  │ '502, 0 LOGOUT'             │ 'APROBADO'                                     │ 261 │
+# │ 3       │ 'R7'  │ '/auth/me 200, /casos 200'  │ 'HALLAZGO: el access anterior sigue sirviendo' │ 266 │
+# │ 4       │ 'R8'  │ '/auth/me 200, refresh 200' │ 'APROBADO'                                     │ 254 │
+# │ 5       │ 'R9'  │ '401 / 401'                 │ 'APROBADO'                                     │ 5   │
+# │ 6       │ 'R10' │ '403 y 204'                 │ 'APROBADO'                                     │ 257 │
+# │ 7       │ 'R11' │ '204'                       │ 'APROBADO'                                     │ 490 │
+# └─────────┴───────┴─────────────────────────────┴────────────────────────────────────────────────┴─────┘
+# Error: Test hook "before" at test\\logout-supabase-real.test.mjs:93:1 generated asynchronous activity after the test ended. This activity created the error "Error: read ECONNRESET" and would have caused the test to fail, but instead triggered an uncaughtException event.
+# Error: Test hook "before" at test\\logout-supabase-real.test.mjs:93:1 generated asynchronous activity after the test ended. This activity created the error "Error: Connection terminated unexpectedly" and would have caused the test to fail, but instead triggered an uncaughtException event.
+# Subtest: logout 204 utiliza scope local y registra una auditoría asociada al usuario
+ok 455 - logout 204 utiliza scope local y registra una auditoría asociada al usuario
+  ---
+  duration_ms: 154.5408
+  type: 'test'
+  ...
+# Subtest: logout remoto 200: responde 502 y no registra LOGOUT
+ok 456 - logout remoto 200: responde 502 y no registra LOGOUT
+  ---
+  duration_ms: 21.2694
+  type: 'test'
+  ...
+# Subtest: logout remoto 400: responde 502 y no registra LOGOUT
+ok 457 - logout remoto 400: responde 502 y no registra LOGOUT
+  ---
+  duration_ms: 12.2268
+  type: 'test'
+  ...
+# Subtest: logout remoto 401: responde 502 y no registra LOGOUT
+ok 458 - logout remoto 401: responde 502 y no registra LOGOUT
+  ---
+  duration_ms: 10.4754
+  type: 'test'
+  ...
+# Subtest: logout remoto 403: responde 502 y no registra LOGOUT
+ok 459 - logout remoto 403: responde 502 y no registra LOGOUT
+  ---
+  duration_ms: 9.8439
+  type: 'test'
+  ...
+# Subtest: logout remoto 429: responde 502 y no registra LOGOUT
+ok 460 - logout remoto 429: responde 502 y no registra LOGOUT
+  ---
+  duration_ms: 8.2375
+  type: 'test'
+  ...
+# Subtest: Supabase 500: responde 503 y no registra LOGOUT
+ok 461 - Supabase 500: responde 503 y no registra LOGOUT
+  ---
+  duration_ms: 8.3878
+  type: 'test'
+  ...
+# Subtest: Supabase red: responde 503 y no registra LOGOUT
+ok 462 - Supabase red: responde 503 y no registra LOGOUT
+  ---
+  duration_ms: 5.4238
+  type: 'test'
+  ...
+# Subtest: logout detenido: cancela la solicitud y devuelve 504 sin auditar
+ok 463 - logout detenido: cancela la solicitud y devuelve 504 sin auditar
+  ---
+  duration_ms: 47.4363
+  type: 'test'
+  ...
+# Subtest: POST /auth/logout: rechaza ausencia de token
+ok 464 - POST /auth/logout: rechaza ausencia de token
+  ---
+  duration_ms: 13.6406
+  type: 'test'
+  ...
+# Subtest: POST /auth/logout: rechaza token inválido
+ok 465 - POST /auth/logout: rechaza token inválido
+  ---
+  duration_ms: 8.6755
+  type: 'test'
+  ...
+# Subtest: GET /auth/me: rechaza ausencia de token
+ok 466 - GET /auth/me: rechaza ausencia de token
+  ---
+  duration_ms: 5.861
+  type: 'test'
+  ...
+# Subtest: GET /auth/me: rechaza token inválido
+ok 467 - GET /auth/me: rechaza token inválido
+  ---
+  duration_ms: 5.9885
+  type: 'test'
+  ...
+# Subtest: GET /casos: rechaza ausencia de token
+ok 468 - GET /casos: rechaza ausencia de token
+  ---
+  duration_ms: 5.233
+  type: 'test'
+  ...
+# Subtest: GET /casos: rechaza token inválido
+ok 469 - GET /casos: rechaza token inválido
+  ---
+  duration_ms: 5.2221
+  type: 'test'
+  ...
+# Subtest: GET /casos/00000000-0000-4000-8000-000000000001: rechaza ausencia de token
+ok 470 - GET /casos/00000000-0000-4000-8000-000000000001: rechaza ausencia de token
+  ---
+  duration_ms: 4.3884
+  type: 'test'
+  ...
+# Subtest: GET /casos/00000000-0000-4000-8000-000000000001: rechaza token inválido
+ok 471 - GET /casos/00000000-0000-4000-8000-000000000001: rechaza token inválido
+  ---
+  duration_ms: 4.9766
+  type: 'test'
+  ...
+# Subtest: POST /casos: rechaza ausencia de token
+ok 472 - POST /casos: rechaza ausencia de token
+  ---
+  duration_ms: 7.2789
+  type: 'test'
+  ...
+# Subtest: POST /casos: rechaza token inválido
+ok 473 - POST /casos: rechaza token inválido
+  ---
+  duration_ms: 17.198
+  type: 'test'
+  ...
+# Subtest: casos permite admin autenticado y rechaza marketing con 403
+ok 474 - casos permite admin autenticado y rechaza marketing con 403
+  ---
+  duration_ms: 25.5661
+  type: 'test'
+  ...
+# Subtest: si /user sigue aceptando el access token tras logout, el guard permite su reutilización (mock)
+ok 475 - si /user sigue aceptando el access token tras logout, el guard permite su reutilización (mock)
+  ---
+  duration_ms: 13.5487
+  type: 'test'
+  ...
+# Subtest: refresh rechazado por Supabase se propaga como 401 sin auditoría LOGOUT (mock)
+ok 476 - refresh rechazado por Supabase se propaga como 401 sin auditoría LOGOUT (mock)
+  ---
+  duration_ms: 64.3954
+  type: 'test'
+  ...
+# Subtest: fallo de auditoría después de revocación responde 500 sin revertir la llamada remota
+ok 477 - fallo de auditoría después de revocación responde 500 sin revertir la llamada remota
+  ---
+  duration_ms: 6.2444
+  type: 'test'
+  ...
+# Subtest: FE-90: un caso sin pagos responde 200 con lista vacía
+ok 478 - FE-90: un caso sin pagos responde 200 con lista vacía
+  ---
+  duration_ms: 3643.2791
+  type: 'test'
+  ...
+# Subtest: FE-90: administración guarda Bs 75,50 para S-A1 por QR y al recargar ve el mismo pago
+ok 479 - FE-90: administración guarda Bs 75,50 para S-A1 por QR y al recargar ve el mismo pago
+  ---
+  duration_ms: 740.3404
+  type: 'test'
+  ...
+# Subtest: FE-90: repetir la misma solicitud no duplica el cobro y el total sigue en Bs 75,50
+ok 480 - FE-90: repetir la misma solicitud no duplica el cobro y el total sigue en Bs 75,50
+  ---
+  duration_ms: 929.8237
+  type: 'test'
+  ...
+# Subtest: FE-90: una doble solicitud simultánea guarda un único pago
+ok 481 - FE-90: una doble solicitud simultánea guarda un único pago
+  ---
+  duration_ms: 1045.8398
+  type: 'test'
+  ...
+# Subtest: FE-90: la misma sesión con otros datos responde 409 y conserva el pago original
+ok 482 - FE-90: la misma sesión con otros datos responde 409 y conserva el pago original
+  ---
+  duration_ms: 825.272
+  type: 'test'
+  ...
+# Subtest: FE-90: montos y datos inválidos responden 400 y no guardan nada
+ok 483 - FE-90: montos y datos inválidos responden 400 y no guardan nada
+  ---
+  duration_ms: 955.8933
+  type: 'test'
+  ...
+# Subtest: FE-90: los límites válidos del importe se guardan exactos
+ok 484 - FE-90: los límites válidos del importe se guardan exactos
+  ---
+  duration_ms: 908.795
+  type: 'test'
+  ...
+# Subtest: FE-90: no se puede pagar desde A una sesión del caso B ni una sesión inexistente
+ok 485 - FE-90: no se puede pagar desde A una sesión del caso B ni una sesión inexistente
+  ---
+  duration_ms: 819.941
+  type: 'test'
+  ...
+# Subtest: FE-90: solo administración registra y consulta pagos
+ok 486 - FE-90: solo administración registra y consulta pagos
+  ---
+  duration_ms: 839.3003
+  type: 'test'
+  ...
+# Subtest: FE-90: caso inexistente o eliminado responde 404
+ok 487 - FE-90: caso inexistente o eliminado responde 404
+  ---
+  duration_ms: 958.5642
+  type: 'test'
+  ...
+# Subtest: FE-90: cada caso lista solo sus pagos y los totales concilian con la base y la vista mensual
+ok 488 - FE-90: cada caso lista solo sus pagos y los totales concilian con la base y la vista mensual
+  ---
+  duration_ms: 839.372
+  type: 'test'
+  ...
+# Subtest: FE-90: si el guardado falla no queda el pago ni su auditoría
+ok 489 - FE-90: si el guardado falla no queda el pago ni su auditoría
+  ---
+  duration_ms: 911.839
+  type: 'test'
+  ...
+# Subtest: FE-89: pagos ficticios se guardan exactos y suman al centavo
+ok 490 - FE-89: pagos ficticios se guardan exactos y suman al centavo
+  ---
+  duration_ms: 2488.6525
+  type: 'test'
+  ...
+# Subtest: FE-89: repetir el pago de la misma sesión no duplica el total
+ok 491 - FE-89: repetir el pago de la misma sesión no duplica el total
+  ---
+  duration_ms: 9.9195
+  type: 'test'
+  ...
+# Subtest: FE-89: cero, negativo, tres decimales y sesión de otro caso se rechazan
+ok 492 - FE-89: cero, negativo, tres decimales y sesión de otro caso se rechazan
+  ---
+  duration_ms: 31.4423
+  type: 'test'
+  ...
+# Subtest: FE-88: concurrencia y rollback con PostgreSQL real
+    # Subtest: dos solicitudes iguales guardan un único pago
+    ok 1 - dos solicitudes iguales guardan un único pago
+      ---
+      duration_ms: 225.1195
+      type: 'test'
+      ...
+    # Subtest: montos diferentes: uno guarda y otro recibe 409
+    ok 2 - montos diferentes: uno guarda y otro recibe 409
+      ---
+      duration_ms: 109.3446
+      type: 'test'
+      ...
+    # Subtest: fallo posterior al INSERT revierte pago y auditoría
+    ok 3 - fallo posterior al INSERT revierte pago y auditoría
+      ---
+      duration_ms: 24.438
+      type: 'test'
+      ...
+    1..3
+ok 493 - FE-88: concurrencia y rollback con PostgreSQL real
+  ---
+  duration_ms: 886.0671
+  type: 'test'
+  ...
+# Subtest: FE-135: catálogo de residencia; NULL es sin registrar
+ok 494 - FE-135: catálogo de residencia; NULL es sin registrar
+  ---
+  duration_ms: 2494.0641
+  type: 'test'
+  ...
+# Subtest: FE-135: el cambio de residencia guarda fecha y autor; otros cambios no
+ok 495 - FE-135: el cambio de residencia guarda fecha y autor; otros cambios no
+  ---
+  duration_ms: 18.4077
+  type: 'test'
+  ...
+# Subtest: FE-135: indicadores por residencia del 20 al 21/11 (tabla de FE-134)
+ok 496 - FE-135: indicadores por residencia del 20 al 21/11 (tabla de FE-134)
+  ---
+  duration_ms: 6.3419
+  type: 'test'
+  ...
+# Subtest: FE-135: la suma por residencia es igual a indicadores_operativos
+ok 497 - FE-135: la suma por residencia es igual a indicadores_operativos
+  ---
+  duration_ms: 21.065
+  type: 'test'
+  ...
+# Subtest: FE-135: período sin movimientos da 0 sesiones e importe 0
+ok 498 - FE-135: período sin movimientos da 0 sesiones e importe 0
+  ---
+  duration_ms: 5.1826
+  type: 'test'
+  ...
+# Subtest: FE-135: listado por perfil y filtros combinados (tabla de FE-134)
+ok 499 - FE-135: listado por perfil y filtros combinados (tabla de FE-134)
+  ---
+  duration_ms: 28.6007
+  type: 'test'
+  ...
+# Subtest: FE-135: mudar A de La Paz a El Alto conserva el caso y mueve sus conteos
+ok 500 - FE-135: mudar A de La Paz a El Alto conserva el caso y mueve sus conteos
+  ---
+  duration_ms: 16.436
+  type: 'test'
+  ...
+# Subtest: FE-135: tareas y una segunda carpeta no duplican conteos
+ok 501 - FE-135: tareas y una segunda carpeta no duplican conteos
+  ---
+  duration_ms: 27.6779
+  type: 'test'
+  ...
+# Subtest: FE-135: paciente eliminado deja de contar en su residencia
+ok 502 - FE-135: paciente eliminado deja de contar en su residencia
+  ---
+  duration_ms: 12.7739
+  type: 'test'
+  ...
+# Subtest: FE-135: el cambio de residencia queda en auditoría
+ok 503 - FE-135: el cambio de residencia queda en auditoría
+  ---
+  duration_ms: 2.392
+  type: 'test'
+  ...
+# Subtest: R1 · tabla de FE-134 por la API: administración y cada residencia
+ok 504 - R1 · tabla de FE-134 por la API: administración y cada residencia
+  ---
+  duration_ms: 2880.9379
+  type: 'test'
+  ...
+# Subtest: R2 · El Alto atendido en La Paz se clasifica por donde vive, y la carpeta expone su residencia
+ok 505 - R2 · El Alto atendido en La Paz se clasifica por donde vive, y la carpeta expone su residencia
+  ---
+  duration_ms: 51.851
+  type: 'test'
+  ...
+# Subtest: R3 · terapeuta: solo sus carpetas, combinaciones y sin ver ajenas
+ok 506 - R3 · terapeuta: solo sus carpetas, combinaciones y sin ver ajenas
+  ---
+  duration_ms: 61.2011
+  type: 'test'
+  ...
+# Subtest: R4 · combinaciones con estado, clasificación y búsqueda (AND en servidor)
+ok 507 - R4 · combinaciones con estado, clasificación y búsqueda (AND en servidor)
+  ---
+  duration_ms: 127.0261
+  type: 'test'
+  ...
+# Subtest: R5 · paginación: el total no depende de la página y no se repiten carpetas
+ok 508 - R5 · paginación: el total no depende de la página y no se repiten carpetas
+  ---
+  duration_ms: 36.864
+  type: 'test'
+  ...
+# Subtest: R6 · valores inválidos se rechazan con 400
+ok 509 - R6 · valores inválidos se rechazan con 400
+  ---
+  duration_ms: 61.7832
+  type: 'test'
+  ...
+# Subtest: R7 · indicadores por residencia coinciden con la tabla de FE-134 y suman el total
+ok 510 - R7 · indicadores por residencia coinciden con la tabla de FE-134 y suman el total
+  ---
+  duration_ms: 47.7678
+  type: 'test'
+  ...
+# Subtest: R8 · permisos: indicadores solo administración; marketing no lista carpetas
+ok 511 - R8 · permisos: indicadores solo administración; marketing no lista carpetas
+  ---
+  duration_ms: 33.9606
+  type: 'test'
+  ...
+# Subtest: R9 · cambiar residencia por la API: reglas de "otra" y solo administración
+ok 512 - R9 · cambiar residencia por la API: reglas de "otra" y solo administración
+  ---
+  duration_ms: 207.787
+  type: 'test'
+  ...
+# Subtest: R10 · mudar A de La Paz a El Alto conserva número, origen, asignación e historial y mueve los conteos
+ok 513 - R10 · mudar A de La Paz a El Alto conserva número, origen, asignación e historial y mueve los conteos
+  ---
+  duration_ms: 119.8067
+  type: 'test'
+  ...
+# Subtest: R11 · borrar la residencia la deja "Sin registrar" y vuelve a contar ahí
+ok 514 - R11 · borrar la residencia la deja "Sin registrar" y vuelve a contar ahí
+  ---
+  duration_ms: 40.8517
+  type: 'test'
+  ...
+# Subtest: FE-75: un caso sin sesiones responde 200 con lista vacía (no es un error)
+ok 515 - FE-75: un caso sin sesiones responde 200 con lista vacía (no es un error)
+  ---
+  duration_ms: 3350.593
+  type: 'test'
+  ...
+# Subtest: FE-75: la terapeuta registra una sesión, se guarda recortada y al recargar el detalle es el mismo
+ok 516 - FE-75: la terapeuta registra una sesión, se guarda recortada y al recargar el detalle es el mismo
+  ---
+  duration_ms: 768.9538
+  type: 'test'
+  ...
+# Subtest: FE-75: el listado ordena por fecha y número ascendentes y cada detalle muestra su propia evolución
+ok 517 - FE-75: el listado ordena por fecha y número ascendentes y cada detalle muestra su propia evolución
+  ---
+  duration_ms: 747.8665
+  type: 'test'
+  ...
+# Subtest: FE-75: datos inválidos responden 400 y no se crea ningún registro parcial
+ok 518 - FE-75: datos inválidos responden 400 y no se crea ningún registro parcial
+  ---
+  duration_ms: 841.4759
+  type: 'test'
+  ...
+# Subtest: FE-75: una sesión de otro caso no se puede abrir desde el caso incorrecto
+ok 519 - FE-75: una sesión de otro caso no se puede abrir desde el caso incorrecto
+  ---
+  duration_ms: 817.3651
+  type: 'test'
+  ...
+# Subtest: FE-75: una cuenta ajena no puede registrar, listar ni abrir sesiones
+ok 520 - FE-75: una cuenta ajena no puede registrar, listar ni abrir sesiones
+  ---
+  duration_ms: 1063.1952
+  type: 'test'
+  ...
+# Subtest: FE-75: si el guardado falla no queda la sesión a medias y el siguiente número no se salta
+ok 521 - FE-75: si el guardado falla no queda la sesión a medias y el siguiente número no se salta
+  ---
+  duration_ms: 957.9946
+  type: 'test'
+  ...
+# Subtest: FE-75: con 16 sesiones registradas, la sesión 17 se puede guardar
+ok 522 - FE-75: con 16 sesiones registradas, la sesión 17 se puede guardar
+  ---
+  duration_ms: 1058.7133
+  type: 'test'
+  ...
+# Subtest: FE-75: registros simultáneos reciben números distintos y consecutivos
+ok 523 - FE-75: registros simultáneos reciben números distintos y consecutivos
+  ---
+  duration_ms: 1075.561
+  type: 'test'
+  ...
+# Subtest: FE-75: el responsable registrado se conserva tras reasignar el caso y la autoría es de quien registra
+ok 524 - FE-75: el responsable registrado se conserva tras reasignar el caso y la autoría es de quien registra
+  ---
+  duration_ms: 776.0837
+  type: 'test'
+  ...
+# Subtest: FE-74: dos casos con 17 sesiones cada uno numeran por separado
+ok 525 - FE-74: dos casos con 17 sesiones cada uno numeran por separado
+  ---
+  duration_ms: 2452.4758
+  type: 'test'
+  ...
+# Subtest: FE-74: dos sesiones con la misma fecha se listan por número
+ok 526 - FE-74: dos sesiones con la misma fecha se listan por número
+  ---
+  duration_ms: 20.8238
+  type: 'test'
+  ...
+# Subtest: FE-74: dos altas simultáneas del mismo caso reciben números distintos
+ok 527 - FE-74: dos altas simultáneas del mismo caso reciben números distintos
+  ---
+  duration_ms: 699.4856
+  type: 'test'
+  ...
+# Subtest: FE-74: fecha inválida o evolución vacía no crean registro parcial
+ok 528 - FE-74: fecha inválida o evolución vacía no crean registro parcial
+  ---
+  duration_ms: 19.2594
+  type: 'test'
+  ...
+# Subtest: FE-74: la responsable registrada se conserva al reasignar el caso
+ok 529 - FE-74: la responsable registrada se conserva al reasignar el caso
+  ---
+  duration_ms: 14.2812
+  type: 'test'
+  ...
+# Subtest: FE-80: un caso sin tareas responde 200 con lista vacía
+ok 530 - FE-80: un caso sin tareas responde 200 con lista vacía
+  ---
+  duration_ms: 3540.7233
+  type: 'test'
+  ...
+# Subtest: FE-80: T1 agrega una tarea a S-A1, queda Pendiente, recortada y visible con su sesión
+ok 531 - FE-80: T1 agrega una tarea a S-A1, queda Pendiente, recortada y visible con su sesión
+  ---
+  duration_ms: 769.6972
+  type: 'test'
+  ...
+# Subtest: FE-80: cambiar a Realizada se mantiene al recargar y registra quién y cuándo cambió
+ok 532 - FE-80: cambiar a Realizada se mantiene al recargar y registra quién y cuándo cambió
+  ---
+  duration_ms: 807.7286
+  type: 'test'
+  ...
+# Subtest: FE-80: se puede volver a Pendiente, repetir el mismo estado no reescribe y todo queda auditado
+ok 533 - FE-80: se puede volver a Pendiente, repetir el mismo estado no reescribe y todo queda auditado
+  ---
+  duration_ms: 879.2076
+  type: 'test'
+  ...
+# Subtest: FE-80: datos inválidos responden 400 y la tarea anterior se conserva
+ok 534 - FE-80: datos inválidos responden 400 y la tarea anterior se conserva
+  ---
+  duration_ms: 979.6921
+  type: 'test'
+  ...
+# Subtest: FE-80: desde A no se puede asociar una sesión del caso B ni una sesión inexistente
+ok 535 - FE-80: desde A no se puede asociar una sesión del caso B ni una sesión inexistente
+  ---
+  duration_ms: 800.2969
+  type: 'test'
+  ...
+# Subtest: FE-80: una tarea del caso B no se puede cambiar usando la ruta del caso A
+ok 536 - FE-80: una tarea del caso B no se puede cambiar usando la ruta del caso A
+  ---
+  duration_ms: 841.6453
+  type: 'test'
+  ...
+# Subtest: FE-80: una cuenta ajena no puede crear, listar ni cambiar tareas
+ok 537 - FE-80: una cuenta ajena no puede crear, listar ni cambiar tareas
+  ---
+  duration_ms: 904.3812
+  type: 'test'
+  ...
+# Subtest: FE-80: el listado ordena las tareas según la cronología de sus sesiones
+ok 538 - FE-80: el listado ordena las tareas según la cronología de sus sesiones
+  ---
+  duration_ms: 1115.1986
+  type: 'test'
+  ...
+# Subtest: FE-80: si el guardado falla no queda la tarea creada ni el cumplimiento cambiado
+ok 539 - FE-80: si el guardado falla no queda la tarea creada ni el cumplimiento cambiado
+  ---
+  duration_ms: 928.4531
+  type: 'test'
+  ...
+# Subtest: FE-80: tras reasignar el caso, la terapeuta anterior pierde acceso y se conserva quién creó la tarea
+ok 540 - FE-80: tras reasignar el caso, la terapeuta anterior pierde acceso y se conserva quién creó la tarea
+  ---
+  duration_ms: 817.3794
+  type: 'test'
+  ...
+# Subtest: FE-79: ejemplos de tarea pendiente y realizada con responsable del cambio
+ok 541 - FE-79: ejemplos de tarea pendiente y realizada con responsable del cambio
+  ---
+  duration_ms: 2563.0343
+  type: 'test'
+  ...
+# Subtest: FE-79: sin sesión, con sesión de otro caso o inexistente se rechaza
+ok 542 - FE-79: sin sesión, con sesión de otro caso o inexistente se rechaza
+  ---
+  duration_ms: 21.1189
+  type: 'test'
+  ...
+# Subtest: FE-79: mover una tarea a la sesión de otro caso se rechaza y no altera el otro caso
+ok 543 - FE-79: mover una tarea a la sesión de otro caso se rechaza y no altera el otro caso
+  ---
+  duration_ms: 14.7395
+  type: 'test'
+  ...
+# Subtest: FE-60: un caso ficticio por cada combinación de tipo, clasificación y estado
+ok 544 - FE-60: un caso ficticio por cada combinación de tipo, clasificación y estado
+  ---
+  duration_ms: 2392.5488
+  type: 'test'
+  ...
+# Subtest: FE-60: cambiar clasificación y estado conserva id, origen, número y paciente
+ok 545 - FE-60: cambiar clasificación y estado conserva id, origen, número y paciente
+  ---
+  duration_ms: 17.2359
+  type: 'test'
+  ...
+# Subtest: FE-60: el origen y el número no se pueden cambiar; valores fuera de catálogo se rechazan
+ok 546 - FE-60: el origen y el número no se pueden cambiar; valores fuera de catálogo se rechazan
+  ---
+  duration_ms: 21.9905
+  type: 'test'
+  ...
+# Subtest: transacción asocia actor con parámetros, confirma y libera conexión
+ok 547 - transacción asocia actor con parámetros, confirma y libera conexión
+  ---
+  duration_ms: 3.7067
+  type: 'test'
+  ...
+# Subtest: fallo en escritura revierte, propaga error y libera conexión
+ok 548 - fallo en escritura revierte, propaga error y libera conexión
+  ---
+  duration_ms: 1.4339
+  type: 'test'
+  ...
+1..548
+# tests 551
+# suites 0
+# pass 546
+# fail 4
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 642681.369

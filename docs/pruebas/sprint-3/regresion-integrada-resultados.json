@@ -1,0 +1,34 @@
+{
+  "subtarea": "FE-200",
+  "fecha": "2026-11-27T14:38:47.796Z",
+  "commit": "7e67568",
+  "rama": "feature/FE-200-regresion-integral",
+  "node": "v22.20.0",
+  "postgres": "17.5",
+  "supabaseReal": "incluido (FE_SUPABASE_QA=1)",
+  "unitarias": {
+    "pruebas": 361,
+    "aprobadas": 361,
+    "fallidas": 0,
+    "omitidas": 0,
+    "segundos": 52
+  },
+  "integracion": {
+    "suites": 53,
+    "pruebas": 551,
+    "aprobadas": 546,
+    "fallidas": 4,
+    "omitidas": 1,
+    "todo": 0,
+    "nombresFallidas": [
+      "R3 · conexión detenida en el logout → 504 dentro del plazo y sin auditoría",
+      "R4 · logout real → 204 y exactamente una auditoría LOGOUT",
+      "R5 · reintento de logout con el access anterior",
+      "R6 · refresh token anterior tras el cierre → 401"
+    ],
+    "nombresOmitidas": [
+      "genograma: sin la migración 012 se informa en lugar de omitirlo (la base tiene la 012: ver la prueba siguiente)"
+    ],
+    "segundos": 643
+  }
+}
