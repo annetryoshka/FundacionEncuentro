@@ -19,10 +19,12 @@ export type FotografiaInforme = Record<string, unknown> & {
     diagnosticoIngreso: string | null;
     hipotesisRelacional: string | null;
   };
+  familia?: { registrada: boolean; integrantes?: { parentesco: string; parentescoDetalle?: string | null; nombreCompleto: string | null; fechaNacimiento?: string | null; edadReferida?: number | null; fechaReferencia?: string | null; ocupacion?: string | null; lugarTrabajoEstudio?: string | null }[] } | null;
   sesiones: {
     nroSesion: number;
     fecha: string;
     evolucion: string | null;
+    tareas?: { descripcion: string }[];
   }[];
     judicial: {
     juzgado: string | null;

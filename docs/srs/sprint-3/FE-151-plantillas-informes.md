@@ -114,3 +114,9 @@ Andrea aprobó para esta entrega la estructura sistémica (identificación, eval
 FE-151 queda aceptada en Sprint 3 sobre las dos plantillas v2 implementadas y su mapeo. El modelo institucional, destinatarios y mínimos se contrastarán con la Fundación mediante [FE-212](https://andreanarvaezort-1786202493806.atlassian.net/browse/FE-212) en Sprint 4. Esto sustituye el criterio de cierre anterior de Sprint 3, conservando explícitamente la validación externa como pendiente. No se atribuye a la Fundación la aceptación de la PO.
 
 La exportación gráfica y la edición de Word ya se verificaron en FE-156/FE-161 mediante PR #79. La aceptación actual no agrega datos, conclusiones, firma ni destinatario ficticios a un informe real ni altera los informes previamente revisados.
+
+## Corrección de FE155-01 por Andrea
+
+Las plantillas nuevas `fe151-sistemica-v3` y `fe151-judicial-v3` representan Contexto familiar cuando se selecciona: parentesco, nombre, nacimiento o edad referida con su fecha, ocupación y trabajo/estudio disponibles. Sin selección no se agrega la sección; una ficha ausente/vacía se declara explícitamente. Se incluyen las tareas de las sesiones elegidas. No se agregan conclusiones inventadas, pagos ni datos de otros casos. Los informes ya revisados conservan sus secciones y versión anteriores. No requiere migración.
+
+Se activa I9 de la suite QA y se agrega I10 para comprobar tareas elegidas/omitidas. El simulador se alinea con la selección familiar en ambas plantillas y con las tareas. La validación institucional sigue en FE-212; esta corrección cumple el contrato técnico aceptado por la PO.

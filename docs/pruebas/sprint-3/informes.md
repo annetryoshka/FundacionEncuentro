@@ -66,3 +66,11 @@ Las 11 pruebas existentes de `Informes.test.tsx` (Jorge) pasan (2026-11-26): gen
 - [x] Regresión FE-152/FE-153 (R1): 23/23.
 - [ ] FE155-01 comunicado a Andrea y Adriana.
 - [x] Interfaz: 11/11 existentes en verde (2026-11-26).
+
+## Corrección de FE155-01 por Andrea
+
+Las plantillas nuevas `fe151-sistemica-v3` y `fe151-judicial-v3` representan Contexto familiar cuando se selecciona: parentesco, nombre, nacimiento o edad referida con su fecha, ocupación y trabajo/estudio disponibles. Sin selección no se agrega la sección; una ficha ausente/vacía se declara explícitamente. Se incluyen las tareas de las sesiones elegidas. No se agregan conclusiones inventadas, pagos ni datos de otros casos. Los informes ya revisados conservan sus secciones y versión anteriores. No requiere migración.
+
+Se activa I9 de la suite QA y se agrega I10 para comprobar tareas elegidas/omitidas. El simulador se alinea con la selección familiar en ambas plantillas y con las tareas. La validación institucional sigue en FE-212; esta corrección cumple el contrato técnico aceptado por la PO.
+
+Verificación de la corrección: 498 pruebas de integración aprobadas, 13 omitidas por entorno y cero fallos; 283 unitarias backend y 299 frontend aprobadas, compilaciones/lint satisfactorios. I9 está activa e I10 comprueba la selección de tareas.
