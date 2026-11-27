@@ -71,3 +71,16 @@ Vincular a padres e hijos y añadir una leyenda legible. La muestra solo contien
 Carga válida → recarga conserva la representación, identidad del caso y autoría. Archivo inválido/excesivo → rechazo y versión anterior intacta. Caso sin genograma → estado vacío sin ocultar historial. Cuenta ajena → no obtiene metadatos ni archivo por URL directa. PDF multipágina y nombres pequeños → controles de ampliación útiles.
 
 **Para completar FE-129:** anexar muestra/procedimiento y versión comprobados. Este documento permite diseñar la carga visual; todavía no acredita esa comprobación.
+
+## Revisión de la entrega integrada por Andrea · 26/11/2026
+
+La carga y el visor ya están implementados: POST/GET `/api/carpetas/:id/genograma` y GET `/:id/genograma/archivo`, con autorización por caso. El límite efectivo integrado es **5 MiB** (sustituye la propuesta inicial de 10 MiB); formatos PDF, PNG y JPEG. Se validan extensión, MIME y contenido; `.gno`, XML y SVG no constituyen formatos de carga visual admitidos. No se promete edición de relaciones ni sincronización.
+
+La API y la interfaz cubren ausencia, carga/descarga privada, reemplazo y rechazo sin perder la representación anterior, permisos y ampliación. Evidencia: `backend/test/genograma-http.test.mjs`, `genograma-postgres.test.mjs`, y `frontend/src/features/expediente/genograma/Genograma.test.tsx`. La aceptación de navegador de FE-196 identifica los escenarios visuales ejecutados y su API simulada.
+
+Documentación primaria consultada de nuevo el 26/11/2026:
+- [GenoPro: impresión y vista previa](https://genopro.com/help/print/): utiliza las impresoras instaladas y conserva proporción al ajustar páginas.
+- [Respuesta de GenoProSupport sobre PDF/Word](https://support.genopro.com/Topic27535.aspx): impresión con controlador PDF y exportación gráfica Metafile. No demuestra una exportación PNG directa en la instalación de la Fundación.
+- [Fast Save oficial](https://genopro.com/help/fast-save/): distingue el XML comprimido y el formato binario rápido; no basta renombrar `.gno`.
+
+No están disponibles el número de versión ni una muestra ficticia salida de la instalación de la Fundación. Por tanto **FE-129 conserva solo ese bloqueo externo**: ejecutar el guion del apartado 5 y registrar versión, archivo, legibilidad y procedimiento. El visor del sistema ya puede probarse con archivos ficticios y no debe rehacerse por esta ausencia.
