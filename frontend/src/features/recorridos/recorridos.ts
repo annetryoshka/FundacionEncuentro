@@ -239,6 +239,205 @@ const DIFUSION: PasoRecorrido[] = [
   PAGINACION,
 ]
 
+const NUEVA_CARPETA: PasoRecorrido[] = [
+  {
+    titulo: 'Registrar un paciente',
+    texto:
+      'Aquí registras a un paciente nuevo. Al guardar se abre su carpeta. Los datos clínicos se completan después.',
+  },
+  {
+    elemento: 'nombre-paciente',
+    titulo: 'Nombre',
+    texto: 'Escribe el nombre completo. Si es una familia, puedes poner, por ejemplo, «Familia Quispe Mamani».',
+  },
+  {
+    elemento: 'fecha-ingreso',
+    titulo: 'Fecha de ingreso',
+    texto: 'Ya viene puesta la fecha de hoy. Cámbiala si el paciente llegó otro día.',
+  },
+  {
+    elemento: 'tipo-ingreso',
+    titulo: '¿Cómo llegó?',
+    texto: 'Marca «Voluntario» si vino por su cuenta, o «Derivado» si lo envió una institución, como un juzgado.',
+  },
+  {
+    elemento: 'residencia',
+    titulo: 'Ciudad',
+    texto: 'Dónde vive el paciente. Si no lo sabes, déjalo vacío y se completa después.',
+  },
+  {
+    elemento: 'registrar-carpeta',
+    titulo: 'Guardar',
+    texto: 'Pulsa «Registrar y abrir carpeta». El número de carpeta lo pone el sistema y no se puede cambiar.',
+  },
+]
+
+const SESIONES: PasoRecorrido[] = [
+  {
+    titulo: 'Sesiones y tareas',
+    texto: 'Aquí están todas las sesiones de este paciente, de la más antigua a la más reciente.',
+  },
+  {
+    elemento: 'registrar-sesion',
+    titulo: 'Sesión nueva',
+    texto: 'Después de atender al paciente, pulsa «Registrar sesión» para anotarla.',
+  },
+  {
+    elemento: 'lista-sesiones',
+    titulo: 'Abrir una sesión',
+    texto: 'Pulsa una sesión para leerla y ver sus tareas. La etiqueta de la derecha dice cuántas tareas faltan.',
+  },
+  APARTADOS,
+]
+
+const SESION: PasoRecorrido[] = [
+  {
+    titulo: 'Una sesión',
+    texto: 'Aquí ves lo que se anotó en esta sesión y las tareas que se dejaron al paciente o a la familia.',
+  },
+  {
+    elemento: 'detalle-sesion',
+    titulo: 'Evolución',
+    texto: 'Número y fecha de la sesión, quién la atendió y lo que se trabajó.',
+  },
+  {
+    elemento: 'lista-tareas',
+    titulo: 'Tareas',
+    texto:
+      'Cuando el paciente cumpla una tarea, pulsa «Marcar como realizada». Si te equivocas, puedes volverla a pendiente.',
+  },
+  {
+    elemento: 'nueva-tarea',
+    titulo: 'Tarea nueva',
+    texto: 'Escribe la actividad para antes de la próxima sesión y pulsa «Agregar tarea».',
+  },
+  {
+    elemento: 'ver-sesiones',
+    titulo: 'Volver',
+    texto: 'Con «Ver todas las sesiones» vuelves a la lista.',
+  },
+]
+
+const DIAGNOSTICO: PasoRecorrido[] = [
+  {
+    titulo: 'Ficha de diagnóstico',
+    texto:
+      'Aquí se anota la evaluación del caso. Cada carpeta tiene una sola ficha, que se puede corregir cuando haga falta.',
+  },
+  {
+    elemento: 'crear-ficha',
+    titulo: 'Crear la ficha',
+    texto: 'Esta carpeta todavía no tiene ficha. Pulsa «Crear ficha» para empezar.',
+  },
+  {
+    elemento: 'ficha-diagnostico',
+    titulo: 'La ficha',
+    texto: 'Fecha de la evaluación, quién la escribió y lo registrado en cada apartado.',
+  },
+  {
+    elemento: 'editar-ficha',
+    titulo: 'Corregir o completar',
+    texto: 'Pulsa «Editar ficha» para cambiar o completar lo escrito.',
+  },
+  {
+    elemento: 'evaluacion-inicial',
+    titulo: 'Evaluación inicial',
+    texto: 'Es lo único obligatorio. El diagnóstico, la hipótesis y los comentarios se pueden completar después.',
+  },
+  {
+    elemento: 'guardar-ficha',
+    titulo: 'Guardar',
+    texto: 'Pulsa «Guardar ficha». Si algo falla, lo que escribiste no se pierde.',
+  },
+  APARTADOS,
+]
+
+const FAMILIA: PasoRecorrido[] = [
+  {
+    titulo: 'Composición familiar',
+    texto:
+      'Aquí se anota quiénes forman la familia del paciente. Cada persona se describe por su relación con él o ella.',
+  },
+  {
+    elemento: 'registrar-familia',
+    titulo: 'Empezar',
+    texto: 'Todavía no hay nadie anotado. Pulsa «Registrar composición familiar» para empezar.',
+  },
+  {
+    elemento: 'lista-familia',
+    titulo: 'Integrantes',
+    texto: 'Cada tarjeta es una persona: parentesco, nombre, edad, ocupación y si vive con el paciente.',
+  },
+  {
+    elemento: 'editar-familia',
+    titulo: 'Cambiar',
+    texto: 'Pulsa «Editar composición» para agregar, corregir o quitar integrantes.',
+  },
+  {
+    elemento: 'agregar-integrante',
+    titulo: 'Agregar a alguien',
+    texto:
+      'Pulsa «Agregar integrante» por cada persona. Si no conoces un dato, déjalo vacío. Para sacar a alguien, usa «Quitar integrante» en su tarjeta.',
+  },
+  {
+    elemento: 'guardar-familia',
+    titulo: 'Guardar',
+    texto: 'Al terminar, pulsa «Guardar composición». Nada cambia hasta que guardes.',
+  },
+  APARTADOS,
+]
+
+const GENOGRAMA: PasoRecorrido[] = [
+  {
+    titulo: 'Genograma',
+    texto:
+      'El genograma se dibuja en el programa GenoPro. Aquí se guarda el archivo exportado para verlo junto a la carpeta.',
+  },
+  {
+    elemento: 'genograma-actual',
+    titulo: 'El genograma actual',
+    texto: 'Aquí lo ves, junto con quién lo subió y cuándo.',
+  },
+  {
+    elemento: 'genograma-acciones',
+    titulo: 'Verlo mejor',
+    texto: 'Con estos botones lo ves más grande, lo abres en otra pestaña o lo descargas.',
+  },
+  {
+    elemento: 'subir-genograma',
+    titulo: 'Subir o reemplazar',
+    texto:
+      'Elige el archivo exportado de GenoPro (PDF, PNG o JPEG, hasta 5 MB) y pulsa el botón verde. Si ya había uno, el nuevo lo reemplaza.',
+  },
+  APARTADOS,
+]
+
+const HISTORIAL: PasoRecorrido[] = [
+  {
+    titulo: 'Historial clínico',
+    texto: 'Todo el caso en una sola página, para leerlo de corrido. Aquí no se cambia nada.',
+  },
+  {
+    elemento: 'historial-identificacion',
+    titulo: 'Identificación',
+    texto: 'Los datos básicos del paciente y de su carpeta.',
+  },
+  {
+    elemento: 'historial-constancia',
+    titulo: 'Partes numeradas',
+    texto: 'Debajo siguen constancia, diagnóstico y sesiones. Para corregir algo, pulsa «Abrir» en esa parte.',
+  },
+  {
+    elemento: 'historial-sesiones',
+    titulo: 'Sesiones y tareas',
+    texto: 'Todas las sesiones en orden, cada una con sus tareas.',
+  },
+  {
+    titulo: 'Descargar',
+    texto: 'Para tenerlo en PDF o Word, vuelve a la carpeta del paciente y usa «Exportar a PDF o Word».',
+  },
+]
+
 /**
  * Todas las pantallas internas de App.tsx. Están todas (también las que aún no tienen recorrido) para que
  * una ruta fija como /carpetas/nueva no se confunda con /carpetas/:id.
@@ -246,18 +445,18 @@ const DIFUSION: PasoRecorrido[] = [
 export const RECORRIDOS: Record<string, PasoRecorrido[] | null> = {
   '/inicio': INICIO,
   '/carpetas': CARPETAS,
-  '/carpetas/nueva': null,
+  '/carpetas/nueva': NUEVA_CARPETA,
   '/carpetas/:id': CARPETA,
-  '/carpetas/:id/familia': null,
-  '/carpetas/:id/genograma': null,
+  '/carpetas/:id/familia': FAMILIA,
+  '/carpetas/:id/genograma': GENOGRAMA,
   '/carpetas/:id/informes': null,
   '/carpetas/:id/informes/:versionId': null,
-  '/carpetas/:id/historial': null,
+  '/carpetas/:id/historial': HISTORIAL,
   '/carpetas/:id/constancia': null,
-  '/carpetas/:id/diagnostico': null,
-  '/carpetas/:id/sesiones': null,
+  '/carpetas/:id/diagnostico': DIAGNOSTICO,
+  '/carpetas/:id/sesiones': SESIONES,
   '/carpetas/:id/sesiones/nueva': NUEVA_SESION,
-  '/carpetas/:id/sesiones/:sesionId': null,
+  '/carpetas/:id/sesiones/:sesionId': SESION,
   '/carpetas/:id/pagos': PAGOS,
   '/carpetas/:id/investigacion': null,
   '/difusion': DIFUSION,

@@ -17,16 +17,16 @@ Los pasos están en `frontend/src/features/recorridos/recorridos.ts`; cada eleme
 | # | Pantalla | Ruta | Roles | Qué es | Recorrido |
 |---|---|---|---|---|---|
 | 3 | Carpetas | `/carpetas` | A T | Listado y búsqueda de carpetas con filtros por clasificación, estado y ciudad de residencia. | borrador |
-| 4 | Registrar paciente | `/carpetas/nueva` | A | Formulario para registrar un paciente y abrir su carpeta. | pendiente |
+| 4 | Registrar paciente | `/carpetas/nueva` | A | Formulario para registrar un paciente y abrir su carpeta. | borrador |
 | 5 | Carpeta del paciente | `/carpetas/:id` | A T | Resumen de la carpeta: datos del paciente, terapeuta asignada, clasificación y estado; acceso a los apartados del expediente. | borrador |
 | 6 | Origen y consentimiento | `/carpetas/:id/constancia` | A T | Tipo de ingreso, procedencia y constancia de consentimiento; contexto judicial si el caso es derivado. | pendiente |
-| 7 | Ficha de diagnóstico | `/carpetas/:id/diagnostico` | A T | Evaluación inicial y diagnóstico de ingreso (opcional) del caso. | pendiente |
-| 8 | Composición familiar | `/carpetas/:id/familia` | A T | Registro y edición de los integrantes de la familia. | pendiente |
-| 9 | Genograma | `/carpetas/:id/genograma` | A T | Ver, ampliar, descargar y subir el genograma exportado de GenoPro (PDF, PNG o JPEG). No se dibuja aquí. | pendiente |
-| 10 | Sesiones y tareas | `/carpetas/:id/sesiones` | A T | Lista de sesiones del caso por fecha. | pendiente |
+| 7 | Ficha de diagnóstico | `/carpetas/:id/diagnostico` | A T | Evaluación inicial y diagnóstico de ingreso (opcional) del caso. | borrador |
+| 8 | Composición familiar | `/carpetas/:id/familia` | A T | Registro y edición de los integrantes de la familia. | borrador |
+| 9 | Genograma | `/carpetas/:id/genograma` | A T | Ver, ampliar, descargar y subir el genograma exportado de GenoPro (PDF, PNG o JPEG). No se dibuja aquí. | borrador |
+| 10 | Sesiones y tareas | `/carpetas/:id/sesiones` | A T | Lista de sesiones del caso por fecha. | borrador |
 | 11 | Registrar sesión | `/carpetas/:id/sesiones/nueva` | A T | Formulario de una sesión nueva con su seguimiento (fecha y evolución). | borrador |
-| 12 | Sesión | `/carpetas/:id/sesiones/:sesionId` | A T | Detalle de una sesión y sus tareas terapéuticas. | pendiente |
-| 13 | Historial clínico | `/carpetas/:id/historial` | A T | Vista de lectura de todo el caso: identificación, constancia, diagnóstico, sesiones y, para administración, pagos. | pendiente |
+| 12 | Sesión | `/carpetas/:id/sesiones/:sesionId` | A T | Detalle de una sesión y sus tareas terapéuticas. | borrador |
+| 13 | Historial clínico | `/carpetas/:id/historial` | A T | Vista de lectura de todo el caso: identificación, constancia, diagnóstico, sesiones y, para administración, pagos. | borrador |
 | 14 | Pagos | `/carpetas/:id/pagos` | A | Pagos del caso: uno por sesión, en Bs, por QR o transferencia. | borrador |
 | 15 | Informes | `/carpetas/:id/informes` | T | Elegir plantilla y datos para generar el borrador de un informe. | pendiente |
 | 16 | Informe | `/carpetas/:id/informes/:versionId` | T | Previsualizar, corregir y marcar como revisado un borrador; el revisado se puede exportar. | pendiente |

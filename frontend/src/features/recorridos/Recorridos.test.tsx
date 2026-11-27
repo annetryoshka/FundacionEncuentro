@@ -1,12 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import fuenteApp from '../../App.tsx?raw'
-import { CARPETA_DE_SOFIA, montarApp } from '../../test/montarApp'
+import { CARPETA_DE_SOFIA, CARPETA_VACIA_DE_SOFIA, SESION_1, montarApp } from '../../test/montarApp'
 import { RECORRIDOS } from './recorridos'
 
 const fuentes = import.meta.glob<string>('../../**/*.tsx', { query: '?raw', import: 'default', eager: true })
 const marcados = new Set(
-  Object.values(fuentes).flatMap((f) => [...f.matchAll(/data-recorrido="([^"]+)"/g)].map((m) => m[1])),
+  Object.values(fuentes).flatMap((f) => [...f.matchAll(/(?:data-)?recorrido="([^"]+)"/g)].map((m) => m[1])),
 )
 
 const abrirAyuda = (usuario: Awaited<ReturnType<typeof montarApp>>['usuario']) =>
@@ -106,5 +106,28 @@ describe('Recorridos guiados', () => {
 
     await usuario.click(screen.getByRole('link', { name: 'Inicio' }))
     expect(screen.getByRole('button', { name: 'Ayuda: cómo se usa esta pantalla' })).toBeInTheDocument()
+  })
+
+  // Cada recorrido, en la pantalla real ya cargada, muestra su introducción y al menos dos pasos más.
+  it.each([
+    ['/carpetas/nueva', 'Registrar un paciente'],
+    [`/carpetas/${CARPETA_DE_SOFIA}/sesiones`, 'Sesiones y tareas'],
+    [`/carpetas/${CARPETA_DE_SOFIA}/sesiones/${SESION_1}`, 'Una sesión'],
+    [`/carpetas/${CARPETA_DE_SOFIA}/diagnostico`, 'Ficha de diagnóstico'],
+    [`/carpetas/${CARPETA_VACIA_DE_SOFIA}/diagnostico`, 'Ficha de diagnóstico'],
+    [`/carpetas/${CARPETA_DE_SOFIA}/familia`, 'Composición familiar'],
+    [`/carpetas/${CARPETA_DE_SOFIA}/genograma`, 'Genograma'],
+    [`/carpetas/${CARPETA_DE_SOFIA}/historial`, 'Historial clínico'],
+  ])('%s tiene recorrido', async (ruta, titulo) => {
+    const { usuario } = await montarApp(ruta)
+    await waitFor(() => expect(screen.queryByText(/^(Cargando|Abriendo|Consultando)/)).toBeNull())
+    await abrirAyuda(usuario)
+    const dialogo = screen.getByRole('dialog', { name: titulo })
+    const total = Number(
+      within(dialogo)
+        .getByText(/^Paso 1 de \d+$/)
+        .textContent?.match(/\d+$/)?.[0],
+    )
+    expect(total).toBeGreaterThanOrEqual(3)
   })
 })
